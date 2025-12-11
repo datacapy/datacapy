@@ -1,0 +1,29 @@
+{
+  "name": "mzen",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Mzen",
+  "scripts": {
+    "build": "pnpm -r --stream build",
+    "test": "pnpm -r --stream test",
+    "clean": "pnpm -r --stream clean",
+    "format": "pnpm -r --stream format",
+    "build:mzen-id": "pnpm --filter mzen-id build",
+    "build:mzen-schema": "pnpm --filter mzen-schema build",
+    "build:mzen-om": "pnpm --filter mzen-om build",
+    "build:mzen-server": "pnpm --filter mzen-server build",
+    "test:mzen-id": "pnpm --filter mzen-id test",
+    "test:mzen-schema": "pnpm --filter mzen-schema test",
+    "test:mzen-om": "pnpm --filter mzen-om test",
+    "test:mzen-server": "pnpm --filter mzen-server test"
+  },
+  "keywords": ["monorepo", "mzen"],
+  "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

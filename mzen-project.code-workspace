@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "package/mzen-om"
+		},
+		{
+			"path": "package/mzen-schema"
+		},
+		{
+			"path": "package/mzen-server"
+		},
+		{
+			"path": "package/mzen-id"
+		}
+	],
+	"settings": {}
+}
