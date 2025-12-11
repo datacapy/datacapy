@@ -1,0 +1,359 @@
+import {
+  DataSourceMongodb,
+  DataSourceMock,
+  DataSourceInterface,
+  DataSourceMysql,
+} from 'data-source'
+import Repo from 'repo'
+import RepoPopulator from 'repo-populator'
+import Service from 'service'
+import Schema from 'mzen-schema'
+
+export interface Logger extends Console {}
+
+export interface ModelManagerConfigDataSource {
+  name?: string
+  type?: 'mongodb' | 'mock' | string
+  config?: { [key: string]: any }
+}
+
+export interface ModelManagerConfig {
+  dataSources?: Array<ModelManagerConfigDataSource>
+  constructors?: { [key: string]: any } | Array<any>
+  schemas?: { [key: string]: Schema } | Array<Schema>
+  repos?: { [key: string]: Repo<any> } | Array<Repo<any>>
+  services?: { [key: string]: Service } | Array<Service>
+  app?: any // adhoc app configuration passed by consumers
+}
+
+/**
+ * ModelManager
+ *
+ * The model manager is responsible for loading and initializing repositories, services.
+ * It loads repository and service class definitions from the file system.
+ */
+export class ModelManager {
+  initialised: boolean
+  initialisers: {
+    [key: string]: Function[]
+  }
+  shutdownHandlers: {
+    [key: string]: Function[]
+  }
+  config: ModelManagerConfig
+  dataSources: { [key: string]: DataSourceInterface }
+  constructors: { [key: string]: Function }
+  schemas: { [key: string]: Schema }
+  repos: { [key: string]: Repo<any> }
+  services: { [key: string]: Service }
+  repoPopulator?: RepoPopulator
+  logger: Logger
+
+  constructor(options?: ModelManagerConfig) {
+    this.config = options ? options : {}
+    this.config.dataSources = this.config.dataSources
+      ? this.config.dataSources
+      : []
+    this.config.constructors = this.config.constructors
+      ? this.config.constructors
+      : {}
+    this.config.schemas = this.config.schemas ? this.config.schemas : {}
+    this.config.repos = this.config.repos ? this.config.repos : {}
+    this.config.services = this.config.services ? this.config.services : {}
+
+    this.logger = console
+
+    this.initialised = false
+    this.initialisers = {}
+    this.shutdownHandlers = {}
+    this.dataSources = {}
+    this.constructors = {}
+    this.schemas = {}
+    this.repos = {}
+    this.services = {}
+
+    if (this.config.constructors) {
+      this.addConstructors(this.config.constructors)
+    }
+    if (this.config.schemas) {
+      this.addSchemas(this.config.schemas)
+    }
+    if (this.config.repos) {
+      this.addRepos(this.config.repos)
+    }
+    if (this.config.services) {
+      this.addServices(this.config.services)
+    }
+  }
+
+  setLogger(logger) {
+    this.logger = logger
+  }
+
+  addInitialiser(initialiser, stage?: string) {
+    stage = stage ? stage : 'default'
+    if (this.initialisers[stage] === undefined) {
+      this.initialisers[stage] = []
+    }
+    this.initialisers[stage].push(initialiser)
+  }
+
+  addInitialisers(initialisers, stage?: string) {
+    initialisers.forEach((initialiser) => {
+      this.addInitialiser(initialiser, stage)
+    })
+  }
+
+  async runInitialisers(stage?: string) {
+    stage = stage ? stage : 'default'
+    if (this.initialisers[stage]) {
+      for (var initFunction of this.initialisers[stage]) {
+        var shutdownHandler = await Promise.resolve(initFunction(this))
+        this.addShutdownHandler(shutdownHandler, stage)
+      }
+    }
+  }
+
+  addShutdownHandler(handler, stage?: string) {
+    if (handler) {
+      stage = stage ? stage : 'default'
+      if (this.shutdownHandlers[stage] == undefined) {
+        this.shutdownHandlers[stage] = []
+      }
+      this.shutdownHandlers[stage].unshift(handler)
+    }
+  }
+
+  addShutdownHandlers(handlers, stage?: string) {
+    handlers.forEach((handler) => {
+      this.addShutdownHandler(handler, stage)
+    })
+  }
+
+  async runShutdownHandlers(stage?: string) {
+    stage = stage ? stage : 'default'
+    if (this.shutdownHandlers[stage]) {
+      for (var handler of this.shutdownHandlers[stage]) {
+        await Promise.resolve(handler())
+      }
+    }
+  }
+
+  async initDataSourceFromConfig(options) {
+    switch (options.type) {
+      case 'mysql':
+        return await this.initDataSource(
+          options.name,
+          new DataSourceMysql(options.config)
+        )
+        break
+      case 'mongodb':
+        return await this.initDataSource(
+          options.name,
+          new DataSourceMongodb(options.config)
+        )
+        break
+      case 'mock':
+        return await this.initDataSource(
+          options.name,
+          new DataSourceMock(options.data ? options.data : {})
+        )
+        break
+    }
+  }
+
+  async initDataSource(name: string, dataSource) {
+    const waitMs = 500
+    const maxAttempts = 3
+    let attempt = 0
+    const attemptConnect = async () => {
+      attempt++
+      try {
+        await dataSource.connect()
+        this.addDataSource(name, dataSource)
+      } catch (error) {
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) =>
+            setTimeout(() => resolve(attemptConnect()), waitMs)
+          )
+        } else {
+          throw error
+        }
+      }
+    }
+    await attemptConnect()
+
+    return dataSource
+  }
+
+  getRepoPopulator(): RepoPopulator {
+    return this.repoPopulator
+      ? this.repoPopulator
+      : (this.repoPopulator = new RepoPopulator())
+  }
+
+  setRepoPopulator(repoPopulator: RepoPopulator) {
+    this.repoPopulator = repoPopulator
+  }
+
+  getDataSource(name) {
+    return this.dataSources[name]
+  }
+
+  addDataSource(name, dataSource: any) {
+    this.dataSources[name] = dataSource
+  }
+
+  addConstructor(value) {
+    this.constructors[value.name] = value
+  }
+
+  getConstructor(constructorName) {
+    return this.constructors[constructorName]
+  }
+
+  addConstructors(constructors) {
+    // could be an array of constructor functions or a object map
+    var constructorsArray = Array.isArray(constructors)
+      ? constructors
+      : Object.values(constructors)
+    constructorsArray.forEach((construct) => this.addConstructor(construct))
+  }
+
+  addSchema(schema: Schema) {
+    this.schemas[schema.getName()] = schema
+  }
+
+  getSchema(name): Schema {
+    return this.schemas[name]
+  }
+
+  addSchemas(schemas: Array<Schema> | { [key: string]: Schema }) {
+    // could be an array of schema objects functions or a object map
+    var schemasArray = Array.isArray(schemas) ? schemas : Object.values(schemas)
+    schemasArray.forEach((schema) => this.addSchema(schema))
+  }
+
+  addRepo<T>(repo: Repo<T>) {
+    this.repos[repo.getName()] = repo
+  }
+
+  getRepo<T>(name): Repo<T> {
+    return this.repos[name]
+  }
+
+  addRepos(repos: Array<Repo<any>> | { [key: string]: Repo<any> }) {
+    // could be an array of repo objects or a object map
+    var reopsArray = Array.isArray(repos) ? repos : Object.values(repos)
+    reopsArray.forEach((repo) => this.addRepo(repo))
+  }
+
+  addService(service: Service) {
+    this.services[service.getName()] = service
+  }
+
+  getService(name): Service {
+    return this.services[name]
+  }
+
+  addServices(services: Array<Service> | { [key: string]: Service }) {
+    // could be an array of repo objects or a object map
+    var servicesArray = Array.isArray(services)
+      ? services
+      : Object.values(services)
+    servicesArray.forEach((service) => this.addService(service))
+  }
+
+  async loadDataSources() {
+    let promises: Promise<DataSourceInterface>[] = []
+    this.config.dataSources?.forEach((dataSource) => {
+      promises.push(this.initDataSourceFromConfig(dataSource))
+    })
+    await Promise.all(promises)
+    return this
+  }
+
+  async initSchemas() {
+    Object.values(this.schemas).forEach((schema) => {
+      schema.addSchemas(this.schemas)
+      schema.addConstructors(this.constructors)
+    })
+  }
+
+  async initRepos() {
+    const dataSourceNames = Object.keys(this.dataSources)
+    const defaultDataSourceName = dataSourceNames[0]
+
+    var promises: Promise<void>[] = []
+    Object.values(this.repos).forEach(async (repo) => {
+      // We inject the main config object into every repo so it can access global config values
+      repo.config.model = this.config
+      repo.setLogger(this.logger)
+      repo.setPopulator(this.getRepoPopulator())
+      repo.addConstructors(this.constructors)
+      repo.addSchemas(this.schemas)
+      repo.addRepos(this.repos)
+      repo.addServices(this.services)
+
+      // Data sources are injected into repos to remove the need for a dependency on the ModelManager
+      if (
+        repo.config.dataSource !== undefined &&
+        this.dataSources[repo.config.dataSource]
+      ) {
+        repo.dataSource = this.dataSources[repo.config.dataSource]
+      } else if (defaultDataSourceName !== undefined) {
+        repo.dataSource = this.dataSources[defaultDataSourceName]
+      }
+
+      promises.push(repo.init())
+    })
+    return await Promise.all(promises)
+  }
+
+  async initServices() {
+    var promises: Promise<void>[] = []
+    Object.values(this.services).forEach(async (service) => {
+      // We inject the main config object into every service so it can access global config values
+      service.config.model = this.config
+      service.setLogger(this.logger)
+      service.addRepos(this.repos)
+      service.addServices(this.services)
+
+      promises.push(service.init())
+    })
+    return await Promise.all(promises)
+  }
+
+  async init() {
+    if (!this.initialised) {
+      await this.runInitialisers()
+      await this.runInitialisers('00-init')
+      await this.loadDataSources()
+      await this.initSchemas()
+      await this.initRepos()
+      await this.initServices()
+      await this.runInitialisers('99-final')
+      this.initialised = true
+    }
+
+    return this
+  }
+
+  async shutdown() {
+    // Should down should be in reverse order of init
+    await this.runShutdownHandlers('99-final')
+
+    let promises: Promise<void>[] = []
+    Object.values(this.dataSources).forEach(async (dataSource) => {
+      promises.push(dataSource.close())
+    })
+    await Promise.all(promises)
+
+    await this.runShutdownHandlers('00-init')
+    await this.runShutdownHandlers()
+
+    return this
+  }
+}
+
+export default ModelManager

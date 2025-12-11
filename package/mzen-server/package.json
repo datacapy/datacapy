@@ -1,0 +1,59 @@
+{
+  "name": "mzen-server",
+  "type": "commonjs",
+  "private": true,
+  "version": "0.1.209",
+  "description": "mzen server",
+  "main": "dist/index",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prepare": "husky",
+    "prepublishOnly": "pnpm test",
+    "build": "pnpm run clean && tsc && pnpm run build-minimise",
+    "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} +",
+    "clean": "rm -fr ./dist/*",
+    "test": "export NODE_PATH=./src && mocha -r ts-node/register ./src/**/_tests/*.test.ts",
+    "test-fixtures-build": "cd ./_tests/fixtures && tsc",
+    "test-fixtures-clean": "find ./_tests/fixtures -type f \\( -name '*.js' -or -name '*.js.map' -or -name '*.d.ts' \\) -delete",
+    "prettier:check": "prettier --check src",
+    "format": "prettier --write src"
+  },
+  "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/kevin-foster-uk/mzen-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kevin-foster-uk/mzen-server.git"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/bcrypt": "^3.0.1",
+    "@types/express": "^4.17.23",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^20.0.0",
+    "eslint": "^9.36.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "mocha": "^7.2.0",
+    "prettier": "3.5.3",
+    "should": "^11.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^4.9.5",
+    "typescript-eslint": "^8.44.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.3",
+    "express": "^4.21.2",
+    "merge": "^2.1.1",
+    "mongodb": "^6.20.0",
+    "mzen-om": "workspace:*"
+  },
+  "files": [
+    "/dist",
+    "/tsconfig.json"
+  ],
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  }
+}
