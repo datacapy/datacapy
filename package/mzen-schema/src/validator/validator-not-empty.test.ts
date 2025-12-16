@@ -389,4 +389,133 @@ describe('validator - notEmpty', () => {
       expect(result.isValid).toBe(false)
     })
   })
+
+  describe('notEmpty with allowZero option', () => {
+    it('valid - zero with allowZero', async () => {
+      const data = { count: 0 }
+
+      const schema = new Schema({
+        count: {
+          $type: Number,
+          $validate: { required: true, notEmpty: { allowZero: true } },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(true)
+    })
+
+    it('invalid - zero without allowZero', async () => {
+      const data = { count: 0 }
+
+      const schema = new Schema({
+        count: { $type: Number, $validate: { required: true, notEmpty: true } },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(false)
+    })
+
+    it('invalid - NaN with allowZero', async () => {
+      const data = { count: NaN }
+
+      const schema = new Schema({
+        count: {
+          $type: Number,
+          $validate: { required: true, notEmpty: { allowZero: true } },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(false)
+    })
+  })
+
+  describe('notEmpty with allowFalse option', () => {
+    it('valid - false with allowFalse', async () => {
+      const data = { enabled: false }
+
+      const schema = new Schema({
+        enabled: {
+          $type: Boolean,
+          $validate: { required: true, notEmpty: { allowFalse: true } },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(true)
+    })
+
+    it('invalid - false without allowFalse', async () => {
+      const data = { enabled: false }
+
+      const schema = new Schema({
+        enabled: {
+          $type: Boolean,
+          $validate: { required: true, notEmpty: true },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(false)
+    })
+  })
+
+  describe('notEmpty with permissive option', () => {
+    it('valid - zero with permissive', async () => {
+      const data = { count: 0 }
+
+      const schema = new Schema({
+        count: {
+          $type: Number,
+          $validate: { required: true, notEmpty: { permissive: true } },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(true)
+    })
+
+    it('valid - false with permissive', async () => {
+      const data = { enabled: false }
+
+      const schema = new Schema({
+        enabled: {
+          $type: Boolean,
+          $validate: { required: true, notEmpty: { permissive: true } },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(true)
+    })
+
+    it('invalid - empty string with permissive', async () => {
+      const data = { name: '' }
+
+      const schema = new Schema({
+        name: {
+          $type: String,
+          $validate: { required: true, notEmpty: { permissive: true } },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(false)
+    })
+
+    it('invalid - undefined with permissive', async () => {
+      const data = { name: undefined }
+
+      const schema = new Schema({
+        name: {
+          $type: String,
+          $validate: { required: true, notEmpty: { permissive: true } },
+        },
+      })
+
+      const result = await schema.validate(data)
+      expect(result.isValid).toBe(false)
+    })
+  })
 })

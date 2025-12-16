@@ -6,7 +6,7 @@ export class ValidatorNotEmpty {
     const message =
       options && options.message ? options.message : label + ' cannot be empty'
     const result =
-      new ValidatorIsEmpty().validate(value) !== true ? true : message
+      new ValidatorIsEmpty().validate(value, options) !== true ? true : message
     return result
   }
 

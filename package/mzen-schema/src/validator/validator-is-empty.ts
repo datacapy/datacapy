@@ -5,12 +5,21 @@ export class ValidatorIsEmpty {
     const label = options && options.label ? options.label : 'field'
     const message =
       options && options.message ? options.message : label + ' must be empty'
-    const valueType = value ? TypeCaster.getType(value) : undefined
+
+    const allowZero = options && (options.allowZero || options.permissive)
+    const allowFalse = options && (options.allowFalse || options.permissive)
+
+    const valueType = value !== null && value !== undefined ? TypeCaster.getType(value) : undefined
+
+    const isZero = valueType === Number && value === 0
+    const isFalse = valueType === Boolean && value === false
+    const isEmptyString = valueType === String && value === ''
+
     const result =
       value == undefined ||
-      // In Javascript [[]] evaluates to false - we dont want this
-      // - an array is only considered empty if it has zero elements
-      (valueType != Array && value == false) ||
+      (isZero && !allowZero) ||
+      (isFalse && !allowFalse) ||
+      isEmptyString ||
       (valueType == Number && isNaN(value)) ||
       (valueType == Object && Object.keys(value).length == 0) ||
       (valueType == Array && value.length == 0)
