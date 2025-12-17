@@ -9,7 +9,10 @@ export class ValidatorIsEmpty {
     const allowZero = options && (options.allowZero || options.permissive)
     const allowFalse = options && (options.allowFalse || options.permissive)
 
-    const valueType = value !== null && value !== undefined ? TypeCaster.getType(value) : undefined
+    const valueType =
+      value !== null && value !== undefined
+        ? TypeCaster.getType(value)
+        : undefined
 
     const isZero = valueType === Number && value === 0
     const isFalse = valueType === Boolean && value === false

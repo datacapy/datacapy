@@ -54,7 +54,9 @@ describe('validator - isEmpty', () => {
 
   it('should not treat 0 or false as empty with permissive option', () => {
     const zeroResult = new ValidatorIsEmpty().validate(0, { permissive: true })
-    const falseResult = new ValidatorIsEmpty().validate(false, { permissive: true })
+    const falseResult = new ValidatorIsEmpty().validate(false, {
+      permissive: true,
+    })
 
     expect(typeof zeroResult).toBe('string')
     expect(typeof falseResult).toBe('string')

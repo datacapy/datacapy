@@ -246,10 +246,30 @@ export class ServerRemoteObject {
               // Errors which do not have a ref are not expected by the client and must be logged
               // Errors which have a ref may be forced to log if the logged flag value is set to true
               // Unhandled errors are not expected by either the server or the client and must be logged
+
+              // Extract error details with fallbacks to ensure meaningful logs
+              const errorMessage =
+                err?.message ||
+                err?.toString?.() ||
+                String(err) ||
+                'Unknown error'
+
+              const errorStack =
+                err?.stack ||
+                (err instanceof Error ? new Error().stack : null) ||
+                'No stack trace available'
+
+              const errorName = err?.name || err?.constructor?.name || 'Error'
+
               this.logger?.error({
-                code: err?.code,
-                message: err?.message,
-                stack: err?.stack,
+                endpoint: endpointName,
+                method: method,
+                errorName: errorName,
+                errorMessage: errorMessage,
+                errorStack: errorStack,
+                errorCode: err?.code,
+                errorRef: err?.ref,
+                handled: errorHandled,
                 req: this.requestMin(req),
               })
             }
