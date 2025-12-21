@@ -57,6 +57,7 @@ export interface ServerApiConfigEndpoint {
   data?: { [key: string]: ServerApiConfigEndpointData }
   acl?: ServerApiConfigAcl
   priority?: number
+  skipResponse?: boolean
   response?: {
     success?: ServerApiConfigEndpointResponse
     error?: { [key: string]: ServerApiConfigEndpointResponse }
