@@ -148,7 +148,11 @@ export class ServerRemoteObject {
       verbs.forEach((verb) => {
         const middlewareCallback = async (req, res) => {
           try {
-            const requestData = this.parseRequestData(requestDataConfig, req, res)
+            const requestData = this.parseRequestData(
+              requestDataConfig,
+              req,
+              res
+            )
             const validationSpec = this.parseValidationSpec(requestDataConfig)
             const aclContext = { ...requestData }
             const argValidateSchema = new Schema(validationSpec)
@@ -225,9 +229,10 @@ export class ServerRemoteObject {
                     ? httpConfig.contentType
                     : 'json'
 
-                  const validateResultError: SchemaValidationResult = schemaConfig
-                    ? await new Schema(schemaConfig).validate(err)
-                    : { isValid: true }
+                  const validateResultError: SchemaValidationResult =
+                    schemaConfig
+                      ? await new Schema(schemaConfig).validate(err)
+                      : { isValid: true }
                   if (validateResultError.isValid) {
                     if (contentType == 'json') {
                       res.status(code).json(error)
@@ -267,13 +272,14 @@ export class ServerRemoteObject {
                 const errorName = err?.name || err?.constructor?.name || 'Error'
 
                 // Log to console for immediate visibility
-                console.error('=== MZEN SERVER ERROR ===')
                 console.error('Endpoint:', endpointName)
                 console.error('Method:', method)
                 console.error('Error:', errorName, '-', errorMessage)
                 console.error('Stack:', errorStack)
                 if (!errorHandled) {
-                  console.error('WARNING: Error was not handled by endpoint error config')
+                  console.error(
+                    'WARNING: Error was not handled by endpoint error config'
+                  )
                 }
 
                 // Also log via logger for structured logging
@@ -302,7 +308,7 @@ export class ServerRemoteObject {
               }
             } catch (outerErr) {
               // Catch-all for errors in error handling itself
-              console.error('=== FATAL: Error in mzen-server error handler ===')
+              console.error('=== FATAL: Error in error handler ===')
               console.error('Outer error:', outerErr)
               console.error('Original error:', err)
 
