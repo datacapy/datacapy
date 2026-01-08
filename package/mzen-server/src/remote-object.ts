@@ -61,8 +61,9 @@ export class ServerRemoteObject {
   object: any
   acl: ServerAcl
   logger: any
+  modelManager: any
 
-  constructor(object, config?) {
+  constructor(object, config?, modelManager?) {
     this.config = config ? config : {}
     this.config.path = this.config.path ? this.config.path : ''
     this.config.endpoints = this.config.endpoints ? this.config.endpoints : {}
@@ -71,6 +72,7 @@ export class ServerRemoteObject {
     this.config.server = this.config.server ? this.config.server : { path: '' }
 
     this.object = object
+    this.modelManager = modelManager
     this.acl = new ServerAcl({
       rules: this.config.acl.rules,
       endpoints: this.config.endpoints,
@@ -119,6 +121,75 @@ export class ServerRemoteObject {
     this.acl = acl
   }
 
+  /**
+   * Resolves the remote object for a specific endpoint
+   * Priority: endpoint.object > endpoint.service > endpoint.repo > config-level object
+   */
+  resolveEndpointObject(endpointConfig: ServerApiConfigEndpoint): any {
+    // Priority 1: Direct object instance
+    if (endpointConfig.object) {
+      return endpointConfig.object
+    }
+
+    // Priority 2: Service lookup
+    if (endpointConfig.service) {
+      if (!this.modelManager) {
+        throw new Error(
+          `Cannot resolve service "${endpointConfig.service}" - modelManager not provided to ServerRemoteObject`
+        )
+      }
+      const serviceObject = this.modelManager.services[endpointConfig.service]
+      if (!serviceObject) {
+        throw new Error(
+          `Service "${endpointConfig.service}" not found in modelManager.services`
+        )
+      }
+      return serviceObject
+    }
+
+    // Priority 3: Repo lookup
+    if (endpointConfig.repo) {
+      if (!this.modelManager) {
+        throw new Error(
+          `Cannot resolve repo "${endpointConfig.repo}" - modelManager not provided to ServerRemoteObject`
+        )
+      }
+      const repoObject = this.modelManager.repos[endpointConfig.repo]
+      if (!repoObject) {
+        throw new Error(
+          `Repo "${endpointConfig.repo}" not found in modelManager.repos`
+        )
+      }
+      return repoObject
+    }
+
+    // Fallback: Use config-level object
+    return this.object
+  }
+
+  /**
+   * Resolves the full path for an endpoint
+   * If endpoint has service/repo, prepends kebab-case name to path
+   */
+  resolveEndpointPath(
+    endpointConfig: ServerApiConfigEndpoint,
+    method: string
+  ): string {
+    let endpointPath = endpointConfig.path ? endpointConfig.path : method
+
+    // If endpoint has its own service or repo, prepend kebab-case name to path
+    if (endpointConfig.service || endpointConfig.repo) {
+      const remoteObjectName = endpointConfig.service || endpointConfig.repo
+      const kebabName = camelToKebab(remoteObjectName)
+
+      // Ensure proper path composition: /kebab-name/endpoint-path
+      const separator = endpointPath.startsWith('/') ? '' : '/'
+      endpointPath = `/${kebabName}${separator}${endpointPath}`
+    }
+
+    return endpointPath
+  }
+
   getMiddlewareConfig(): ServerMiddlewareConfig[] {
     const middleware: ServerMiddlewareConfig[] = []
 
@@ -126,7 +197,11 @@ export class ServerRemoteObject {
       const endpointConfig = this.config.endpoints[endpointName]
       const verbs = endpointConfig.verbs ? endpointConfig.verbs : ['get']
       const method = endpointConfig.method ? endpointConfig.method : ''
-      const path = endpointConfig.path ? endpointConfig.path : method
+
+      // Resolve endpoint-specific object and path
+      const endpointObject = this.resolveEndpointObject(endpointConfig)
+      const path = this.resolveEndpointPath(endpointConfig, method)
+
       const bodyParserConfigInit = endpointConfig.bodyParser
         ? endpointConfig.bodyParser
         : {}
@@ -163,16 +238,27 @@ export class ServerRemoteObject {
               return
             }
 
-            if (this.object[method] === undefined) {
+            if (endpointObject[method] === undefined) {
               throw new Error(
                 'Method "' +
                   method +
-                  '" is not defined in endpoint "' +
+                  '" is not defined in ' +
+                  (endpointConfig.object
+                    ? 'endpoint object'
+                    : endpointConfig.service
+                      ? `service "${endpointConfig.service}"`
+                      : endpointConfig.repo
+                        ? `repo "${endpointConfig.repo}"`
+                        : 'config-level object') +
+                  ' for endpoint "' +
                   endpointName +
                   '"'
               )
             }
-            await this.acl.populateContext(req, aclContext, this)
+
+            // Pass endpoint-specific remote object for ACL context
+            const remoteObjectWrapper = { ...this, object: endpointObject }
+            await this.acl.populateContext(req, aclContext, remoteObjectWrapper)
             const isPermitted = await this.acl.isPermitted(
               endpointName,
               aclContext
@@ -187,9 +273,11 @@ export class ServerRemoteObject {
             requestData.aclConditions =
               typeof isPermitted === 'object' ? isPermitted : {}
 
-            const response = await this.object[method].apply(this.object, [
-              requestData,
-            ])
+            // Call method on endpoint-specific object
+            const response = await endpointObject[method].apply(
+              endpointObject,
+              [requestData]
+            )
 
             // Skip automatic response if endpoint handles it manually
             if (endpointConfig.skipResponse) {
@@ -480,6 +568,14 @@ export class ServerRemoteObject {
     }
     return result
   }
+}
+
+/**
+ * Converts camelCase to kebab-case
+ * Example: 'surveyParticipant' -> 'survey-participant'
+ */
+function camelToKebab(input: string): string {
+  return input ? input.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase() : ''
 }
 
 export default ServerRemoteObject

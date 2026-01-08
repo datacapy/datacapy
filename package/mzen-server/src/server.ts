@@ -210,11 +210,15 @@ export class Server {
       acl.addRoleAssessor(this.aclRoleAssessor[role])
     }
 
-    const remote = new ServerRemoteObject(remoteObject, {
-      path,
-      endpoints,
-      server: this.config,
-    })
+    const remote = new ServerRemoteObject(
+      remoteObject,
+      {
+        path,
+        endpoints,
+        server: this.config,
+      },
+      this.modelManager
+    )
     remote.setLogger(this.logger)
     remote.setAcl(acl)
     remote.initRouter(this.router)

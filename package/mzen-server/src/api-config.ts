@@ -43,6 +43,9 @@ export interface ServerApiConfigEndpoint {
   groups?: Array<'default' | 'read' | 'write' | string>
   method?: string
   verbs?: Array<'get' | 'put' | 'post' | 'delete' | string>
+  object?: any
+  repo?: string
+  service?: string
   bodyParser?: {
     json?: { enable?: boolean; limit?: string; type?: string }
     urlencoded?: {
