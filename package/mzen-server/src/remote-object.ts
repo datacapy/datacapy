@@ -18,6 +18,7 @@ export interface ServerRemoteObjectConfig {
   acl?: ServerApiConfigAcl
   endpoints?: { [key: string]: ServerApiConfigEndpoint }
   server?: ServerConfig
+  remoteObjectName?: string
 }
 
 export interface ServerMiddlewareConfig {
@@ -140,6 +141,7 @@ export class ServerRemoteObject {
       }
       const serviceObject = this.modelManager.services[endpointConfig.service]
       if (!serviceObject) {
+        console.error(`[ERROR] Available services:`, Object.keys(this.modelManager.services))
         throw new Error(
           `Service "${endpointConfig.service}" not found in modelManager.services`
         )
@@ -156,6 +158,7 @@ export class ServerRemoteObject {
       }
       const repoObject = this.modelManager.repos[endpointConfig.repo]
       if (!repoObject) {
+        console.error(`[ERROR] Available repos:`, Object.keys(this.modelManager.repos))
         throw new Error(
           `Repo "${endpointConfig.repo}" not found in modelManager.repos`
         )
@@ -169,25 +172,26 @@ export class ServerRemoteObject {
 
   /**
    * Resolves the full path for an endpoint
-   * If endpoint has service/repo, prepends kebab-case name to path
+   * If path is specified, use it as-is
+   * If path is not specified, default to kebab-case of service/repo name (or method name)
    */
   resolveEndpointPath(
     endpointConfig: ServerApiConfigEndpoint,
     method: string
   ): string {
-    let endpointPath = endpointConfig.path ? endpointConfig.path : method
-
-    // If endpoint has its own service or repo, prepend kebab-case name to path
-    if (endpointConfig.service || endpointConfig.repo) {
-      const remoteObjectName = endpointConfig.service || endpointConfig.repo
-      const kebabName = camelToKebab(remoteObjectName)
-
-      // Ensure proper path composition: /kebab-name/endpoint-path
-      const separator = endpointPath.startsWith('/') ? '' : '/'
-      endpointPath = `/${kebabName}${separator}${endpointPath}`
+    // If path is explicitly provided, use it as-is
+    if (endpointConfig.path) {
+      return endpointConfig.path
     }
 
-    return endpointPath
+    // If no path, check if endpoint has its own service/repo for default
+    if (endpointConfig.service || endpointConfig.repo) {
+      const remoteObjectName = endpointConfig.service || endpointConfig.repo
+      return '/' + camelToKebab(remoteObjectName)
+    }
+
+    // Otherwise, default to method name
+    return method
   }
 
   getMiddlewareConfig(): ServerMiddlewareConfig[] {
@@ -415,11 +419,13 @@ export class ServerRemoteObject {
           }
         }
 
+        const fullPath = this.config.path + path
+
         middleware.push({
           endpointName: endpointName,
           method: method,
           verb: verb,
-          path: this.config.path + path,
+          path: fullPath,
           callback: middlewareCallback,
           priority: priority,
           bodyParserConfig,

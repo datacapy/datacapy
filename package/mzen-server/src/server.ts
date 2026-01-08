@@ -216,6 +216,7 @@ export class Server {
         path,
         endpoints,
         server: this.config,
+        remoteObjectName,
       },
       this.modelManager
     )
