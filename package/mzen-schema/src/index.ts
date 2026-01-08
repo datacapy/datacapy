@@ -14,5 +14,6 @@ export * from './utility'
 export * from './object-path-accessor'
 export * from './type-caster'
 export * from './collection'
+export * from './builder'
 
 export default Schema
