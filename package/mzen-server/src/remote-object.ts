@@ -141,7 +141,10 @@ export class ServerRemoteObject {
       }
       const serviceObject = this.modelManager.services[endpointConfig.service]
       if (!serviceObject) {
-        console.error(`[ERROR] Available services:`, Object.keys(this.modelManager.services))
+        console.error(
+          `[ERROR] Available services:`,
+          Object.keys(this.modelManager.services)
+        )
         throw new Error(
           `Service "${endpointConfig.service}" not found in modelManager.services`
         )
@@ -158,7 +161,10 @@ export class ServerRemoteObject {
       }
       const repoObject = this.modelManager.repos[endpointConfig.repo]
       if (!repoObject) {
-        console.error(`[ERROR] Available repos:`, Object.keys(this.modelManager.repos))
+        console.error(
+          `[ERROR] Available repos:`,
+          Object.keys(this.modelManager.repos)
+        )
         throw new Error(
           `Repo "${endpointConfig.repo}" not found in modelManager.repos`
         )
