@@ -6,6 +6,13 @@ import SchemaSpec from '../spec'
  * Provides array-specific configuration methods
  */
 export class BuilderArray<T = any> extends BuilderBase<T[]> {
+  constructor(itemSpec?: SchemaSpec | BuilderBase<any>) {
+    super()
+    if (itemSpec !== undefined) {
+      this.of(itemSpec)
+    }
+  }
+
   protected getType() {
     return Array
   }

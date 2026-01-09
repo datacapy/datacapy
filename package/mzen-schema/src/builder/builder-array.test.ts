@@ -16,6 +16,25 @@ describe('BuilderArray', () => {
       const spec = new BuilderArray().build()
       expect(spec.$type).toBe(Array)
     })
+
+    it('should create an array with itemSpec via constructor', () => {
+      const spec = sb.array({ $type: String }).build()
+      expect(spec.$type).toBe(Array)
+      expect(spec.$spec).toEqual({ $type: String })
+    })
+
+    it('should create an array with builder via constructor', () => {
+      const spec = sb.array(sb.string().required()).build()
+      expect(spec.$type).toBe(Array)
+      expect(spec.$spec?.$type).toBe(String)
+      expect(spec.$spec?.$validate?.required).toBe(true)
+    })
+
+    it('should create an array via new BuilderArray() with itemSpec', () => {
+      const spec = new BuilderArray({ $type: Number }).build()
+      expect(spec.$type).toBe(Array)
+      expect(spec.$spec).toEqual({ $type: Number })
+    })
   })
 
   describe('array-specific methods', () => {

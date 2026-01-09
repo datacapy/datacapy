@@ -47,8 +47,10 @@ export class SchemaBuilder {
   /**
    * Create an array field builder
    */
-  static array<T = any>(): BuilderArray<T> {
-    return new BuilderArray<T>()
+  static array<T = any>(
+    itemSpec?: SchemaSpec | BuilderBase<any>
+  ): BuilderArray<T> {
+    return new BuilderArray<T>(itemSpec)
   }
 
   /**
