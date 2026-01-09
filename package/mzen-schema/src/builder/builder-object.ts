@@ -6,6 +6,15 @@ import SchemaSpec from '../spec'
  * Provides object-specific configuration methods
  */
 export class BuilderObject<T extends object = any> extends BuilderBase<T> {
+  constructor(shape?: {
+    [K in keyof T]?: SchemaSpec | BuilderBase<any>
+  }) {
+    super()
+    if (shape) {
+      this.shape(shape)
+    }
+  }
+
   protected getType() {
     return Object
   }

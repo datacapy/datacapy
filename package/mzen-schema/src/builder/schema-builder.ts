@@ -54,8 +54,10 @@ export class SchemaBuilder {
   /**
    * Create an object field builder
    */
-  static object<T extends object = any>(): BuilderObject<T> {
-    return new BuilderObject<T>()
+  static object<T extends object = any>(shape?: {
+    [K in keyof T]?: SchemaSpec | BuilderBase<any>
+  }): BuilderObject<T> {
+    return new BuilderObject<T>(shape)
   }
 
   /**
