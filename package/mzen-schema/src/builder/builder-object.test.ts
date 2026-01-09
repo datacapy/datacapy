@@ -21,7 +21,8 @@ describe('BuilderObject', () => {
   describe('object-specific methods', () => {
     describe('shape()', () => {
       it('should define object shape with SchemaSpecs', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             name: { $type: String },
             age: { $type: Number },
@@ -33,7 +34,8 @@ describe('BuilderObject', () => {
       })
 
       it('should define object shape with builder instances', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             email: sb.string().email().required(),
             count: sb.number().default(0),
@@ -48,7 +50,8 @@ describe('BuilderObject', () => {
       })
 
       it('should handle nested objects in shape', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             user: sb.object().shape({
               id: sb.string().required(),
@@ -64,7 +67,8 @@ describe('BuilderObject', () => {
       })
 
       it('should handle arrays in shape', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             tags: sb.array().of({ $type: String }),
             scores: sb.array().of({ $type: Number }),
@@ -78,7 +82,8 @@ describe('BuilderObject', () => {
       })
 
       it('should allow shape to be called multiple times (merging)', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({ name: sb.string() })
           .shape({ age: sb.number() })
           .build()
@@ -88,7 +93,8 @@ describe('BuilderObject', () => {
       })
 
       it('should skip undefined values in shape', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             name: sb.string(),
             deleted: undefined,
@@ -102,15 +108,14 @@ describe('BuilderObject', () => {
 
     describe('matchAll()', () => {
       it('should set match-all spec with SchemaSpec', () => {
-        const spec = sb.object()
-          .matchAll({ $type: String })
-          .build()
+        const spec = sb.object().matchAll({ $type: String }).build()
 
         expect(spec['*']).toEqual({ $type: String })
       })
 
       it('should set match-all spec with builder instance', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .matchAll(sb.string().trim().maxLength(100))
           .build()
 
@@ -120,7 +125,8 @@ describe('BuilderObject', () => {
       })
 
       it('should combine with shape', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             id: sb.string().required(),
           })
@@ -135,18 +141,13 @@ describe('BuilderObject', () => {
 
     describe('schema()', () => {
       it('should set schema reference', () => {
-        const spec = sb.object()
-          .schema('user')
-          .build()
+        const spec = sb.object().schema('user').build()
 
         expect(spec.$schema).toBe('user')
       })
 
       it('should combine with other methods', () => {
-        const spec = sb.object()
-          .schema('l10n')
-          .nullable()
-          .build()
+        const spec = sb.object().schema('l10n').nullable().build()
 
         expect(spec.$schema).toBe('l10n')
         expect(spec.$nullable).toBe(true)
@@ -155,31 +156,26 @@ describe('BuilderObject', () => {
 
     describe('strict()', () => {
       it('should enable strict mode by default', () => {
-        const spec = sb.object()
-          .strict()
-          .build()
+        const spec = sb.object().strict().build()
 
         expect(spec.$strict).toBe(true)
       })
 
       it('should enable strict mode with explicit true', () => {
-        const spec = sb.object()
-          .strict(true)
-          .build()
+        const spec = sb.object().strict(true).build()
 
         expect(spec.$strict).toBe(true)
       })
 
       it('should disable strict mode with false', () => {
-        const spec = sb.object()
-          .strict(false)
-          .build()
+        const spec = sb.object().strict(false).build()
 
         expect(spec.$strict).toBe(false)
       })
 
       it('should combine strict with shape', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             name: sb.string().required(),
           })
@@ -193,18 +189,14 @@ describe('BuilderObject', () => {
 
     describe('construct()', () => {
       it('should set constructor as string', () => {
-        const spec = sb.object()
-          .construct('User')
-          .build()
+        const spec = sb.object().construct('User').build()
 
         expect(spec.$construct).toBe('User')
       })
 
       it('should set constructor as function', () => {
         class User {}
-        const spec = sb.object()
-          .construct(User)
-          .build()
+        const spec = sb.object().construct(User).build()
 
         expect(spec.$construct).toBe(User)
       })
@@ -212,18 +204,14 @@ describe('BuilderObject', () => {
 
     describe('constructCollection()', () => {
       it('should set collection constructor as string', () => {
-        const spec = sb.object()
-          .constructCollection('Collection')
-          .build()
+        const spec = sb.object().constructCollection('Collection').build()
 
         expect(spec.$constructCollection).toBe('Collection')
       })
 
       it('should set collection constructor as function', () => {
         class Collection {}
-        const spec = sb.object()
-          .constructCollection(Collection)
-          .build()
+        const spec = sb.object().constructCollection(Collection).build()
 
         expect(spec.$constructCollection).toBe(Collection)
       })
@@ -295,7 +283,8 @@ describe('BuilderObject', () => {
 
   describe('method chaining', () => {
     it('should chain object-specific methods', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({
           id: sb.string().required(),
         })
@@ -311,11 +300,7 @@ describe('BuilderObject', () => {
     })
 
     it('should chain validation and filter methods', () => {
-      const spec = sb.object()
-        .required()
-        .notNull()
-        .label('Settings')
-        .build()
+      const spec = sb.object().required().notNull().label('Settings').build()
 
       expect(spec.$validate?.required).toBe(true)
       expect(spec.$validate?.notNull).toBe(true)
@@ -323,7 +308,8 @@ describe('BuilderObject', () => {
     })
 
     it('should support complex object definition', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({
           email: sb.string().required().email().trim().lowercase(),
           name: sb.string().required().trim(),
@@ -338,7 +324,9 @@ describe('BuilderObject', () => {
       expect(spec.$type).toBe(Object)
       expect(spec.$strict).toBe(true)
       expect(spec.$label).toBe('User')
-      expect(spec.$validate?.required).toEqual({ message: 'User object is required' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'User object is required',
+      })
       expect(spec.email?.$validate?.required).toBe(true)
       expect(spec.email?.$validate?.email).toBe(true)
       expect(spec.name?.$filter?.trim).toBe(true)
@@ -360,7 +348,8 @@ describe('BuilderObject', () => {
     })
 
     it('should allow schema reference with shape', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .schema('user')
         .shape({
           extraField: sb.string(),
@@ -372,18 +361,13 @@ describe('BuilderObject', () => {
     })
 
     it('should handle empty shape', () => {
-      const spec = sb.object()
-        .shape({})
-        .build()
+      const spec = sb.object().shape({}).build()
 
       expect(spec.$type).toBe(Object)
     })
 
     it('should overwrite schema when called multiple times', () => {
-      const spec = sb.object()
-        .schema('user')
-        .schema('admin')
-        .build()
+      const spec = sb.object().schema('user').schema('admin').build()
 
       expect(spec.$schema).toBe('admin')
     })
@@ -391,7 +375,8 @@ describe('BuilderObject', () => {
 
   describe('common use cases', () => {
     it('should create a user object schema', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({
           id: sb.string().required(),
           email: sb.string().required().email().lowercase().trim(),
@@ -412,7 +397,8 @@ describe('BuilderObject', () => {
     })
 
     it('should create an l10n object with match-all', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .matchAll(sb.string())
         .label('Localization')
         .build()
@@ -423,7 +409,8 @@ describe('BuilderObject', () => {
     })
 
     it('should create a schema reference object', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .schema('address')
         .nullable()
         .label('Shipping Address')
@@ -435,7 +422,8 @@ describe('BuilderObject', () => {
     })
 
     it('should create a relation object', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .schema('user')
         .relation()
         .private()
@@ -449,7 +437,8 @@ describe('BuilderObject', () => {
     })
 
     it('should create nested object structures', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({
           user: sb.object().shape({
             profile: sb.object().shape({
@@ -468,7 +457,8 @@ describe('BuilderObject', () => {
 
   describe('type safety', () => {
     it('should maintain correct $type after multiple chains', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({ name: sb.string() })
         .required()
         .label('Object')
@@ -482,7 +472,8 @@ describe('BuilderObject', () => {
 
   describe('dynamic objects', () => {
     it('should create an object with dynamic string values', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .matchAll(sb.string().trim())
         .label('Metadata')
         .build()
@@ -492,7 +483,8 @@ describe('BuilderObject', () => {
     })
 
     it('should combine static and dynamic properties', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({
           id: sb.string().required(),
           type: sb.string().required(),
@@ -508,7 +500,8 @@ describe('BuilderObject', () => {
 
   describe('complex compositions', () => {
     it('should create object with arrays of objects', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({
           items: sb.array().of(
             sb.object().shape({
@@ -526,7 +519,8 @@ describe('BuilderObject', () => {
     })
 
     it('should create object with nested arrays and objects', () => {
-      const spec = sb.object()
+      const spec = sb
+        .object()
         .shape({
           name: sb.string().required(),
           categories: sb.array().of(

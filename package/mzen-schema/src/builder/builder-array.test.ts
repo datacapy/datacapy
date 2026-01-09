@@ -33,19 +33,25 @@ describe('BuilderArray', () => {
       })
 
       it('should handle nested array specs', () => {
-        const spec = sb.array().of(sb.array().of({ $type: Number })).build()
+        const spec = sb
+          .array()
+          .of(sb.array().of({ $type: Number }))
+          .build()
         expect(spec.$spec?.$type).toBe(Array)
         expect(spec.$spec?.$spec?.$type).toBe(Number)
       })
 
       it('should handle object item specs', () => {
-        const spec = sb.array().of({
-          $type: Object,
-          $spec: {
-            id: { $type: String },
-            name: { $type: String },
-          },
-        }).build()
+        const spec = sb
+          .array()
+          .of({
+            $type: Object,
+            $spec: {
+              id: { $type: String },
+              name: { $type: String },
+            },
+          })
+          .build()
 
         expect(spec.$spec?.$type).toBe(Object)
         expect(spec.$spec?.$spec?.id?.$type).toBe(String)
@@ -53,7 +59,8 @@ describe('BuilderArray', () => {
       })
 
       it('should handle object builder as item spec', () => {
-        const spec = sb.array()
+        const spec = sb
+          .array()
           .of(
             sb.object().shape({
               id: sb.string().required(),
@@ -174,7 +181,8 @@ describe('BuilderArray', () => {
 
   describe('method chaining', () => {
     it('should chain array-specific methods', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .of({ $type: String })
         .construct('Tag')
         .constructCollection('TagCollection')
@@ -186,7 +194,8 @@ describe('BuilderArray', () => {
     })
 
     it('should chain validation and filter methods', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .required()
         .notEmpty()
         .default([])
@@ -200,7 +209,8 @@ describe('BuilderArray', () => {
     })
 
     it('should chain array methods with validation', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .ofSchema('product')
         .required()
         .notEmpty()
@@ -214,7 +224,8 @@ describe('BuilderArray', () => {
     })
 
     it('should support complex array definition', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .required({ message: 'At least one item is required' })
         .notEmpty()
         .of(sb.string().trim().maxLength(50))
@@ -223,7 +234,9 @@ describe('BuilderArray', () => {
         .build()
 
       expect(spec.$type).toBe(Array)
-      expect(spec.$validate?.required).toEqual({ message: 'At least one item is required' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'At least one item is required',
+      })
       expect(spec.$validate?.notEmpty).toBe(true)
       expect(spec.$spec?.$type).toBe(String)
       expect(spec.$spec?.$filter?.trim).toBe(true)
@@ -253,7 +266,8 @@ describe('BuilderArray', () => {
     })
 
     it('should overwrite of() when called multiple times', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .of({ $type: String })
         .of({ $type: Number })
         .build()
@@ -262,10 +276,7 @@ describe('BuilderArray', () => {
     })
 
     it('should allow ofSchema() to replace of()', () => {
-      const spec = sb.array()
-        .of({ $type: String })
-        .ofSchema('user')
-        .build()
+      const spec = sb.array().of({ $type: String }).ofSchema('user').build()
 
       expect(spec.$spec?.$schema).toBe('user')
       expect(spec.$spec?.$type).toBeUndefined()
@@ -274,10 +285,7 @@ describe('BuilderArray', () => {
 
   describe('common use cases', () => {
     it('should create an array of strings', () => {
-      const spec = sb.array()
-        .of({ $type: String })
-        .label('Tags')
-        .build()
+      const spec = sb.array().of({ $type: String }).label('Tags').build()
 
       expect(spec.$type).toBe(Array)
       expect(spec.$spec?.$type).toBe(String)
@@ -285,7 +293,8 @@ describe('BuilderArray', () => {
     })
 
     it('should create an array of schema references', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .ofSchema('comment')
         .relation()
         .label('Comments')
@@ -298,7 +307,8 @@ describe('BuilderArray', () => {
     })
 
     it('should create an array with custom collection class', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .ofSchema('userClient')
         .relation()
         .private()
@@ -314,19 +324,25 @@ describe('BuilderArray', () => {
     })
 
     it('should create a required non-empty array', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .required({ message: 'Please select at least one option' })
         .notEmpty({ message: 'Array cannot be empty' })
         .of({ $type: String })
         .build()
 
-      expect(spec.$validate?.required).toEqual({ message: 'Please select at least one option' })
-      expect(spec.$validate?.notEmpty).toEqual({ message: 'Array cannot be empty' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'Please select at least one option',
+      })
+      expect(spec.$validate?.notEmpty).toEqual({
+        message: 'Array cannot be empty',
+      })
       expect(spec.$spec?.$type).toBe(String)
     })
 
     it('should create an array with complex object items', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .of(
           sb.object().shape({
             id: sb.string().required(),
@@ -347,7 +363,8 @@ describe('BuilderArray', () => {
 
   describe('type safety', () => {
     it('should maintain correct $type after multiple chains', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .of({ $type: String })
         .required()
         .label('Items')
@@ -361,10 +378,9 @@ describe('BuilderArray', () => {
 
   describe('nested arrays', () => {
     it('should handle nested arrays', () => {
-      const spec = sb.array()
-        .of(
-          sb.array().of({ $type: Number })
-        )
+      const spec = sb
+        .array()
+        .of(sb.array().of({ $type: Number }))
         .build()
 
       expect(spec.$type).toBe(Array)
@@ -373,12 +389,11 @@ describe('BuilderArray', () => {
     })
 
     it('should handle deeply nested structures', () => {
-      const spec = sb.array()
+      const spec = sb
+        .array()
         .of(
           sb.object().shape({
-            matrix: sb.array().of(
-              sb.array().of({ $type: Number })
-            ),
+            matrix: sb.array().of(sb.array().of({ $type: Number })),
           })
         )
         .build()

@@ -121,29 +121,30 @@ describe('BuilderDate', () => {
 
   describe('method chaining', () => {
     it('should chain multiple validation methods', () => {
-      const spec = sb.date()
-        .required()
-        .notNull()
-        .build()
+      const spec = sb.date().required().notNull().build()
 
       expect(spec.$validate?.required).toBe(true)
       expect(spec.$validate?.notNull).toBe(true)
     })
 
     it('should chain validation and filter methods', () => {
-      const spec = sb.date()
+      const spec = sb
+        .date()
         .required({ message: 'Birth date is required' })
         .default('now')
         .label('Date of Birth')
         .build()
 
-      expect(spec.$validate?.required).toEqual({ message: 'Birth date is required' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'Birth date is required',
+      })
       expect(spec.$filter?.defaultValue).toBe('now')
       expect(spec.$label).toBe('Date of Birth')
     })
 
     it('should support complex date field definition', () => {
-      const spec = sb.date()
+      const spec = sb
+        .date()
         .required()
         .notNull()
         .default('now')
@@ -189,10 +190,7 @@ describe('BuilderDate', () => {
 
   describe('common use cases', () => {
     it('should create a createdAt field with auto timestamp', () => {
-      const spec = sb.date()
-        .default('now')
-        .label('Created At')
-        .build()
+      const spec = sb.date().default('now').label('Created At').build()
 
       expect(spec.$type).toBe(Date)
       expect(spec.$filter?.defaultValue).toBe('now')
@@ -200,10 +198,7 @@ describe('BuilderDate', () => {
     })
 
     it('should create an updatedAt field', () => {
-      const spec = sb.date()
-        .default('now')
-        .label('Updated At')
-        .build()
+      const spec = sb.date().default('now').label('Updated At').build()
 
       expect(spec.$type).toBe(Date)
       expect(spec.$filter?.defaultValue).toBe('now')
@@ -211,23 +206,23 @@ describe('BuilderDate', () => {
     })
 
     it('should create a required birth date field', () => {
-      const spec = sb.date()
+      const spec = sb
+        .date()
         .required({ message: 'Birth date is required' })
         .notNull()
         .label('Date of Birth')
         .build()
 
       expect(spec.$type).toBe(Date)
-      expect(spec.$validate?.required).toEqual({ message: 'Birth date is required' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'Birth date is required',
+      })
       expect(spec.$validate?.notNull).toBe(true)
       expect(spec.$label).toBe('Date of Birth')
     })
 
     it('should create an optional expiry date field', () => {
-      const spec = sb.date()
-        .nullable()
-        .label('Expires At')
-        .build()
+      const spec = sb.date().nullable().label('Expires At').build()
 
       expect(spec.$type).toBe(Date)
       expect(spec.$nullable).toBe(true)
@@ -235,7 +230,8 @@ describe('BuilderDate', () => {
     })
 
     it('should create a last login timestamp', () => {
-      const spec = sb.date()
+      const spec = sb
+        .date()
         .nullable()
         .default(null)
         .label('Last Login')
@@ -252,7 +248,8 @@ describe('BuilderDate', () => {
 
   describe('type safety', () => {
     it('should maintain correct $type after multiple chains', () => {
-      const spec = sb.date()
+      const spec = sb
+        .date()
         .required()
         .default('now')
         .label('Timestamp')

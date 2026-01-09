@@ -146,17 +146,15 @@ describe('BuilderMixed', () => {
 
   describe('method chaining', () => {
     it('should chain multiple validation methods', () => {
-      const spec = sb.mixed()
-        .required()
-        .notNull()
-        .build()
+      const spec = sb.mixed().required().notNull().build()
 
       expect(spec.$validate?.required).toBe(true)
       expect(spec.$validate?.notNull).toBe(true)
     })
 
     it('should chain validation and filter methods', () => {
-      const spec = sb.mixed()
+      const spec = sb
+        .mixed()
         .required({ message: 'Data is required' })
         .default({})
         .label('Custom Data')
@@ -168,7 +166,8 @@ describe('BuilderMixed', () => {
     })
 
     it('should support complex mixed field definition', () => {
-      const spec = sb.mixed()
+      const spec = sb
+        .mixed()
         .required()
         .notNull()
         .default({ status: 'pending' })
@@ -222,10 +221,7 @@ describe('BuilderMixed', () => {
 
   describe('common use cases', () => {
     it('should create a metadata field', () => {
-      const spec = sb.mixed()
-        .default({})
-        .label('Metadata')
-        .build()
+      const spec = sb.mixed().default({}).label('Metadata').build()
 
       expect(spec.$type).toBe(SchemaTypes.Mixed)
       expect(spec.$filter?.defaultValue).toEqual({})
@@ -233,10 +229,7 @@ describe('BuilderMixed', () => {
     })
 
     it('should create a flexible config field', () => {
-      const spec = sb.mixed()
-        .nullable()
-        .label('Configuration')
-        .build()
+      const spec = sb.mixed().nullable().label('Configuration').build()
 
       expect(spec.$type).toBe(SchemaTypes.Mixed)
       expect(spec.$nullable).toBe(true)
@@ -244,21 +237,21 @@ describe('BuilderMixed', () => {
     })
 
     it('should create a custom data field', () => {
-      const spec = sb.mixed()
+      const spec = sb
+        .mixed()
         .required({ message: 'Custom data is required' })
         .label('Custom Data')
         .build()
 
       expect(spec.$type).toBe(SchemaTypes.Mixed)
-      expect(spec.$validate?.required).toEqual({ message: 'Custom data is required' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'Custom data is required',
+      })
       expect(spec.$label).toBe('Custom Data')
     })
 
     it('should create a private mixed field', () => {
-      const spec = sb.mixed()
-        .private()
-        .label('Internal Data')
-        .build()
+      const spec = sb.mixed().private().label('Internal Data').build()
 
       expect(spec.$type).toBe(SchemaTypes.Mixed)
       expect((spec.$filter as any)?.private).toBe(true)
@@ -269,10 +262,7 @@ describe('BuilderMixed', () => {
       const customFn = (value: any) => {
         return value && typeof value === 'object' && 'type' in value
       }
-      const spec = sb.mixed()
-        .custom(customFn)
-        .label('Polymorphic Data')
-        .build()
+      const spec = sb.mixed().custom(customFn).label('Polymorphic Data').build()
 
       expect(spec.$type).toBe(SchemaTypes.Mixed)
       expect(spec.$filter?.custom).toBe(customFn)
@@ -282,7 +272,8 @@ describe('BuilderMixed', () => {
 
   describe('type safety', () => {
     it('should maintain correct $type after multiple chains', () => {
-      const spec = sb.mixed()
+      const spec = sb
+        .mixed()
         .required()
         .default(null)
         .label('Mixed')

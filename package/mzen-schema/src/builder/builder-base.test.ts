@@ -67,11 +67,7 @@ describe('BuilderBase', () => {
 
     describe('validation method combinations', () => {
       it('should allow multiple validation methods on same field', () => {
-        const spec = sb.string()
-          .required()
-          .notNull()
-          .notEmpty()
-          .build()
+        const spec = sb.string().required().notNull().notEmpty().build()
 
         expect(spec.$validate?.required).toBe(true)
         expect(spec.$validate?.notNull).toBe(true)
@@ -117,7 +113,9 @@ describe('BuilderBase', () => {
       it('should accept falsy values as default', () => {
         expect(sb.number().default(0).build().$filter?.defaultValue).toBe(0)
         expect(sb.string().default('').build().$filter?.defaultValue).toBe('')
-        expect(sb.boolean().default(false).build().$filter?.defaultValue).toBe(false)
+        expect(sb.boolean().default(false).build().$filter?.defaultValue).toBe(
+          false
+        )
       })
     })
 
@@ -138,8 +136,12 @@ describe('BuilderBase', () => {
       })
 
       it('should handle different mode values', () => {
-        expect((sb.string().private('user').build().$filter as any)?.private).toBe('user')
-        expect((sb.string().private('owner').build().$filter as any)?.private).toBe('owner')
+        expect(
+          (sb.string().private('user').build().$filter as any)?.private
+        ).toBe('user')
+        expect(
+          (sb.string().private('owner').build().$filter as any)?.private
+        ).toBe('owner')
       })
     })
 
@@ -185,7 +187,8 @@ describe('BuilderBase', () => {
     describe('filter method combinations', () => {
       it('should allow multiple filter methods on same field', () => {
         const customFn = () => true
-        const spec = sb.string()
+        const spec = sb
+          .string()
           .default('test')
           .private()
           .custom(customFn)
@@ -211,7 +214,9 @@ describe('BuilderBase', () => {
       })
 
       it('should accept any string', () => {
-        expect(sb.string().label('First Name').build().$label).toBe('First Name')
+        expect(sb.string().label('First Name').build().$label).toBe(
+          'First Name'
+        )
         expect(sb.number().label('Age').build().$label).toBe('Age')
         expect(sb.boolean().label('Is Active').build().$label).toBe('Is Active')
       })
@@ -285,7 +290,8 @@ describe('BuilderBase', () => {
 
     describe('buildValue recursion', () => {
       it('should recursively build nested builder instances', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             user: sb.object().shape({
               name: sb.string().required(),
@@ -299,16 +305,15 @@ describe('BuilderBase', () => {
       })
 
       it('should recursively build builders in arrays', () => {
-        const spec = sb.array()
-          .of(sb.string().required())
-          .build()
+        const spec = sb.array().of(sb.string().required()).build()
 
         expect(spec.$spec?.$type).toBe(String)
         expect(spec.$spec?.$validate?.required).toBe(true)
       })
 
       it('should recursively process plain object values', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             nested: {
               field: sb.string().required(),
@@ -321,7 +326,8 @@ describe('BuilderBase', () => {
       })
 
       it('should handle deeply nested structures', () => {
-        const spec = sb.object()
+        const spec = sb
+          .object()
           .shape({
             level1: sb.object().shape({
               level2: sb.object().shape({
@@ -335,10 +341,7 @@ describe('BuilderBase', () => {
       })
 
       it('should handle arrays of builders', () => {
-        const builders = [
-          sb.string(),
-          sb.number(),
-        ]
+        const builders = [sb.string(), sb.number()]
 
         const spec = sb.or(builders).build()
         expect(spec.$or?.[0].$type).toBe(String)
@@ -348,7 +351,8 @@ describe('BuilderBase', () => {
 
     describe('building with all features', () => {
       it('should build spec with validation, filters, and metadata', () => {
-        const spec = sb.string()
+        const spec = sb
+          .string()
           .required({ message: 'Required' })
           .notNull()
           .default('test')
@@ -395,7 +399,8 @@ describe('BuilderBase', () => {
     })
 
     it('should allow long chains', () => {
-      const spec = sb.string()
+      const spec = sb
+        .string()
         .required()
         .notNull()
         .notEmpty()
@@ -417,19 +422,13 @@ describe('BuilderBase', () => {
 
   describe('edge cases', () => {
     it('should handle overwriting values', () => {
-      const spec = sb.string()
-        .default('first')
-        .default('second')
-        .build()
+      const spec = sb.string().default('first').default('second').build()
 
       expect(spec.$filter?.defaultValue).toBe('second')
     })
 
     it('should handle calling same method multiple times', () => {
-      const spec = sb.string()
-        .label('First')
-        .label('Second')
-        .build()
+      const spec = sb.string().label('First').label('Second').build()
 
       expect(spec.$label).toBe('Second')
     })
@@ -447,7 +446,8 @@ describe('BuilderBase', () => {
 
   describe('type preservation', () => {
     it('should preserve type through chaining', () => {
-      const spec = sb.string()
+      const spec = sb
+        .string()
         .required()
         .notNull()
         .default('test')
@@ -471,11 +471,7 @@ describe('BuilderBase', () => {
       ]
 
       types.forEach((builder) => {
-        const spec = builder
-          .required()
-          .nullable()
-          .label('Test')
-          .build()
+        const spec = builder.required().nullable().label('Test').build()
 
         expect(spec.$type).toBeDefined()
         expect(spec.$validate?.required).toBe(true)

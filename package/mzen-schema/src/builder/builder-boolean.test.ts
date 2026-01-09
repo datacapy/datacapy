@@ -115,29 +115,30 @@ describe('BuilderBoolean', () => {
 
   describe('method chaining', () => {
     it('should chain multiple validation methods', () => {
-      const spec = sb.boolean()
-        .required()
-        .notNull()
-        .build()
+      const spec = sb.boolean().required().notNull().build()
 
       expect(spec.$validate?.required).toBe(true)
       expect(spec.$validate?.notNull).toBe(true)
     })
 
     it('should chain validation and filter methods', () => {
-      const spec = sb.boolean()
+      const spec = sb
+        .boolean()
         .required({ message: 'Agreement is required' })
         .default(false)
         .label('Terms Accepted')
         .build()
 
-      expect(spec.$validate?.required).toEqual({ message: 'Agreement is required' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'Agreement is required',
+      })
       expect(spec.$filter?.defaultValue).toBe(false)
       expect(spec.$label).toBe('Terms Accepted')
     })
 
     it('should support complex boolean field definition', () => {
-      const spec = sb.boolean()
+      const spec = sb
+        .boolean()
         .required()
         .notNull()
         .default(false)
@@ -180,7 +181,8 @@ describe('BuilderBoolean', () => {
 
   describe('common use cases', () => {
     it('should create a checkbox field with default false', () => {
-      const spec = sb.boolean()
+      const spec = sb
+        .boolean()
         .default(false)
         .label('Subscribe to newsletter')
         .build()
@@ -191,18 +193,22 @@ describe('BuilderBoolean', () => {
     })
 
     it('should create a required acceptance field', () => {
-      const spec = sb.boolean()
+      const spec = sb
+        .boolean()
         .required({ message: 'You must accept the terms' })
         .label('Accept Terms and Conditions')
         .build()
 
       expect(spec.$type).toBe(Boolean)
-      expect(spec.$validate?.required).toEqual({ message: 'You must accept the terms' })
+      expect(spec.$validate?.required).toEqual({
+        message: 'You must accept the terms',
+      })
       expect(spec.$label).toBe('Accept Terms and Conditions')
     })
 
     it('should create a feature flag field', () => {
-      const spec = sb.boolean()
+      const spec = sb
+        .boolean()
         .default(false)
         .label('Dark Mode Enabled')
         .private()
@@ -215,7 +221,8 @@ describe('BuilderBoolean', () => {
     })
 
     it('should create a status flag with nullable', () => {
-      const spec = sb.boolean()
+      const spec = sb
+        .boolean()
         .nullable()
         .default(null)
         .label('Email Verified')
@@ -230,7 +237,8 @@ describe('BuilderBoolean', () => {
 
   describe('type safety', () => {
     it('should maintain correct $type after multiple chains', () => {
-      const spec = sb.boolean()
+      const spec = sb
+        .boolean()
         .required()
         .default(true)
         .label('Active')

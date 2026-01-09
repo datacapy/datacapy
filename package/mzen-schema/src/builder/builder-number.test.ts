@@ -115,11 +115,7 @@ describe('BuilderNumber', () => {
 
   describe('method chaining', () => {
     it('should chain multiple validation methods', () => {
-      const spec = sb.number()
-        .required()
-        .notNull()
-        .notEmpty()
-        .build()
+      const spec = sb.number().required().notNull().notEmpty().build()
 
       expect(spec.$validate?.required).toBe(true)
       expect(spec.$validate?.notNull).toBe(true)
@@ -127,7 +123,8 @@ describe('BuilderNumber', () => {
     })
 
     it('should chain validation and filter methods', () => {
-      const spec = sb.number()
+      const spec = sb
+        .number()
         .required({ message: 'Age is required' })
         .default(18)
         .label('Age')
@@ -139,7 +136,8 @@ describe('BuilderNumber', () => {
     })
 
     it('should support complex number field definition', () => {
-      const spec = sb.number()
+      const spec = sb
+        .number()
         .required()
         .notNull()
         .default(0)
@@ -188,7 +186,8 @@ describe('BuilderNumber', () => {
 
   describe('type safety', () => {
     it('should maintain correct $type after multiple chains', () => {
-      const spec = sb.number()
+      const spec = sb
+        .number()
         .required()
         .default(10)
         .label('Count')

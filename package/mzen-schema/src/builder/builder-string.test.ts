@@ -72,7 +72,10 @@ describe('BuilderString', () => {
       })
 
       it('should set length with options', () => {
-        const spec = sb.string().length(5, 10, { message: 'Invalid length' }).build()
+        const spec = sb
+          .string()
+          .length(5, 10, { message: 'Invalid length' })
+          .build()
         expect(spec.$validate?.valueLength?.min).toBe(5)
         expect(spec.$validate?.valueLength?.max).toBe(10)
         expect(spec.$validate?.valueLength?.message).toBe('Invalid length')
@@ -94,13 +97,20 @@ describe('BuilderString', () => {
 
       it('should set regex validation with options', () => {
         const pattern = /^test$/
-        const spec = sb.string().regex(pattern, { message: 'Invalid format' }).build()
+        const spec = sb
+          .string()
+          .regex(pattern, { message: 'Invalid format' })
+          .build()
         expect(spec.$validate?.regex).toHaveProperty('pattern', pattern)
-        expect(spec.$validate?.regex).toHaveProperty('message', 'Invalid format')
+        expect(spec.$validate?.regex).toHaveProperty(
+          'message',
+          'Invalid format'
+        )
       })
 
       it('should support multiple regex patterns', () => {
-        const spec = sb.string()
+        const spec = sb
+          .string()
           .regex(/^[A-Z]/, { message: 'Must start with uppercase' })
           .regex(/[0-9]$/, { message: 'Must end with digit' })
           .build()
@@ -119,7 +129,10 @@ describe('BuilderString', () => {
 
       it('should set inArray validation with options', () => {
         const values = ['red', 'green', 'blue']
-        const spec = sb.string().inArray(values, { message: 'Invalid color' }).build()
+        const spec = sb
+          .string()
+          .inArray(values, { message: 'Invalid color' })
+          .build()
         expect(spec.$validate?.inArray?.values).toEqual(values)
         expect(spec.$validate?.inArray?.message).toBe('Invalid color')
       })
@@ -195,7 +208,8 @@ describe('BuilderString', () => {
 
   describe('method chaining', () => {
     it('should chain multiple validation methods', () => {
-      const spec = sb.string()
+      const spec = sb
+        .string()
         .required()
         .email()
         .minLength(5)
@@ -209,11 +223,7 @@ describe('BuilderString', () => {
     })
 
     it('should chain multiple filter methods', () => {
-      const spec = sb.string()
-        .trim()
-        .lowercase()
-        .default('test')
-        .build()
+      const spec = sb.string().trim().lowercase().default('test').build()
 
       expect(spec.$filter?.trim).toBe(true)
       expect(spec.$filter?.lowercase).toBe(true)
@@ -221,7 +231,8 @@ describe('BuilderString', () => {
     })
 
     it('should chain validation and filter methods together', () => {
-      const spec = sb.string()
+      const spec = sb
+        .string()
         .required()
         .notEmpty()
         .trim()
@@ -237,7 +248,8 @@ describe('BuilderString', () => {
     })
 
     it('should support complex email field definition', () => {
-      const spec = sb.string()
+      const spec = sb
+        .string()
         .required({ message: 'Email is required' })
         .email({ message: 'Invalid email format' })
         .trim()
@@ -271,7 +283,8 @@ describe('BuilderString', () => {
     })
 
     it('should allow overwriting length constraints', () => {
-      const spec = sb.string()
+      const spec = sb
+        .string()
         .minLength(5)
         .maxLength(10)
         .length(1, 100) // This should overwrite previous settings
@@ -283,10 +296,7 @@ describe('BuilderString', () => {
 
     it('should not conflict uppercase and lowercase', () => {
       // This is a valid schema (both filters can be set, though logically they conflict)
-      const spec = sb.string()
-        .uppercase()
-        .lowercase()
-        .build()
+      const spec = sb.string().uppercase().lowercase().build()
 
       expect(spec.$filter?.uppercase).toBe(true)
       expect(spec.$filter?.lowercase).toBe(true)
