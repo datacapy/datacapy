@@ -12,7 +12,8 @@
     "test": "jest",
     "build": "pnpm run clean && tsc && pnpm run build-minimise",
     "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} +",
-    "clean": "rm -rf ./dist/*"
+    "clean": "rm -rf ./dist/*",
+    "typecheck": "tsc --noEmit"
   },
   "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
   "license": "BSD-3-Clause",

@@ -14,6 +14,7 @@
     "clean": "rm -fr ./dist/*",
     "test": "jest",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json}\"",
+    "typecheck": "tsc --noEmit",
     "test-fixtures-build": "cd ./src/__tests__/fixtures && tsc",
     "test-fixtures-clean": "find ./src/__tests__/fixtures -type f \\( -name '*.js' -or -name '*.js.map' -or -name '*.d.ts' \\) -delete"
   },

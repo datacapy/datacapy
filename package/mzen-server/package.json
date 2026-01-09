@@ -13,6 +13,7 @@
     "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} +",
     "clean": "rm -fr ./dist/*",
     "test": "export NODE_PATH=./src && mocha -r ts-node/register ./src/**/_tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
     "test-fixtures-build": "cd ./_tests/fixtures && tsc",
     "test-fixtures-clean": "find ./_tests/fixtures -type f \\( -name '*.js' -or -name '*.js.map' -or -name '*.d.ts' \\) -delete",
     "prettier:check": "prettier --check src",
