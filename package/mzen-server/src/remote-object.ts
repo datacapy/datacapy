@@ -231,199 +231,15 @@ export class ServerRemoteObject {
         : serverErrorApiEndpointResponseConfig
 
       verbs.forEach((verb) => {
-        const middlewareCallback = async (req, res) => {
-          try {
-            const requestData = this.parseRequestData(
-              requestDataConfig,
-              req,
-              res
-            )
-            const validationSpec = this.parseValidationSpec(requestDataConfig)
-            const aclContext = { ...requestData }
-            const argValidateSchema = new Schema(validationSpec)
-            const validateResult = await argValidateSchema.validate(requestData)
-
-            if (!validateResult.isValid) {
-              res.status(403).json({ validationErrors: validateResult.errors })
-              return
-            }
-
-            if (endpointObject[method] === undefined) {
-              throw new Error(
-                'Method "' +
-                  method +
-                  '" is not defined in ' +
-                  (endpointConfig.object
-                    ? 'endpoint object'
-                    : endpointConfig.service
-                      ? `service "${endpointConfig.service}"`
-                      : endpointConfig.repo
-                        ? `repo "${endpointConfig.repo}"`
-                        : 'config-level object') +
-                  ' for endpoint "' +
-                  endpointName +
-                  '"'
-              )
-            }
-
-            // Pass endpoint-specific remote object for ACL context
-            const remoteObjectWrapper = { ...this, object: endpointObject }
-            await this.acl.populateContext(req, aclContext, remoteObjectWrapper)
-            const isPermitted = await this.acl.isPermitted(
-              endpointName,
-              aclContext
-            )
-            if (isPermitted === false) {
-              throw new ServerErrorUnauthorized()
-            }
-
-            // Append the aclContext and aclConditions to the requestData
-            // - these are always appended in this order and are not configurable
-            requestData.aclContext = aclContext
-            requestData.aclConditions =
-              typeof isPermitted === 'object' ? isPermitted : {}
-
-            // Call method on endpoint-specific object
-            const response = await endpointObject[method].apply(
-              endpointObject,
-              [requestData]
-            )
-
-            // Skip automatic response if endpoint handles it manually
-            if (endpointConfig.skipResponse) {
-              return
-            }
-
-            const httpConfig = responseSuccess.http ? responseSuccess.http : {}
-            const code = httpConfig.code ? httpConfig.code : 200
-            const contentType = httpConfig.contentType
-              ? httpConfig.contentType
-              : 'json'
-            if (contentType == 'json') {
-              res.status(code).json(response)
-            } else {
-              if (contentType) res.type(contentType)
-              res.status(code).send(response)
-            }
-          } catch (err) {
-            try {
-              const error = err instanceof Error ? err : null
-              let errorHandled = false
-              if (Object.keys(responseErrorConfig).length) {
-                for (const errorName in responseErrorConfig) {
-                  if (error && errorName !== error.constructor.name) {
-                    continue
-                  }
-
-                  const errorConfig = responseErrorConfig[
-                    errorName
-                  ] as ServerApiConfigEndpointResponse
-                  const schemaConfig = errorConfig.schema
-                    ? errorConfig.schema
-                    : null
-                  const httpConfig = errorConfig.http ? errorConfig.http : {}
-                  const code = httpConfig.code ? httpConfig.code : 400
-                  const contentType = httpConfig.contentType
-                    ? httpConfig.contentType
-                    : 'json'
-
-                  const validateResultError: SchemaValidationResult =
-                    schemaConfig
-                      ? await new Schema(schemaConfig).validate(err)
-                      : { isValid: true }
-                  if (validateResultError.isValid) {
-                    if (contentType == 'json') {
-                      res.status(code).json(error)
-                    } else {
-                      if (contentType) res.type(contentType)
-                      res.status(code).send(error?.message)
-                    }
-                    errorHandled = true
-                  }
-                  break // We use the first handle that matches and ignore any others
-                }
-              }
-              const isInTest = typeof global.it === 'function' // dont log anything when in automated test enviroment
-              if (
-                !isInTest &&
-                // eslint-disable-next-line
-                // @ts-ignore
-                (err.ref == undefined || err.logged || !errorHandled)
-              ) {
-                // Errors which have a ref defined are expected to be handled by the client so we dont need to log them
-                // Errors which do not have a ref are not expected by the client and must be logged
-                // Errors which have a ref may be forced to log if the logged flag value is set to true
-                // Unhandled errors are not expected by either the server or the client and must be logged
-
-                // Extract error details with fallbacks to ensure meaningful logs
-                const errorMessage =
-                  err?.message ||
-                  err?.toString?.() ||
-                  String(err) ||
-                  'Unknown error'
-
-                const errorStack =
-                  err?.stack ||
-                  (err instanceof Error ? new Error().stack : null) ||
-                  'No stack trace available'
-
-                const errorName = err?.name || err?.constructor?.name || 'Error'
-
-                // Log to console for immediate visibility
-                console.error('Endpoint:', endpointName)
-                console.error('Method:', method)
-                console.error('Error:', errorName, '-', errorMessage)
-                console.error('Stack:', errorStack)
-                if (!errorHandled) {
-                  console.error(
-                    'WARNING: Error was not handled by endpoint error config'
-                  )
-                }
-
-                // Also log via logger for structured logging
-                this.logger?.error({
-                  endpoint: endpointName,
-                  method: method,
-                  errorName: errorName,
-                  errorMessage: errorMessage,
-                  errorStack: errorStack,
-                  errorCode: err?.code,
-                  errorRef: err?.ref,
-                  handled: errorHandled,
-                  req: this.requestMin(req),
-                })
-              }
-              if (!errorHandled) {
-                // Always send a response for unhandled errors
-                if (!res.headersSent) {
-                  res.status(500).json({
-                    error: 'InternalServerError',
-                    message: err?.message || 'An unexpected error occurred',
-                    endpoint: endpointName,
-                    method: method,
-                  })
-                }
-              }
-            } catch (outerErr) {
-              // Catch-all for errors in error handling itself
-              console.error('=== FATAL: Error in error handler ===')
-              console.error('Outer error:', outerErr)
-              console.error('Original error:', err)
-
-              if (!res.headersSent) {
-                try {
-                  res.status(500).json({
-                    error: 'FatalServerError',
-                    message: 'A fatal error occurred in the error handler',
-                  })
-                } catch (finalErr) {
-                  // Last resort - just end the response
-                  res.status(500).end('Fatal server error')
-                }
-              }
-            }
-          }
-        }
+        const middlewareCallback = this.createMiddlewareCallback(
+          endpointName,
+          endpointConfig,
+          endpointObject,
+          method,
+          requestDataConfig,
+          responseSuccess,
+          responseErrorConfig
+        )
 
         const fullPath = this.config.path + path
 
@@ -579,6 +395,220 @@ export class ServerRemoteObject {
       body: req.body,
     }
     return result
+  }
+
+  createMiddlewareCallback(
+    endpointName: string,
+    endpointConfig: ServerApiConfigEndpoint,
+    endpointObject: any,
+    method: string,
+    requestDataConfig,
+    responseSuccess,
+    responseErrorConfig
+  ) {
+    return async (req, res) => {
+      try {
+        const requestData = this.parseRequestData(requestDataConfig, req, res)
+        const validationSpec = this.parseValidationSpec(requestDataConfig)
+        const aclContext = { ...requestData }
+        const argValidateSchema = new Schema(validationSpec)
+        const validateResult = await argValidateSchema.validate(requestData)
+
+        if (!validateResult.isValid) {
+          res.status(403).json({ validationErrors: validateResult.errors })
+          return
+        }
+
+        if (endpointObject[method] === undefined) {
+          throw new Error(
+            'Method "' +
+              method +
+              '" is not defined in ' +
+              (endpointConfig.object
+                ? 'endpoint object'
+                : endpointConfig.service
+                  ? `service "${endpointConfig.service}"`
+                  : endpointConfig.repo
+                    ? `repo "${endpointConfig.repo}"`
+                    : 'config-level object') +
+              ' for endpoint "' +
+              endpointName +
+              '"'
+          )
+        }
+
+        // Pass endpoint-specific remote object for ACL context
+        const remoteObjectWrapper = { ...this, object: endpointObject }
+        await this.acl.populateContext(req, aclContext, remoteObjectWrapper)
+        const isPermitted = await this.acl.isPermitted(endpointName, aclContext)
+        if (isPermitted === false) {
+          throw new ServerErrorUnauthorized()
+        }
+
+        // Append the aclContext and aclConditions to the requestData
+        // - these are always appended in this order and are not configurable
+        requestData.aclContext = aclContext
+        requestData.aclConditions =
+          typeof isPermitted === 'object' ? isPermitted : {}
+
+        // Call method on endpoint-specific object
+        const response = await endpointObject[method].apply(endpointObject, [
+          requestData,
+        ])
+
+        // Skip automatic response if endpoint handles it manually
+        if (endpointConfig.skipResponse) {
+          return
+        }
+
+        this.sendSuccessResponse(res, response, responseSuccess)
+      } catch (err) {
+        await this.handleEndpointError(
+          err,
+          res,
+          req,
+          endpointName,
+          method,
+          responseErrorConfig
+        )
+      }
+    }
+  }
+
+  sendSuccessResponse(
+    res,
+    response,
+    responseSuccess: ServerApiConfigEndpointResponse
+  ) {
+    const httpConfig = responseSuccess.http ? responseSuccess.http : {}
+    const code = httpConfig.code ? httpConfig.code : 200
+    const contentType = httpConfig.contentType ? httpConfig.contentType : 'json'
+    if (contentType == 'json') {
+      res.status(code).json(response)
+    } else {
+      if (contentType) res.type(contentType)
+      res.status(code).send(response)
+    }
+  }
+
+  async handleEndpointError(
+    err,
+    res,
+    req,
+    endpointName: string,
+    method: string,
+    responseErrorConfig
+  ) {
+    try {
+      const error = err instanceof Error ? err : null
+      let errorHandled = false
+      if (Object.keys(responseErrorConfig).length) {
+        for (const errorName in responseErrorConfig) {
+          if (error && errorName !== error.constructor.name) {
+            continue
+          }
+
+          const errorConfig = responseErrorConfig[
+            errorName
+          ] as ServerApiConfigEndpointResponse
+          const schemaConfig = errorConfig.schema ? errorConfig.schema : null
+          const httpConfig = errorConfig.http ? errorConfig.http : {}
+          const code = httpConfig.code ? httpConfig.code : 400
+          const contentType = httpConfig.contentType
+            ? httpConfig.contentType
+            : 'json'
+
+          const validateResultError: SchemaValidationResult = schemaConfig
+            ? await new Schema(schemaConfig).validate(err)
+            : { isValid: true }
+          if (validateResultError.isValid) {
+            if (contentType == 'json') {
+              res.status(code).json(error)
+            } else {
+              if (contentType) res.type(contentType)
+              res.status(code).send(error?.message)
+            }
+            errorHandled = true
+          }
+          break // We use the first handle that matches and ignore any others
+        }
+      }
+      const isInTest = typeof global.it === 'function' // dont log anything when in automated test enviroment
+      if (
+        !isInTest &&
+        // eslint-disable-next-line
+        // @ts-ignore
+        (err.ref == undefined || err.logged || !errorHandled)
+      ) {
+        // Errors which have a ref defined are expected to be handled by the client so we dont need to log them
+        // Errors which do not have a ref are not expected by the client and must be logged
+        // Errors which have a ref may be forced to log if the logged flag value is set to true
+        // Unhandled errors are not expected by either the server or the client and must be logged
+
+        // Extract error details with fallbacks to ensure meaningful logs
+        const errorMessage =
+          err?.message || err?.toString?.() || String(err) || 'Unknown error'
+
+        const errorStack =
+          err?.stack ||
+          (err instanceof Error ? new Error().stack : null) ||
+          'No stack trace available'
+
+        const errorName = err?.name || err?.constructor?.name || 'Error'
+
+        // Log to console for immediate visibility
+        console.error('Endpoint:', endpointName)
+        console.error('Method:', method)
+        console.error('Error:', errorName, '-', errorMessage)
+        console.error('Stack:', errorStack)
+        if (!errorHandled) {
+          console.error(
+            'WARNING: Error was not handled by endpoint error config'
+          )
+        }
+
+        // Also log via logger for structured logging
+        this.logger?.error({
+          endpoint: endpointName,
+          method: method,
+          errorName: errorName,
+          errorMessage: errorMessage,
+          errorStack: errorStack,
+          errorCode: err?.code,
+          errorRef: err?.ref,
+          handled: errorHandled,
+          req: this.requestMin(req),
+        })
+      }
+      if (!errorHandled) {
+        // Always send a response for unhandled errors
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: 'InternalServerError',
+            message: err?.message || 'An unexpected error occurred',
+            endpoint: endpointName,
+            method: method,
+          })
+        }
+      }
+    } catch (outerErr) {
+      // Catch-all for errors in error handling itself
+      console.error('=== FATAL: Error in error handler ===')
+      console.error('Outer error:', outerErr)
+      console.error('Original error:', err)
+
+      if (!res.headersSent) {
+        try {
+          res.status(500).json({
+            error: 'FatalServerError',
+            message: 'A fatal error occurred in the error handler',
+          })
+        } catch (finalErr) {
+          // Last resort - just end the response
+          res.status(500).end('Fatal server error')
+        }
+      }
+    }
   }
 }
 
