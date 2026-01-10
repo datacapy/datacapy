@@ -557,15 +557,19 @@ export class ServerRemoteObject {
         const errorName = err?.name || err?.constructor?.name || 'Error'
 
         // Log to console for immediate visibility
-        console.error('Endpoint:', endpointName)
-        console.error('Method:', method)
-        console.error('Error:', errorName, '-', errorMessage)
-        console.error('Stack:', errorStack)
-        if (!errorHandled) {
-          console.error(
-            'WARNING: Error was not handled by endpoint error config'
-          )
-        }
+        const errorDetails = [
+          `Endpoint: ${endpointName}`,
+          `Method: ${method}`,
+          `Error: ${errorName} - ${errorMessage}`,
+          `Stack: ${errorStack}`,
+          !errorHandled
+            ? 'WARNING: Error was not handled by endpoint error config'
+            : null,
+        ]
+          .filter(Boolean)
+          .join('\n')
+
+        console.error(errorDetails)
 
         // Also log via logger for structured logging
         this.logger?.error({
@@ -593,9 +597,11 @@ export class ServerRemoteObject {
       }
     } catch (outerErr) {
       // Catch-all for errors in error handling itself
-      console.error('=== FATAL: Error in error handler ===')
-      console.error('Outer error:', outerErr)
-      console.error('Original error:', err)
+      console.error(
+        '=== FATAL: Error in error handler ===\n' +
+          `Outer error: ${outerErr}\n` +
+          `Original error: ${err}`
+      )
 
       if (!res.headersSent) {
         try {
