@@ -1,24 +1,16 @@
-import should = require('should')
 import ServerAcl from 'acl'
 import ServerAclRoleAssessor from 'acl/role-assessor'
 import ServerAclRoleAssessorAll from 'acl/role-assessor/all'
 
 describe('ServerAcl', function () {
   describe('hasRole()', function () {
-    it('returns true for role "all"', function (done) {
+    it('returns true for role "all"', async () => {
       const acl = new ServerAcl()
       acl.addRoleAssessor(new ServerAclRoleAssessorAll())
-      acl
-        .hasRole('all')
-        .then(function (hasRole) {
-          should(hasRole).eql(true)
-          done()
-        })
-        .catch(function (err) {
-          done(err)
-        })
+      const hasRole = await acl.hasRole('all')
+      expect(hasRole).toBe(true)
     })
-    it('delegates to role assessor', function (done) {
+    it('delegates to role assessor', async () => {
       const config = {
         endpoints: {},
         rules: [{ role: 'admin', allow: true }],
@@ -50,7 +42,7 @@ describe('ServerAcl', function () {
       aclA.addRoleAssessor(new TestAssessorTrue())
       promises.push(
         aclA.hasRole('admin').then(function (hasRole) {
-          should(hasRole).eql(true)
+          expect(hasRole).toBe(true)
         })
       )
 
@@ -59,19 +51,13 @@ describe('ServerAcl', function () {
       aclB.addRoleAssessor(new TestAssessorFalse())
       promises.push(
         aclB.hasRole('admin').then(function (hasRole) {
-          should(hasRole).eql(false)
+          expect(hasRole).toBe(false)
         })
       )
 
-      Promise.all(promises)
-        .then(function () {
-          done()
-        })
-        .catch(function (err) {
-          done(err)
-        })
+      await Promise.all(promises)
     })
-    it('role accessor evaluates context', function (done) {
+    it('role accessor evaluates context', async () => {
       const config = {
         endpoints: {},
         rules: [{ role: 'admin', allow: true }],
@@ -87,50 +73,32 @@ describe('ServerAcl', function () {
 
       const acl = new ServerAcl(config)
       acl.addRoleAssessor(new TestAssessor())
-      acl
-        .hasRole('admin', { adminPassword: 'qwerty' })
-        .then(function (hasRole) {
-          should(hasRole).eql(true)
-          done()
-        })
+      const hasRole = await acl.hasRole('admin', { adminPassword: 'qwerty' })
+      expect(hasRole).toBe(true)
     })
   })
   describe('isPermitted()', function () {
-    it('rule allow option defaults to true', function (done) {
+    it('rule allow option defaults to true', async () => {
       const config = {
         endpoints: {},
         rules: [{ role: 'all', allow: true }],
       }
       const acl = new ServerAcl(config)
       acl.addRoleAssessor(new ServerAclRoleAssessorAll())
-      acl
-        .isPermitted('test')
-        .then(function (permitted) {
-          should(permitted).eql(true)
-          done()
-        })
-        .catch(function (err) {
-          done(err)
-        })
+      const permitted = await acl.isPermitted('test')
+      expect(permitted).toBe(true)
     })
-    it('rule allow option can be set to false', function (done) {
+    it('rule allow option can be set to false', async () => {
       const config = {
         endpoints: {},
         rules: [{ role: 'admin', allow: false }],
       }
       const acl = new ServerAcl(config)
       acl.addRoleAssessor(new ServerAclRoleAssessorAll())
-      acl
-        .isPermitted('test')
-        .then(function (permitted) {
-          should(permitted).eql(false)
-          done()
-        })
-        .catch(function (err) {
-          done(err)
-        })
+      const permitted = await acl.isPermitted('test')
+      expect(permitted).toBe(false)
     })
-    it('processes rules in sequence', function (done) {
+    it('processes rules in sequence', async () => {
       const config = {
         endpoints: {},
         rules: [
@@ -172,17 +140,10 @@ describe('ServerAcl', function () {
       acl.addRoleAssessor(new AclAssessorGuest())
       acl.addRoleAssessor(new AclAssessorAdmin())
       acl.addRoleAssessor(new AclAssessorPublic())
-      acl
-        .isPermitted('guest')
-        .then(function (permitted) {
-          should(permitted).eql(false)
-          done()
-        })
-        .catch(function (err) {
-          done(err)
-        })
+      const permitted = await acl.isPermitted('guest')
+      expect(permitted).toBe(false)
     })
-    it('returns conditions object if role specifies conditions', function (done) {
+    it('returns conditions object if role specifies conditions', async () => {
       const config = {
         endpoints: {},
         rules: [
@@ -216,19 +177,12 @@ describe('ServerAcl', function () {
       const acl = new ServerAcl(config)
       acl.addRoleAssessor(new AclAssessorGuest())
       acl.addRoleAssessor(new AclAssessorAdmin())
-      acl
-        .isPermitted('guest')
-        .then(function (permitted) {
-          should(permitted).eql(conditions)
-          done()
-        })
-        .catch(function (err) {
-          done(err)
-        })
+      const permitted = await acl.isPermitted('guest')
+      expect(permitted).toEqual(conditions)
     })
   })
   describe('populateContext()', function () {
-    it('populates context object from each role assessor initContext()', function (done) {
+    it('populates context object from each role assessor initContext()', async () => {
       const config = {
         endpoints: {},
         rules: [
@@ -266,20 +220,13 @@ describe('ServerAcl', function () {
       const acl = new ServerAcl(config)
       acl.addRoleAssessor(new AclAssessorGuest())
       acl.addRoleAssessor(new AclAssessorAdmin())
-      acl
-        .populateContext({}, finalContext)
-        .then(function () {
-          should(finalContext.admin).eql('admin condition')
-          should(finalContext.guest).eql('guest condition')
-          done()
-        })
-        .catch(function (err) {
-          done(err)
-        })
+      await acl.populateContext({}, finalContext)
+      expect(finalContext.admin).toEqual('admin condition')
+      expect(finalContext.guest).toEqual('guest condition')
     })
   })
   describe('getRules()', function () {
-    it('returns global rules', function () {
+    it('returns global rules', () => {
       const config = {
         endpoints: {},
         rules: [
@@ -291,9 +238,9 @@ describe('ServerAcl', function () {
       const acl = new ServerAcl(config)
       const rules = acl.getRules('test')
 
-      should(rules).eql(config.rules)
+      expect(rules).toEqual(config.rules)
     })
-    it('returns named endpoint rules', function () {
+    it('returns named endpoint rules', () => {
       const config = {
         rules: [],
         endpoints: {
@@ -311,9 +258,9 @@ describe('ServerAcl', function () {
       const acl = new ServerAcl(config)
       const rules = acl.getRules('post-getAll')
 
-      should(rules).eql(config.endpoints['post-getAll'].acl.rules)
+      expect(rules).toEqual(config.endpoints['post-getAll'].acl.rules)
     })
-    it('returns named endpoint rules with global rules prepended', function () {
+    it('returns named endpoint rules with global rules prepended', () => {
       const config = {
         rules: [
           { allow: false, role: 'guest' },
@@ -337,11 +284,11 @@ describe('ServerAcl', function () {
       const expectedRules = config.rules.concat(
         config.endpoints['post-getAll'].acl.rules
       )
-      should(rules).eql(expectedRules)
+      expect(rules).toEqual(expectedRules)
     })
   })
   describe('setRepos()', function () {
-    it('injects repos into role assessors', function () {
+    it('injects repos into role assessors', () => {
       class AclAssessorTeamMember extends ServerAclRoleAssessor {
         constructor() {
           super('team-member')
@@ -366,8 +313,8 @@ describe('ServerAcl', function () {
       acl.addRoleAssessor(assessorAdmin)
       acl.setRepos(repos)
 
-      should(assessorTeamMember.repos).eql(repos)
-      should(assessorAdmin.repos).eql(repos)
+      expect(assessorTeamMember.repos).toEqual(repos)
+      expect(assessorAdmin.repos).toEqual(repos)
     })
   })
 })
