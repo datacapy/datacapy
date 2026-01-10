@@ -2,8 +2,8 @@ import should = require('should')
 import ServerRemoteObject from 'remote-object'
 import ServerAcl from 'acl'
 import ServerAclRoleAssessor from 'acl/role-assessor'
-import ExpressMockRequest from './fixtures/express/mock-request'
-import ExpressMockResponse from './fixtures/express/mock-response'
+import ExpressMockRequest from './test/fixtures/express/mock-request'
+import ExpressMockResponse from './test/fixtures/express/mock-response'
 
 describe('ServerRemoteObject', function () {
   describe('getMiddlewareConfig()', function () {
