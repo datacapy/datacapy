@@ -675,7 +675,9 @@ describe('ServerRemoteObject', function () {
       expect(resSave.mockData.stringToBooleanFalse).toBe(false)
       expect(typeof resSave.mockData.stringToBooleanFalse).toBe('boolean')
       expect(resSave.mockData.stringToDate).toBeInstanceOf(Date)
-      expect(resSave.mockData.stringToObjectId.constructor.name).toBe('ObjectID')
+      expect(resSave.mockData.stringToObjectId.constructor.name).toBe(
+        'ObjectID'
+      )
     })
     it('returns 403 error response code on arg "required" validation error', async () => {
       const targetObject = {

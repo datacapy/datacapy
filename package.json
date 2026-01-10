@@ -16,7 +16,15 @@
     "test:mzen-id": "pnpm --filter mzen-id test",
     "test:mzen-schema": "pnpm --filter mzen-schema test",
     "test:mzen-om": "pnpm --filter mzen-om test",
-    "test:mzen-server": "pnpm --filter mzen-server test"
+    "test:mzen-server": "pnpm --filter mzen-server test",
+    "format:mzen-id": "pnpm --filter mzen-id format",
+    "format:mzen-schema": "pnpm --filter mzen-schema format",
+    "format:mzen-om": "pnpm --filter mzen-om format",
+    "format:mzen-server": "pnpm --filter mzen-server format",
+    "typecheck:mzen-id": "pnpm --filter mzen-id typecheck",
+    "typecheck:mzen-schema": "pnpm --filter mzen-schema typecheck",
+    "typecheck:mzen-om": "pnpm --filter mzen-om typecheck",
+    "typecheck:mzen-server": "pnpm --filter mzen-server typecheck"
   },
   "keywords": ["monorepo", "mzen"],
   "author": "Kevin Foster <kevin.foster.uk@gmail.com>",

@@ -1,7 +1,7 @@
-export * from './base62'
-export * from './uniqueId'
-export * from './uuid'
+export * from "./base62";
+export * from "./uniqueId";
+export * from "./uuid";
 
-import genUniqueId from './uniqueId'
+import genUniqueId from "./uniqueId";
 
-export default genUniqueId
+export default genUniqueId;
