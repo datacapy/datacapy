@@ -1,15 +1,27 @@
-import { ModelManager, Repo, Service } from 'mzen-om'
-import { ServerRemoteObject } from './remote-object'
-import { ServerConfig } from './server-config'
-import { ServerApiConfig } from './api-config'
-import ServerAcl from './acl'
-import ServerAclRoleAssessor from './acl/role-assessor'
 import * as _Http from 'http'
 import express from 'express'
-import * as path from 'path'
+import { ModelManager } from 'mzen-om'
 
+import { ServerConfig } from './server-config'
+import { ServerApiConfig } from './api-config'
+import ServerAclRoleAssessor from './acl/role-assessor'
+import {
+  ConfigurationManager,
+  LifecycleManager,
+  ExpressAppManager,
+  HttpServerManager,
+  AclRegistry,
+  ApiConfigRegistry,
+  EndpointRegistrar,
+} from './server/index'
+
+/**
+ * Server - Orchestrates server components following SOLID principles
+ * Refactored to delegate responsibilities to specialized components
+ */
 export class Server {
-  modelManager: ModelManager
+  // Public properties (maintain backward compatibility)
+  modelManager: ModelManager | any
   config: ServerConfig
   apiConfigs: Array<ServerApiConfig>
   app: express.Application
@@ -17,248 +29,176 @@ export class Server {
   router: express.Router
   aclRoleAssessor: { [key: string]: any }
   logger: any
-  initialisers: {
-    [key: string]: any[]
-  }
-  shutdownHandlers: {
-    [key: string]: any[]
-  }
+  initialisers: { [key: string]: any[] }
+  shutdownHandlers: { [key: string]: any[] }
   initialised: boolean
 
+  // Private components following DIP
+  private configurationManager: ConfigurationManager
+  private lifecycleManager: LifecycleManager
+  private expressAppManager: ExpressAppManager
+  private httpServerManager: HttpServerManager
+  private aclRegistry: AclRegistry
+  private apiConfigRegistry: ApiConfigRegistry
+  private endpointRegistrar: EndpointRegistrar
+
   constructor(options?: ServerConfig, modelManager?: ModelManager) {
-    this.config = options ? options : { path: '' }
-    this.config.path = this.config.path ? this.config.path : '/api'
-    this.config.port = this.config.port ? this.config.port : 3838
-    // Default appDir directory is the same directory as the executed script
-    this.config.appDir = this.config.appDir
-      ? path.resolve(this.config.appDir)
-      : ''
+    // Create components in dependency order
+    this.configurationManager = new ConfigurationManager(options, modelManager)
+    this.lifecycleManager = new LifecycleManager()
+    this.expressAppManager = new ExpressAppManager(
+      this.configurationManager.getConfig(),
+      console
+    )
+    this.aclRegistry = new AclRegistry()
+    this.apiConfigRegistry = new ApiConfigRegistry()
 
-    this.modelManager = modelManager
-      ? modelManager
-      : new ModelManager(this.config.model ? this.config.model : undefined)
-
-    this.apiConfigs = []
-    this.app = express()
-    this.server = null
-    this.router = express.Router()
-    this.aclRoleAssessor = {}
+    // Initialize logger (default to console)
     this.logger = console
-    this.initialisers = {}
+
+    // Create endpoint registrar (depends on other components)
+    this.endpointRegistrar = new EndpointRegistrar(
+      this.configurationManager,
+      this.expressAppManager,
+      this.aclRegistry,
+      this.apiConfigRegistry,
+      this.logger
+    )
+
+    // Create HTTP server manager (depends on shutdown callback)
+    this.httpServerManager = new HttpServerManager(
+      this.expressAppManager.getApp(),
+      this.configurationManager.getConfig(),
+      this.logger,
+      () => this.shutdown()
+    )
+
+    // Expose component state for backward compatibility
+    this.config = this.configurationManager.getConfig()
+    this.modelManager = this.configurationManager.getModelManager()
+    this.app = this.expressAppManager.getApp()
+    this.router = this.expressAppManager.getRouter()
+    this.aclRoleAssessor = this.aclRegistry.getRoleAssessors()
+    this.apiConfigs = this.apiConfigRegistry.getApiConfigs()
+    this.server = null
     this.initialised = false
-    this.shutdownHandlers = {}
+
+    // Expose lifecycle state via getters for backward compatibility
+    Object.defineProperty(this, 'initialisers', {
+      get: () => this.lifecycleManager.getInitialisers(),
+    })
+    Object.defineProperty(this, 'shutdownHandlers', {
+      get: () => this.lifecycleManager.getShutdownHandlers(),
+    })
+    Object.defineProperty(this, 'server', {
+      get: () => this.httpServerManager.getServer(),
+    })
   }
 
-  setLogger(logger) {
+  setLogger(logger): this {
     this.logger = logger
-    this.modelManager.setLogger(logger)
+    this.configurationManager.setLogger(logger)
+    this.expressAppManager['logger'] = logger
+    this.httpServerManager['logger'] = logger
+    this.endpointRegistrar['logger'] = logger
     return this
   }
 
   async init() {
     if (!this.initialised) {
-      await this.runInitialisers()
-      await this.runInitialisers('00-init')
+      await this.lifecycleManager.runInitialisers(undefined, this)
+      await this.lifecycleManager.runInitialisers('00-init', this)
 
       await this.modelManager.init()
-      await this.runInitialisers('01-model-initialised')
+      await this.lifecycleManager.runInitialisers('01-model-initialised', this)
 
-      await this.runInitialisers('02-resources-loaded')
+      await this.lifecycleManager.runInitialisers('02-resources-loaded', this)
 
-      this.registerEndpoints()
-      await this.runInitialisers('03-endpoints-registered')
+      this.endpointRegistrar.registerEndpoints()
+      await this.lifecycleManager.runInitialisers(
+        '03-endpoints-registered',
+        this
+      )
 
-      this.app.use(this.config.path, this.router)
-      await this.runInitialisers('04-router-mounted')
+      this.expressAppManager.mountRouter(this.config.path)
+      await this.lifecycleManager.runInitialisers('04-router-mounted', this)
 
-      this.app.use((err, req, res, next) => {
-        this.logger.error({ err, req, res })
-        res.status(500).send('Something broke!')
-        next()
-      })
+      this.expressAppManager.setupErrorHandler(this.logger)
 
-      await this.runInitialisers('99-final')
+      await this.lifecycleManager.runInitialisers('99-final', this)
 
       this.initialised = true
     }
   }
 
   async runInitialisers(stage?: string) {
-    stage = stage ? stage : 'default'
-    if (this.initialisers[stage]) {
-      for (const initFunction of this.initialisers[stage]) {
-        const shutdownHandler = await Promise.resolve(initFunction(this))
-        if (typeof shutdownHandler == 'function') {
-          this.addShutdownHandler(shutdownHandler, stage)
-        }
-      }
-    }
+    await this.lifecycleManager.runInitialisers(stage, this)
   }
 
   addInitialiser(initialiser, stage?: string) {
-    stage = stage ? stage : 'default'
-    if (this.initialisers[stage] === undefined) {
-      this.initialisers[stage] = []
-    }
-    this.initialisers[stage].push(initialiser)
+    this.lifecycleManager.addInitialiser(initialiser, stage)
   }
 
   addInitialisers(initialisers, stage?: string) {
-    initialisers.forEach((initialiser) => {
-      this.addInitialiser(initialiser, stage)
-    })
+    this.lifecycleManager.addInitialisers(initialisers, stage)
   }
 
   addShutdownHandler(handler, stage?: string) {
-    stage = stage ? stage : 'default'
-    if (this.shutdownHandlers[stage] === undefined) {
-      this.shutdownHandlers[stage] = []
-    }
-    this.shutdownHandlers[stage].unshift(handler)
+    this.lifecycleManager.addShutdownHandler(handler, stage)
   }
 
   addShutdownHandlers(handlers, stage?: string) {
-    handlers.forEach((handler) => {
-      this.addShutdownHandler(handler, stage)
-    })
+    this.lifecycleManager.addShutdownHandlers(handlers, stage)
   }
 
   async runShutdownHandlers(stage?: string) {
-    stage = stage ? stage : 'default'
-    if (this.shutdownHandlers[stage] && this.shutdownHandlers[stage].length) {
-      for (const handler of this.shutdownHandlers[stage]) {
-        await Promise.resolve(handler())
-      }
-    }
+    await this.lifecycleManager.runShutdownHandlers(stage)
   }
 
   addRoleAssessor(roleAssessor: ServerAclRoleAssessor) {
-    this.aclRoleAssessor[roleAssessor.role] = roleAssessor
+    this.aclRegistry.addRoleAssessor(roleAssessor)
   }
 
   addRoleAssessors(roleAssessors: ServerAclRoleAssessor[]) {
-    roleAssessors.forEach((roleAssessor) => {
-      this.addRoleAssessor(roleAssessor)
-    })
+    this.aclRegistry.addRoleAssessors(roleAssessors)
   }
 
   addApiConfig(config: ServerApiConfig) {
-    this.apiConfigs.push(config)
+    this.apiConfigRegistry.addApiConfig(config)
   }
 
   addApiConfigs(configs: Array<ServerApiConfig>) {
-    this.apiConfigs = this.apiConfigs.concat(configs)
+    this.apiConfigRegistry.addApiConfigs(configs)
   }
 
   registerEndpoints() {
-    if (this.apiConfigs) {
-      for (const apiConfig of this.apiConfigs) {
-        this.registerEndpointsConfig(apiConfig)
-      }
-    }
+    this.endpointRegistrar.registerEndpoints()
   }
 
   registerEndpointsConfig(config: ServerApiConfig) {
-    let remoteObjectName: string | null = null
-    let remoteObject: Repo<any> | Service | null = null
-    if (config.object) {
-      remoteObject = config.object
-    } else if (config.service) {
-      remoteObjectName = config.service
-      remoteObject = this.modelManager.services[remoteObjectName]
-    } else if (config.repo) {
-      remoteObjectName = config.repo
-      remoteObject = this.modelManager.repos[remoteObjectName]
-    }
-
-    const path =
-      config.path != null ? config.path : '/' + camelToKebab(remoteObjectName)
-
-    const enable = config.enable ? config.enable : {}
-    const aclConfig = config.acl ? config.acl : {}
-    const endpointsDisable = config.disable ? config.disable : {}
-    const endpointDisableGroup = config.disableGroup ? config.disableGroup : {}
-    const endpoints = config.endpoints ? config.endpoints : {}
-
-    if (!enable) return
-
-    // Remove any endpoints that have been disabled
-    for (const endpointName in endpoints) {
-      const groups = endpoints[endpointName].groups
-      if (Array.isArray(groups)) {
-        groups.forEach(function (group) {
-          if (endpoints[endpointName] && endpointDisableGroup[group] == true) {
-            delete endpoints[endpointName]
-          }
-        })
-      }
-      if (endpoints[endpointName] && endpointsDisable[endpointName] == true) {
-        delete endpoints[endpointName]
-      }
-    }
-
-    // This service has no end points - nothing more to do
-    if (Object.keys(endpoints).length == 0) return
-
-    const acl = new ServerAcl({
-      rules: aclConfig.rules,
-      endpoints,
-    })
-    acl.loadDefaultRoleAssessors()
-    acl.setRepos(this.modelManager.repos)
-    for (const role in this.aclRoleAssessor) {
-      acl.addRoleAssessor(this.aclRoleAssessor[role])
-    }
-
-    const remote = new ServerRemoteObject(
-      remoteObject,
-      {
-        path,
-        endpoints,
-        server: this.config,
-        remoteObjectName,
-      },
-      this.modelManager
-    )
-    remote.setLogger(this.logger)
-    remote.setAcl(acl)
-    remote.initRouter(this.router)
+    this.endpointRegistrar['registerEndpointsConfig'](config)
   }
 
   async start() {
-    this.server = this.app.listen(this.config.port, () => {
-      this.logger.info('Listening on port ' + this.config.port)
-    })
-
-    process.on('SIGINT', () => {
-      this.shutdown().then(() => {
-        setTimeout(function () {
-          process.exit(0)
-        }, 5000)
-      })
-    })
+    await this.httpServerManager.start()
   }
 
   async shutdown() {
     this.logger.info('Shutting down')
 
-    await this.runShutdownHandlers('99-final')
-    await this.runShutdownHandlers('04-router-mounted')
-    await this.runShutdownHandlers('03-endpoints-registered')
-    await this.runShutdownHandlers('02-resources-loaded')
-    await this.runShutdownHandlers('01-model-initialised')
+    await this.lifecycleManager.runShutdownHandlers('99-final')
+    await this.lifecycleManager.runShutdownHandlers('04-router-mounted')
+    await this.lifecycleManager.runShutdownHandlers('03-endpoints-registered')
+    await this.lifecycleManager.runShutdownHandlers('02-resources-loaded')
+    await this.lifecycleManager.runShutdownHandlers('01-model-initialised')
 
     await this.modelManager.shutdown()
 
-    await this.runShutdownHandlers('00-init')
-    await this.runShutdownHandlers()
+    await this.lifecycleManager.runShutdownHandlers('00-init')
+    await this.lifecycleManager.runShutdownHandlers()
 
-    return this.server ? this.server.close() : undefined
+    return this.httpServerManager.shutdown()
   }
-}
-
-function camelToKebab(input) {
-  return input ? input.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase() : ''
 }
 
 export default Server
