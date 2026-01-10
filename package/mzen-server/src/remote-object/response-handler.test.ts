@@ -43,7 +43,7 @@ describe('ResponseHandler', () => {
       const responseSuccess: ServerApiConfigEndpointResponse = {
         http: {
           code: 201,
-        }
+        },
       }
 
       responseHandler.sendSuccessResponse(mockRes, response, responseSuccess)
@@ -66,7 +66,7 @@ describe('ResponseHandler', () => {
       const responseSuccess: ServerApiConfigEndpointResponse = {
         http: {
           contentType: 'text/plain',
-        }
+        },
       }
 
       responseHandler.sendSuccessResponse(mockRes, response, responseSuccess)
@@ -92,7 +92,7 @@ describe('ResponseHandler', () => {
         http: {
           code: 202,
           contentType: 'application/xml',
-        }
+        },
       }
 
       responseHandler.sendSuccessResponse(mockRes, response, responseSuccess)

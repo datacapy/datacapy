@@ -10,7 +10,7 @@ describe('RequestDataParser', () => {
   beforeEach(() => {
     const serverConfig: Partial<ServerConfig> = {
       port: 3000,
-      host: 'localhost'
+      host: 'localhost',
     }
     parser = new RequestDataParser(serverConfig)
 
@@ -41,10 +41,14 @@ describe('RequestDataParser', () => {
 
       const requestDataConfig = {
         name: {},
-        age: {}
+        age: {},
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.name).toBe('John')
       expect(result.age).toBe('30')
@@ -55,10 +59,14 @@ describe('RequestDataParser', () => {
 
       const requestDataConfig = {
         username: { src: 'body' },
-        email: { src: 'body' }
+        email: { src: 'body' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.username).toBe('john_doe')
       expect(result.email).toBe('john@example.com')
@@ -69,10 +77,14 @@ describe('RequestDataParser', () => {
 
       const requestDataConfig = {
         id: { src: 'param' },
-        slug: { src: 'param' }
+        slug: { src: 'param' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.id).toBe('123')
       expect(result.slug).toBe('test-post')
@@ -87,10 +99,14 @@ describe('RequestDataParser', () => {
 
       const requestDataConfig = {
         auth: { src: 'header', srcPath: 'authorization' },
-        contentType: { src: 'header', srcPath: 'content-type' }
+        contentType: { src: 'header', srcPath: 'content-type' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.auth).toBe('Bearer token123')
       expect(result.contentType).toBe('application/json')
@@ -100,36 +116,48 @@ describe('RequestDataParser', () => {
       mockReq.body = {
         user: {
           profile: {
-            name: 'John Doe'
-          }
-        }
+            name: 'John Doe',
+          },
+        },
       }
 
       const requestDataConfig = {
-        userName: { src: 'body', srcPath: 'user.profile.name' }
+        userName: { src: 'body', srcPath: 'user.profile.name' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.userName).toBe('John Doe')
     })
 
     it('accesses request object when src is request', () => {
       const requestDataConfig = {
-        fullRequest: { src: 'container', srcPath: 'request' }
+        fullRequest: { src: 'container', srcPath: 'request' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.fullRequest).toBe(mockReq)
     })
 
     it('accesses response object when src is response', () => {
       const requestDataConfig = {
-        fullResponse: { src: 'container', srcPath: 'response' }
+        fullResponse: { src: 'container', srcPath: 'response' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.fullResponse).toBe(mockRes)
     })
@@ -137,15 +165,19 @@ describe('RequestDataParser', () => {
     it('accesses config when src is config', () => {
       const serverConfig: Partial<ServerConfig> = {
         port: 8080,
-        host: 'example.com'
+        host: 'example.com',
       }
       parser = new RequestDataParser(serverConfig)
 
       const requestDataConfig = {
-        serverPort: { src: 'config', srcPath: 'port' }
+        serverPort: { src: 'config', srcPath: 'port' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.serverPort).toBe(8080)
     })
@@ -154,10 +186,14 @@ describe('RequestDataParser', () => {
       mockReq.query = {}
 
       const requestDataConfig = {
-        missingField: { src: 'query' }
+        missingField: { src: 'query' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.missingField).toBeUndefined()
     })
@@ -166,10 +202,14 @@ describe('RequestDataParser', () => {
       mockReq.aclContext = { userId: '123', role: 'admin' }
 
       const requestDataConfig = {
-        aclData: { src: 'container', srcPath: 'aclContext' }
+        aclData: { src: 'container', srcPath: 'aclContext' },
       }
 
-      const result = parser.parseRequestData(requestDataConfig, mockReq, mockRes)
+      const result = parser.parseRequestData(
+        requestDataConfig,
+        mockReq,
+        mockRes
+      )
 
       expect(result.aclData).toEqual({ userId: '123', role: 'admin' })
     })
@@ -179,7 +219,7 @@ describe('RequestDataParser', () => {
     it('creates validation spec with type', () => {
       const requestDataConfig = {
         name: { type: String },
-        age: { type: Number }
+        age: { type: Number },
       }
 
       const result = parser.parseValidationSpec(requestDataConfig)
@@ -191,7 +231,7 @@ describe('RequestDataParser', () => {
     it('creates validation spec with required constraint', () => {
       const requestDataConfig = {
         name: { type: String, required: true },
-        email: { type: String, required: false }
+        email: { type: String, required: false },
       }
 
       const result = parser.parseValidationSpec(requestDataConfig)
@@ -202,7 +242,7 @@ describe('RequestDataParser', () => {
 
     it('creates validation spec with notNull constraint', () => {
       const requestDataConfig = {
-        name: { type: String, notNull: true }
+        name: { type: String, notNull: true },
       }
 
       const result = parser.parseValidationSpec(requestDataConfig)
@@ -212,7 +252,7 @@ describe('RequestDataParser', () => {
 
     it('creates validation spec with notEmpty constraint', () => {
       const requestDataConfig = {
-        name: { type: String, notEmpty: true }
+        name: { type: String, notEmpty: true },
       }
 
       const result = parser.parseValidationSpec(requestDataConfig)
@@ -222,7 +262,7 @@ describe('RequestDataParser', () => {
 
     it('creates validation spec with defaultValue filter', () => {
       const requestDataConfig = {
-        role: { type: String, defaultValue: 'user' }
+        role: { type: String, defaultValue: 'user' },
       }
 
       const result = parser.parseValidationSpec(requestDataConfig)
@@ -236,8 +276,8 @@ describe('RequestDataParser', () => {
           type: String,
           required: true,
           notNull: true,
-          notEmpty: true
-        }
+          notEmpty: true,
+        },
       }
 
       const result = parser.parseValidationSpec(requestDataConfig)
@@ -261,46 +301,52 @@ describe('RequestDataParser', () => {
     it('validates data successfully when all constraints are met', async () => {
       const requestData = {
         name: 'John',
-        age: 30
+        age: 30,
       }
 
       const validationSpec = {
         name: {
           $type: String,
           $validate: { required: true },
-          $filter: {}
+          $filter: {},
         },
         age: {
           $type: Number,
           $validate: {},
-          $filter: {}
-        }
+          $filter: {},
+        },
       }
 
-      const result = await parser.validateRequestData(requestData, validationSpec)
+      const result = await parser.validateRequestData(
+        requestData,
+        validationSpec
+      )
 
       expect(result.isValid).toBe(true)
     })
 
     it('returns validation errors when required field is missing', async () => {
       const requestData = {
-        age: 30
+        age: 30,
       }
 
       const validationSpec = {
         name: {
           $type: String,
           $validate: { required: true },
-          $filter: {}
+          $filter: {},
         },
         age: {
           $type: Number,
           $validate: {},
-          $filter: {}
-        }
+          $filter: {},
+        },
       }
 
-      const result = await parser.validateRequestData(requestData, validationSpec)
+      const result = await parser.validateRequestData(
+        requestData,
+        validationSpec
+      )
 
       expect(result.isValid).toBe(false)
       expect(result.errors).toBeDefined()
@@ -310,7 +356,10 @@ describe('RequestDataParser', () => {
       const requestData = {}
       const validationSpec = {}
 
-      const result = await parser.validateRequestData(requestData, validationSpec)
+      const result = await parser.validateRequestData(
+        requestData,
+        validationSpec
+      )
 
       expect(result.isValid).toBe(true)
     })

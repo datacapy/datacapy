@@ -12,7 +12,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         object: endpointObject,
         method: 'custom',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointObject(endpointConfig)
@@ -25,9 +25,9 @@ describe('EndpointResolver', () => {
       const serviceObject = { serviceMethod: 'test' }
       const modelManager: ModelManagerInterface = {
         services: {
-          userService: serviceObject
+          userService: serviceObject,
         },
-        repos: {}
+        repos: {},
       }
 
       const resolver = new EndpointResolver(defaultObject, modelManager)
@@ -35,7 +35,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         service: 'userService',
         method: 'serviceMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointObject(endpointConfig)
@@ -49,8 +49,8 @@ describe('EndpointResolver', () => {
       const modelManager: ModelManagerInterface = {
         services: {},
         repos: {
-          userRepo: repoObject
-        }
+          userRepo: repoObject,
+        },
       }
 
       const resolver = new EndpointResolver(defaultObject, modelManager)
@@ -58,7 +58,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         repo: 'userRepo',
         method: 'repoMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointObject(endpointConfig)
@@ -72,7 +72,7 @@ describe('EndpointResolver', () => {
 
       const endpointConfig: ServerApiConfigEndpoint = {
         method: 'default',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointObject(endpointConfig)
@@ -86,7 +86,7 @@ describe('EndpointResolver', () => {
       const defaultObject = { default: 'method' }
       const modelManager: ModelManagerInterface = {
         services: {},
-        repos: {}
+        repos: {},
       }
 
       const resolver = new EndpointResolver(defaultObject, modelManager)
@@ -94,12 +94,14 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         service: 'nonExistentService',
         method: 'someMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       expect(() => {
         resolver.resolveEndpointObject(endpointConfig)
-      }).toThrow('Service "nonExistentService" not found in modelManager.services')
+      }).toThrow(
+        'Service "nonExistentService" not found in modelManager.services'
+      )
 
       consoleErrorSpy.mockRestore()
     })
@@ -110,7 +112,7 @@ describe('EndpointResolver', () => {
       const defaultObject = { default: 'method' }
       const modelManager: ModelManagerInterface = {
         services: {},
-        repos: {}
+        repos: {},
       }
 
       const resolver = new EndpointResolver(defaultObject, modelManager)
@@ -118,7 +120,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         repo: 'nonExistentRepo',
         method: 'someMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       expect(() => {
@@ -135,12 +137,14 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         service: 'userService',
         method: 'someMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       expect(() => {
         resolver.resolveEndpointObject(endpointConfig)
-      }).toThrow('Cannot resolve service "userService" - modelManager not provided to ServerRemoteObject')
+      }).toThrow(
+        'Cannot resolve service "userService" - modelManager not provided to ServerRemoteObject'
+      )
     })
 
     it('throws error when repo specified but no model manager provided', () => {
@@ -150,12 +154,14 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         repo: 'userRepo',
         method: 'someMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       expect(() => {
         resolver.resolveEndpointObject(endpointConfig)
-      }).toThrow('Cannot resolve repo "userRepo" - modelManager not provided to ServerRemoteObject')
+      }).toThrow(
+        'Cannot resolve repo "userRepo" - modelManager not provided to ServerRemoteObject'
+      )
     })
 
     it('prioritizes direct object over service', () => {
@@ -164,9 +170,9 @@ describe('EndpointResolver', () => {
       const serviceObject = { serviceMethod: 'test' }
       const modelManager: ModelManagerInterface = {
         services: {
-          userService: serviceObject
+          userService: serviceObject,
         },
-        repos: {}
+        repos: {},
       }
 
       const resolver = new EndpointResolver(defaultObject, modelManager)
@@ -175,7 +181,7 @@ describe('EndpointResolver', () => {
         object: endpointObject,
         service: 'userService',
         method: 'custom',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointObject(endpointConfig)
@@ -192,7 +198,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         path: '/custom/path',
         method: 'myMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointPath(endpointConfig, 'myMethod')
@@ -207,7 +213,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         service: 'userService',
         method: 'myMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointPath(endpointConfig, 'myMethod')
@@ -222,7 +228,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         repo: 'userRepo',
         method: 'myMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointPath(endpointConfig, 'myMethod')
@@ -236,7 +242,7 @@ describe('EndpointResolver', () => {
 
       const endpointConfig: ServerApiConfigEndpoint = {
         method: 'myMethod',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointPath(endpointConfig, 'myMethod')
@@ -251,7 +257,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         service: 'surveyParticipantService',
         method: 'getAll',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointPath(endpointConfig, 'getAll')
@@ -266,7 +272,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         repo: 'surveyParticipantRepo',
         method: 'getAll',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointPath(endpointConfig, 'getAll')
@@ -281,7 +287,7 @@ describe('EndpointResolver', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         service: 'user',
         method: 'getAll',
-        verbs: ['get']
+        verbs: ['get'],
       }
 
       const result = resolver.resolveEndpointPath(endpointConfig, 'getAll')

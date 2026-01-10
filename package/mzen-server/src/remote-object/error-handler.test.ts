@@ -1,5 +1,9 @@
 import { ErrorHandler } from './error-handler'
-import { LoggerInterface, RequestInterface, ResponseInterface } from './interfaces'
+import {
+  LoggerInterface,
+  RequestInterface,
+  ResponseInterface,
+} from './interfaces'
 
 describe('ErrorHandler', () => {
   let errorHandler: ErrorHandler
@@ -50,7 +54,14 @@ describe('ErrorHandler', () => {
 
       // Verify by triggering an error that would use the logger
       const err = new Error('Test error')
-      errorHandler.handleEndpointError(err, mockRes, mockReq, 'test-endpoint', 'testMethod', {})
+      errorHandler.handleEndpointError(
+        err,
+        mockRes,
+        mockReq,
+        'test-endpoint',
+        'testMethod',
+        {}
+      )
 
       // The new logger should be called (we can't directly test private logger, but effect shows it)
       expect(mockRes.status).toHaveBeenCalled()
@@ -93,8 +104,8 @@ describe('ErrorHandler', () => {
 
       const responseErrorConfig = {
         ValidationError: {
-          http: { code: 400 }
-        }
+          http: { code: 400 },
+        },
       }
 
       await errorHandler.handleEndpointError(
@@ -122,11 +133,11 @@ describe('ErrorHandler', () => {
 
       const responseErrorConfig = {
         ValidationError: {
-          http: { code: 400 }
+          http: { code: 400 },
         },
         NotFoundError: {
-          http: { code: 404 }
-        }
+          http: { code: 404 },
+        },
       }
 
       await errorHandler.handleEndpointError(
@@ -156,9 +167,9 @@ describe('ErrorHandler', () => {
         CustomError: {
           http: {
             code: 403,
-            contentType: 'text/plain'
-          }
-        }
+            contentType: 'text/plain',
+          },
+        },
       }
 
       await errorHandler.handleEndpointError(
@@ -237,11 +248,11 @@ describe('ErrorHandler', () => {
 
       const responseErrorConfig = {
         ValidationError: {
-          http: { code: 400 }
+          http: { code: 400 },
         },
         ValidationError2: {
-          http: { code: 422 }
-        }
+          http: { code: 422 },
+        },
       }
 
       await errorHandler.handleEndpointError(
@@ -298,8 +309,8 @@ describe('ErrorHandler', () => {
 
       const responseErrorConfig = {
         CustomError: {
-          http: {}
-        }
+          http: {},
+        },
       }
 
       await errorHandler.handleEndpointError(
@@ -326,8 +337,8 @@ describe('ErrorHandler', () => {
 
       const responseErrorConfig = {
         CustomError: {
-          http: { code: 400 }
-        }
+          http: { code: 400 },
+        },
       }
 
       await errorHandler.handleEndpointError(

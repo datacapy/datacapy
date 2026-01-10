@@ -1,4 +1,7 @@
-import { BodyParserConfigurer, ServerBodyParserConfig } from './body-parser-configurer'
+import {
+  BodyParserConfigurer,
+  ServerBodyParserConfig,
+} from './body-parser-configurer'
 
 describe('BodyParserConfigurer', () => {
   let configurer: BodyParserConfigurer
@@ -12,7 +15,11 @@ describe('BodyParserConfigurer', () => {
       const result = configurer.normalizeConfig({})
 
       expect(result.json).toEqual({ enable: true, limit: '100kb' })
-      expect(result.urlencoded).toEqual({ enable: false, limit: '100kb', extended: true })
+      expect(result.urlencoded).toEqual({
+        enable: false,
+        limit: '100kb',
+        extended: true,
+      })
       expect(result.text).toEqual({ enable: false, limit: '100kb' })
       expect(result.raw).toEqual({ enable: false, limit: '100kb' })
     })
@@ -22,12 +29,16 @@ describe('BodyParserConfigurer', () => {
         json: {
           enable: false,
           limit: '10mb',
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
 
-      expect(result.json).toEqual({ enable: false, limit: '10mb', type: undefined })
+      expect(result.json).toEqual({
+        enable: false,
+        limit: '10mb',
+        type: undefined,
+      })
     })
 
     it('merges urlencoded config with defaults', () => {
@@ -36,7 +47,7 @@ describe('BodyParserConfigurer', () => {
           enable: true,
           limit: '50mb',
           extended: false,
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
@@ -45,7 +56,7 @@ describe('BodyParserConfigurer', () => {
         enable: true,
         limit: '50mb',
         extended: false,
-        type: undefined
+        type: undefined,
       })
     })
 
@@ -55,7 +66,7 @@ describe('BodyParserConfigurer', () => {
           enable: true,
           limit: '1mb',
           type: 'text/plain',
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
@@ -63,7 +74,7 @@ describe('BodyParserConfigurer', () => {
       expect(result.text).toEqual({
         enable: true,
         limit: '1mb',
-        type: 'text/plain'
+        type: 'text/plain',
       })
     })
 
@@ -72,7 +83,7 @@ describe('BodyParserConfigurer', () => {
         raw: {
           enable: true,
           limit: '5mb',
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
@@ -80,7 +91,7 @@ describe('BodyParserConfigurer', () => {
       expect(result.raw).toEqual({
         enable: true,
         limit: '5mb',
-        type: undefined
+        type: undefined,
       })
     })
 
@@ -88,7 +99,7 @@ describe('BodyParserConfigurer', () => {
       const config: ServerBodyParserConfig = {
         json: {
           enable: false,
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
@@ -100,7 +111,7 @@ describe('BodyParserConfigurer', () => {
       const config: ServerBodyParserConfig = {
         urlencoded: {
           enable: true,
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
@@ -115,7 +126,7 @@ describe('BodyParserConfigurer', () => {
         },
         text: {
           type: 'text/html',
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
@@ -128,7 +139,7 @@ describe('BodyParserConfigurer', () => {
       const config: ServerBodyParserConfig = {
         json: {
           limit: false,
-        }
+        },
       }
 
       const result = configurer.normalizeConfig(config)
@@ -143,7 +154,7 @@ describe('BodyParserConfigurer', () => {
         json: {
           enable: true,
           limit: '100kb',
-        }
+        },
       }
 
       const normalized = configurer.normalizeConfig(config)
@@ -166,7 +177,7 @@ describe('BodyParserConfigurer', () => {
         },
         raw: {
           enable: false,
-        }
+        },
       }
 
       const normalized = configurer.normalizeConfig(config)
@@ -182,7 +193,7 @@ describe('BodyParserConfigurer', () => {
         },
         urlencoded: {
           enable: true,
-        }
+        },
       }
 
       const normalized = configurer.normalizeConfig(config)
@@ -204,7 +215,7 @@ describe('BodyParserConfigurer', () => {
         },
         raw: {
           enable: true,
-        }
+        },
       }
 
       const normalized = configurer.normalizeConfig(config)

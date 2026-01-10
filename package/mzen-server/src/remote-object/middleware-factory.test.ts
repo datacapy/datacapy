@@ -2,8 +2,16 @@ import { MiddlewareFactory } from './middleware-factory'
 import { RequestDataParser } from './request-data-parser'
 import { ResponseHandler } from './response-handler'
 import { ErrorHandler } from './error-handler'
-import { AclInterface, RequestInterface, ResponseInterface, LoggerInterface } from './interfaces'
-import { ServerApiConfigEndpoint, ServerApiConfigEndpointResponse } from '../api-config'
+import {
+  AclInterface,
+  RequestInterface,
+  ResponseInterface,
+  LoggerInterface,
+} from './interfaces'
+import {
+  ServerApiConfigEndpoint,
+  ServerApiConfigEndpointResponse,
+} from '../api-config'
 import { ServerConfig } from '../server-config'
 
 describe('MiddlewareFactory', () => {
@@ -222,8 +230,8 @@ describe('MiddlewareFactory', () => {
       const responseSuccess: ServerApiConfigEndpointResponse = {}
       const responseErrorConfig = {
         ServerErrorUnauthorized: {
-          http: { code: 401 }
-        }
+          http: { code: 401 },
+        },
       }
 
       const middleware = middlewareFactory.createMiddlewareCallback(
@@ -244,10 +252,12 @@ describe('MiddlewareFactory', () => {
     })
 
     it('injects aclContext into request data', async () => {
-      mockAcl.populateContext = jest.fn().mockImplementation(async (req, context) => {
-        context.userId = '123'
-        context.role = 'admin'
-      })
+      mockAcl.populateContext = jest
+        .fn()
+        .mockImplementation(async (req, context) => {
+          context.userId = '123'
+          context.role = 'admin'
+        })
 
       const endpointObject = {
         testMethod: jest.fn().mockResolvedValue({ success: true }),
