@@ -1,5 +1,5 @@
 import clone from 'clone'
-import { Collection } from 'collection'
+import { Collection } from './collection'
 import ObjectId from 'bson-objectid'
 
 class People extends Collection<any> {}

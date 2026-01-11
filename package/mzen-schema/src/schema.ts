@@ -2,11 +2,11 @@ import { SchemaIterator, SchemaIteratorMeta } from './iterator'
 import SchemaConfig from './config'
 import SchemaSpec from './spec'
 import SchemaInquisitor from './inquisitor'
-import SchemaFieldTypeCaster from './field-type-caster'
-import SchemaFieldFilter from './field-filter'
-import SchemaFieldValidator from './field-validator'
-import SchemaTransientProcessor from './transient-processor'
-import SchemaFieldPrivateFilter from './field-private-filter'
+import SchemaFieldTypeCaster from './processors/field-type-caster'
+import SchemaFieldFilter from './processors/field-filter'
+import SchemaFieldValidator from './processors/field-validator'
+import SchemaTransientProcessor from './processors/transient-processor'
+import SchemaFieldPrivateFilter from './processors/field-private-filter'
 
 export interface SchemaValidationMeta {
   errors?: any

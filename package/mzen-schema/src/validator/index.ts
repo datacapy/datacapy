@@ -1,3 +1,5 @@
+export * from './validator'
+export * from './validator-interface'
 export * from './validator-custom'
 export * from './validator-email'
 export * from './validator-in-array'

@@ -1,4 +1,4 @@
-import TypeCaster from '../type-caster'
+import TypeCaster from '../utilities/type-caster'
 
 export class ValidatorValueLength {
   validate(value: any, options?) {

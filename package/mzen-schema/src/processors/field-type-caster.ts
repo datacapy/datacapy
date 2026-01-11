@@ -1,7 +1,7 @@
-import TypeCaster from './type-caster'
-import SchemaTypes from './types'
-import SchemaSpec from './spec'
-import { SchemaValidationMeta } from './schema'
+import TypeCaster from '../utilities/type-caster'
+import SchemaTypes from '../types'
+import SchemaSpec from '../spec'
+import { SchemaValidationMeta } from '../schema'
 
 /**
  * Interface for SchemaFieldTypeCaster

@@ -1,11 +1,11 @@
-import { FilterAbstract } from './filter/filter-abstract'
-import { FilterCustom } from './filter/filter-custom'
-import { FilterDefaultValue } from './filter/filter-default-value'
-import { FilterLowercase } from './filter/filter-lowercase'
-import { FilterTrim } from './filter/filter-trim'
-import { FilterUppercase } from './filter/filter-uppercase'
-import { FilterPostcode } from './filter/filter-postcode'
-import { FilterStripHtml } from './filter/filter-strip-html'
+import { FilterAbstract } from './filter-abstract'
+import { FilterCustom } from './filter-custom'
+import { FilterDefaultValue } from './filter-default-value'
+import { FilterLowercase } from './filter-lowercase'
+import { FilterTrim } from './filter-trim'
+import { FilterUppercase } from './filter-uppercase'
+import { FilterPostcode } from './filter-postcode'
+import { FilterStripHtml } from './filter-strip-html'
 
 export class Filter {
   static filters = {}

@@ -43,8 +43,9 @@ Thumbs.db
 
 # Temporary files
 *.tmp
-.cache/
-.temp/
+*.temp
+*.tmp.md
+~*
 
 # Package manager
 package-lock.json

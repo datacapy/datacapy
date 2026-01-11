@@ -1,13 +1,13 @@
-import Validator from './validator'
-import SchemaUtility from './utility'
-import SchemaTypes from './types'
-import SchemaSpec from './spec'
-import SchemaConfig from './config'
-import { SchemaValidationMeta } from './schema'
-import { SchemaIteratorMeta } from './iterator'
+import Validator from '../validator/validator'
+import SchemaUtility from '../utilities/utility'
+import SchemaTypes from '../types'
+import SchemaSpec from '../spec'
+import SchemaConfig from '../config'
+import { SchemaValidationMeta } from '../schema'
+import { SchemaIteratorMeta } from '../iterator'
 import SchemaFieldFilter from './field-filter'
 import SchemaFieldTypeCaster from './field-type-caster'
-import TypeCaster from './type-caster'
+import TypeCaster from '../utilities/type-caster'
 
 /**
  * Interface for SchemaFieldValidator

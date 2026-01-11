@@ -1,5 +1,5 @@
 import TypeCaster from './type-caster'
-import SchemaSpec from './spec'
+import SchemaSpec from '../spec'
 
 export class SchemaUtility {
   static getSpec(path: string, spec: SchemaSpec) {

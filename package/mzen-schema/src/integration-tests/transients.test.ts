@@ -1,5 +1,5 @@
-import Schema from 'schema'
-import Collection from 'collection'
+import Schema from '../schema'
+import Collection from '../utilities/collection'
 
 class ConstructorTestUsers extends Array {
   static alias: string

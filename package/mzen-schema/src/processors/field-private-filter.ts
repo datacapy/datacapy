@@ -1,4 +1,4 @@
-import { SchemaIterator } from './iterator'
+import { SchemaIterator } from '../iterator'
 
 /**
  * Interface for SchemaFieldPrivateFilter

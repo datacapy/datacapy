@@ -1,7 +1,7 @@
-import { SchemaIterator } from './iterator'
-import Collection from './collection'
-import SchemaTypes from './types'
-import ObjectPathAccessor from './object-path-accessor'
+import { SchemaIterator } from '../iterator'
+import Collection from '../utilities/collection'
+import SchemaTypes from '../types'
+import ObjectPathAccessor from '../utilities/object-path-accessor'
 import SchemaFieldTypeCaster from './field-type-caster'
 
 /**

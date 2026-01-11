@@ -1,4 +1,4 @@
-import ObjectPathAccessor from 'object-path-accessor'
+import ObjectPathAccessor from './object-path-accessor'
 
 describe('ObjectPathAccessor', () => {
   describe('pathsMatch()', () => {

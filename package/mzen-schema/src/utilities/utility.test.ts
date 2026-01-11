@@ -1,4 +1,4 @@
-import SchemaUtil from 'utility'
+import SchemaUtil from './utility'
 
 describe('SchemaUtil', () => {
   describe('getSpec()', () => {
