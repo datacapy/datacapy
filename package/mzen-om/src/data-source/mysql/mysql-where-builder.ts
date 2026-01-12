@@ -156,7 +156,10 @@ export class MysqlWhereBuilder {
                 break
               case '$ne':
                 if (operand === null) {
-                  conditions.push(`${jsonPathExpression} IS NOT NULL`)
+                  // Check that JSON_TYPE is not NULL (not just that the field exists)
+                  conditions.push(
+                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) != 'NULL'`
+                  )
                 } else if (typeof operand === 'boolean') {
                   // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
                   conditions.push(
@@ -285,6 +288,28 @@ export class MysqlWhereBuilder {
                   }
                 } else {
                   throw new Error(`Operand for $exists must be a boolean`)
+                }
+                break
+              case '$type':
+                if (typeof operand === 'string') {
+                  // Map MongoDB type names to MySQL JSON_TYPE values
+                  const typeMap: Record<string, string> = {
+                    date: 'DATETIME',
+                    string: 'STRING',
+                    number: 'INTEGER',
+                    double: 'DOUBLE',
+                    bool: 'BOOLEAN',
+                    boolean: 'BOOLEAN',
+                    array: 'ARRAY',
+                    object: 'OBJECT',
+                    null: 'NULL',
+                  }
+                  const mysqlType = typeMap[operand.toLowerCase()] || operand.toUpperCase()
+                  conditions.push(
+                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) = '${mysqlType}'`
+                  )
+                } else {
+                  throw new Error(`Operand for $type must be a string`)
                 }
                 break
             }
