@@ -304,7 +304,8 @@ export class MysqlWhereBuilder {
                     object: 'OBJECT',
                     null: 'NULL',
                   }
-                  const mysqlType = typeMap[operand.toLowerCase()] || operand.toUpperCase()
+                  const mysqlType =
+                    typeMap[operand.toLowerCase()] || operand.toUpperCase()
                   conditions.push(
                     `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) = '${mysqlType}'`
                   )
