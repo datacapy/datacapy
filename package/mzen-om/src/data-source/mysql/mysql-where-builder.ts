@@ -6,8 +6,6 @@ import {
 import {
   convertValue,
   formatNestedColumnName,
-  jsonExtract,
-  jsonUnquote,
   sanitizeIdentifier,
   sanitizeJsonPathKey,
   validateOperator,
