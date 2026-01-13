@@ -25,9 +25,7 @@ describe('MysqlWhereBuilder - Generated Column Optimization', () => {
 
   it('should fallback to CAST when no generated column exists', async () => {
     // Mock the column existence checker to return false
-    const mockChecker: ColumnExistsChecker = jest
-      .fn()
-      .mockResolvedValue(false)
+    const mockChecker: ColumnExistsChecker = jest.fn().mockResolvedValue(false)
     whereBuilder.setColumnExistsChecker(mockChecker, 'test_table')
 
     const testDate = new Date('2023-01-01T12:00:00.000Z')

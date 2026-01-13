@@ -1,84 +1,11 @@
-import { MysqlSqlBuilder } from './mysql-sql-builder'
-import { JSON_DOCUMENT_COLUMN_NAME } from './mysql-constants'
+import { MysqlSqlBuilder } from '../mysql-sql-builder'
+import { JSON_DOCUMENT_COLUMN_NAME } from '../mysql-constants'
 
-describe('MysqlSqlBuilder - Main Orchestrator', () => {
+describe('MysqlSqlBuilder - UPDATE operations', () => {
   let sqlBuilder: MysqlSqlBuilder
 
   beforeEach(() => {
     sqlBuilder = new MysqlSqlBuilder()
-  })
-
-  describe('buildSelectQuery', () => {
-    it('should build basic SELECT query', async () => {
-      const result = await sqlBuilder.buildSelectQuery('users')
-      expect(result.sql).toContain('SELECT `jdoc` FROM `users`')
-      expect(result.values).toEqual([])
-    })
-
-    it('should build SELECT query with WHERE clause', async () => {
-      const query = { name: 'John' }
-      const result = await sqlBuilder.buildSelectQuery('users', query)
-      expect(result.sql).toContain('SELECT `jdoc` FROM `users`')
-      expect(result.sql).toContain('WHERE')
-      expect(result.sql).toContain("jdoc->>'$.name' = ?")
-      expect(result.values).toEqual(['John'])
-    })
-
-    it('should build SELECT query with sorting', async () => {
-      const options = { sort: { name: 1, age: -1 } }
-      const result = await sqlBuilder.buildSelectQuery(
-        'users',
-        undefined,
-        options
-      )
-      expect(result.sql).toContain('ORDER BY')
-      expect(result.sql).toContain("jdoc->>'$.name' ASC")
-      expect(result.sql).toContain("jdoc->>'$.age' DESC")
-    })
-
-    it('should build SELECT query with limit and offset', async () => {
-      const options = { limit: 10, skip: 5 }
-      const result = await sqlBuilder.buildSelectQuery(
-        'users',
-        undefined,
-        options
-      )
-      expect(result.sql).toContain('LIMIT 10 OFFSET 5')
-    })
-  })
-
-  describe('buildInsertOneQuery', () => {
-    it('should build INSERT query for single object', () => {
-      const obj = { name: 'John', age: 30 }
-      const result = sqlBuilder.buildInsertOneQuery('users', obj)
-      expect(result.sql).toContain('INSERT INTO `users` (jdoc)')
-      expect(result.sql).toContain('VALUES (CAST(? AS JSON))')
-      expect(result.values).toEqual([JSON.stringify(obj)])
-    })
-  })
-
-  describe('buildInsertManyQuery', () => {
-    it('should build INSERT query for multiple objects', () => {
-      const objects = [
-        { name: 'John', age: 30 },
-        { name: 'Jane', age: 25 },
-      ]
-      const result = sqlBuilder.buildInsertManyQuery('users', objects)
-      expect(result.sql).toContain('INSERT INTO `users` (jdoc)')
-      expect(result.sql).toContain(
-        'VALUES (CAST(? AS JSON)), (CAST(? AS JSON))'
-      )
-      expect(result.values).toEqual([
-        JSON.stringify(objects[0]),
-        JSON.stringify(objects[1]),
-      ])
-    })
-
-    it('should handle empty array', () => {
-      const result = sqlBuilder.buildInsertManyQuery('users', [])
-      expect(result.sql).toBe('')
-      expect(result.values).toEqual([])
-    })
   })
 
   describe('buildUpdateQuery', () => {
@@ -110,84 +37,6 @@ describe('MysqlSqlBuilder - Main Orchestrator', () => {
       )
 
       expect(result.sql).toContain('LIMIT 1')
-    })
-  })
-
-  describe('buildDeleteQuery', () => {
-    it('should build DELETE query with WHERE clause', async () => {
-      const query = { id: 'test123' }
-      const result = await sqlBuilder.buildDeleteQuery('users', query)
-
-      expect(result.sql).toContain('DELETE FROM `users`')
-      expect(result.sql).toContain('WHERE')
-      expect(result.sql).toContain("jdoc->>'$.id' = ?")
-      expect(result.values).toEqual(['test123'])
-    })
-
-    it('should build DELETE query with LIMIT 1 when specified', async () => {
-      const query = { id: 'test123' }
-      const result = await sqlBuilder.buildDeleteQuery('users', query, true)
-
-      expect(result.sql).toContain('LIMIT 1')
-    })
-  })
-
-  describe('buildCountQuery', () => {
-    it('should build COUNT query without WHERE clause', async () => {
-      const result = await sqlBuilder.buildCountQuery('users')
-      expect(result.sql).toContain('SELECT COUNT(*)')
-      expect(result.sql).toContain('FROM `users`')
-      expect(result.values).toEqual([])
-    })
-
-    it('should build COUNT query with WHERE clause', async () => {
-      const query = { status: 'active' }
-      const result = await sqlBuilder.buildCountQuery('users', query)
-      expect(result.sql).toContain('SELECT COUNT(*)')
-      expect(result.sql).toContain('FROM `users`')
-      expect(result.sql).toContain('WHERE')
-      expect(result.sql).toContain("jdoc->>'$.status' = ?")
-      expect(result.values).toEqual(['active'])
-    })
-  })
-
-  describe('buildFindGroupQuery', () => {
-    it('should build GROUP BY query', async () => {
-      const groupFields = ['status', 'department']
-      const result = await sqlBuilder.buildFindGroupQuery('users', groupFields)
-
-      expect(result.sql).toContain('SELECT')
-      expect(result.sql).toContain("jdoc->>'$.status' AS status")
-      expect(result.sql).toContain("jdoc->>'$.department' AS department")
-      expect(result.sql).toContain('COUNT(*) AS count')
-      expect(result.sql).toContain('FROM `users`')
-      expect(result.sql).toContain('GROUP BY status, department')
-    })
-
-    it('should build GROUP BY query with WHERE clause', async () => {
-      const groupFields = ['status']
-      const query = { age: { $gte: 18 } }
-      const result = await sqlBuilder.buildFindGroupQuery(
-        'users',
-        groupFields,
-        query
-      )
-
-      expect(result.sql).toContain('WHERE')
-      expect(result.sql).toContain("jdoc->>'$.age' >= ?")
-      expect(result.values).toEqual([18])
-    })
-  })
-
-  describe('buildGroupCountQuery', () => {
-    it('should build GROUP COUNT query', async () => {
-      const groupFields = ['status']
-      const result = await sqlBuilder.buildGroupCountQuery('users', groupFields)
-
-      expect(result.sql).toContain('SELECT')
-      expect(result.sql).toContain("jdoc->>'$.status' AS status")
-      expect(result.sql).toContain('COUNT(*) AS count')
-      expect(result.sql).toContain('GROUP BY status')
     })
   })
 
@@ -418,82 +267,6 @@ describe('MysqlSqlBuilder - Main Orchestrator', () => {
       expect(result.sql).toContain('LIMIT 1')
       expect(result.sql).toContain("jdoc->>'$.surveyId' = ?")
       expect(result.values).toEqual(['survey123'])
-    })
-  })
-
-  describe('integration with column existence checker', () => {
-    it('should delegate column optimization to WHERE builder', async () => {
-      // Mock the column existence checker
-      const mockChecker = jest.fn().mockResolvedValue(true)
-      sqlBuilder.setColumnExistsChecker(mockChecker, 'test_table')
-
-      const testDate = new Date('2023-01-01T12:00:00.000Z')
-      const query = { created_at: { $gte: testDate } }
-      const result = await sqlBuilder.buildSelectQuery('test_table', query)
-
-      // Should use generated column optimization
-      expect(result.sql).toContain('`gen_created_at` >= ?')
-      expect(result.values).toEqual(['2023-01-01 12:00:00'])
-    })
-  })
-
-  describe('backward compatibility', () => {
-    it('should expose utility functions for backward compatibility', () => {
-      const testDate = new Date('2023-01-01T12:00:00.000Z')
-      expect(sqlBuilder.dateToMysqlString(testDate)).toBe('2023-01-01 12:00:00')
-      expect(sqlBuilder.stripWhitespace('  SELECT   *  FROM   users  ')).toBe(
-        'SELECT * FROM users'
-      )
-      expect(sqlBuilder.sanitizeIdentifier('valid_name')).toBe('valid_name')
-      expect(sqlBuilder.quoteIdentifier('table_name')).toBe('`table_name`')
-      expect(sqlBuilder.jsonExtract('doc', "'$.field'")).toBe(
-        "JSON_EXTRACT(doc, '$.field')"
-      )
-      expect(sqlBuilder.jsonUnquote('value')).toBe('JSON_UNQUOTE(value)')
-      expect(sqlBuilder.left('column', 10)).toBe('LEFT(column, 10)')
-      expect(sqlBuilder.strTodate('2023-01-01', '%Y-%m-%d')).toBe(
-        "STR_TO_DATE(2023-01-01, '%Y-%m-%d')"
-      )
-    })
-
-    it('should expose WHERE clause building', async () => {
-      const query = { name: 'John', age: { $gt: 25 } }
-      const result = await sqlBuilder.buildWhereClause(query)
-      expect(result.clause).toContain("jdoc->>'$.name' = ?")
-      expect(result.clause).toContain("jdoc->>'$.age' > ?")
-      expect(result.params).toEqual(['John', 25])
-    })
-
-    it('should expose DDL operations', () => {
-      expect(sqlBuilder.buildCreateTableQuery('users', '_id', 36)).toContain(
-        'CREATE TABLE'
-      )
-      expect(sqlBuilder.buildDropTableQuery('users')).toContain('DROP TABLE')
-      expect(sqlBuilder.buildColumnExistsQuery()).toContain(
-        'information_schema.COLUMNS'
-      )
-      expect(sqlBuilder.buildIndexExistsQuery()).toContain(
-        'information_schema.STATISTICS'
-      )
-      expect(sqlBuilder.buildTableExistsQuery()).toContain(
-        'information_schema.TABLES'
-      )
-      expect(
-        sqlBuilder.buildCreateColumnQuery(
-          'users',
-          'gen_name',
-          'name',
-          255,
-          'utf8mb4'
-        )
-      ).toContain('ALTER TABLE')
-      expect(
-        sqlBuilder.buildCreateIndexQuery('users', 'idx_name', 'gen_name', true)
-      ).toContain('CREATE UNIQUE INDEX')
-      expect(sqlBuilder.buildDropIndexQuery('users', 'idx_name')).toContain(
-        'DROP INDEX'
-      )
-      expect(sqlBuilder.buildGetIndexesQuery()).toContain('SELECT INDEX_NAME')
     })
   })
 })

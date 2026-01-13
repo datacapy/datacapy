@@ -74,8 +74,7 @@ describe('MysqlWhereBuilder - $exists Operator', () => {
 
     // Field does not exist
     const queryNotExists = { status: { $exists: false } }
-    const resultNotExists =
-      await whereBuilder.buildWhereClause(queryNotExists)
+    const resultNotExists = await whereBuilder.buildWhereClause(queryNotExists)
     expect(stripWhitespace(resultNotExists.clause)).toBe(
       "NOT JSON_CONTAINS_PATH(jdoc, 'one', '$.status')"
     )

@@ -9,6 +9,7 @@ import { JSON_DOCUMENT_COLUMN_NAME } from './mysql-constants'
 import {
   convertValue,
   sanitizeIdentifier,
+  sanitizeJsonPathKey,
   stripWhitespace,
 } from './mysql-sql-utils'
 
@@ -55,7 +56,7 @@ export class MysqlSqlBuilder {
       const sortFields = Object.entries(options.sort)
         .map(
           ([field, order]) =>
-            `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${field}'` +
+            `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizeJsonPathKey(field)}'` +
             ` ${order === 1 ? 'ASC' : 'DESC'}`
         )
         .join(', ')
@@ -138,7 +139,7 @@ export class MysqlSqlBuilder {
               stripWhitespace(`
                 ${JSON_DOCUMENT_COLUMN_NAME} =
                   JSON_SET(${JSON_DOCUMENT_COLUMN_NAME},
-                  '$.${field}',
+                  '$.${sanitizeJsonPathKey(field)}',
                   CAST(? AS JSON))
               `)
             )
@@ -148,7 +149,7 @@ export class MysqlSqlBuilder {
             setClauses.push(
               stripWhitespace(`
                 ${JSON_DOCUMENT_COLUMN_NAME} =
-                  JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.${field}', NULL)
+                  JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizeJsonPathKey(field)}', NULL)
               `)
             )
           } else {
@@ -156,7 +157,7 @@ export class MysqlSqlBuilder {
             setClauses.push(
               stripWhitespace(`
                 ${JSON_DOCUMENT_COLUMN_NAME} =
-                  JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.${field}', ?)
+                  JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizeJsonPathKey(field)}', ?)
               `)
             )
             params.push(fieldValue)
@@ -168,7 +169,7 @@ export class MysqlSqlBuilder {
           setClauses.push(
             stripWhitespace(`
               ${JSON_DOCUMENT_COLUMN_NAME} =
-                JSON_REMOVE(${JSON_DOCUMENT_COLUMN_NAME}, '$.${field}')
+                JSON_REMOVE(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizeJsonPathKey(field)}')
             `)
           )
         })
@@ -178,8 +179,8 @@ export class MysqlSqlBuilder {
             stripWhitespace(`
               ${JSON_DOCUMENT_COLUMN_NAME} =
                JSON_SET(${JSON_DOCUMENT_COLUMN_NAME},
-                '$.${field}',
-                COALESCE(${JSON_DOCUMENT_COLUMN_NAME}->>'$.${field}', 0) + ?)
+                '$.${sanitizeJsonPathKey(field)}',
+                COALESCE(${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizeJsonPathKey(field)}', 0) + ?)
             `)
           )
           params.push(increment)
@@ -233,7 +234,10 @@ export class MysqlSqlBuilder {
 
     const groupFieldsStr = sanitizedGroupFields.join(', ')
     const selectFields = sanitizedGroupFields
-      .map((field) => `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${field}' AS ${field}`)
+      .map(
+        (field) =>
+          `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizeJsonPathKey(field)}' AS ${field}`
+      )
       .join(', ')
 
     const sql = stripWhitespace(`
@@ -271,7 +275,10 @@ export class MysqlSqlBuilder {
 
     const groupFieldsStr = sanitizedGroupFields.join(', ')
     const selectFields = sanitizedGroupFields
-      .map((field) => `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${field}' AS ${field}`)
+      .map(
+        (field) =>
+          `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizeJsonPathKey(field)}' AS ${field}`
+      )
       .join(', ')
 
     const sql = stripWhitespace(`
