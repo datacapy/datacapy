@@ -8,6 +8,10 @@ import {
   formatNestedColumnName,
   jsonExtract,
   jsonUnquote,
+  sanitizeIdentifier,
+  sanitizeJsonPathKey,
+  validateOperator,
+  validateJsonType,
 } from './mysql-sql-utils'
 
 /**
@@ -63,35 +67,43 @@ export class MysqlWhereBuilder {
     operator: string,
     operand: any
   ): Promise<string> {
+    // Sanitize inputs to prevent SQL injection
+    const sanitizedKey = sanitizeJsonPathKey(key)
+    const sanitizedOperator = validateOperator(operator)
+
     const isDateOperand = operand instanceof Date
-    const jsonPathExpression = `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${key}'`
+    const jsonPathExpression = `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizedKey}'`
 
     if (isDateOperand) {
       // Check if a generated column exists for this field
-      const generatedColumn = await this.getGeneratedColumnName(key)
+      const generatedColumn = await this.getGeneratedColumnName(sanitizedKey)
 
       if (generatedColumn) {
         // Use the generated column directly for optimal index usage
-        return `\`${generatedColumn}\` ${operator} ?`
+        // Sanitize the generated column name as it contains user input
+        const sanitizedColumnName = sanitizeIdentifier(generatedColumn)
+        return `\`${sanitizedColumnName}\` ${sanitizedOperator} ?`
       } else {
         // Fallback to CAST for proper date comparison
         const castExpression =
           `CAST(JSON_UNQUOTE(JSON_EXTRACT(` +
           `${JSON_DOCUMENT_COLUMN_NAME}, ` +
-          `'$.${key}'` +
+          `'$.${sanitizedKey}'` +
           `)) AS DATETIME)`
-        return `${castExpression} ${operator} ?`
+        return `${castExpression} ${sanitizedOperator} ?`
       }
     } else {
       // For non-date operands, check if there's a generated column anyway
-      const generatedColumn = await this.getGeneratedColumnName(key)
+      const generatedColumn = await this.getGeneratedColumnName(sanitizedKey)
 
       if (generatedColumn) {
         // Use the generated column for better performance
-        return `\`${generatedColumn}\` ${operator} ?`
+        // Sanitize the generated column name as it contains user input
+        const sanitizedColumnName = sanitizeIdentifier(generatedColumn)
+        return `\`${sanitizedColumnName}\` ${sanitizedOperator} ?`
       } else {
         // Use regular JSON path for non-date comparisons
-        return `${jsonPathExpression} ${operator} ?`
+        return `${jsonPathExpression} ${sanitizedOperator} ?`
       }
     }
   }
@@ -131,7 +143,9 @@ export class MysqlWhereBuilder {
         params.push(...subParams)
         conditions.push(`NOT (${clause})`)
       } else {
-        const jsonPathExpression = `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${key}'`
+        // Sanitize the key to prevent SQL injection
+        const sanitizedKey = sanitizeJsonPathKey(key)
+        const jsonPathExpression = `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizedKey}'`
 
         if (typeof value === 'object' && value !== null) {
           for (let [operator, operand] of Object.entries(value)) {
@@ -139,12 +153,12 @@ export class MysqlWhereBuilder {
               case '$eq':
                 if (operand === null) {
                   // Use JSON_TYPE to check for NULL because ->> returns string "null" not SQL NULL
-                  const condition = `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) = 'NULL'`
+                  const condition = `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = 'NULL'`
                   conditions.push(condition)
                 } else if (typeof operand === 'boolean') {
                   // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
                   conditions.push(
-                    `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}') = ?`
+                    `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}') = ?`
                   )
                   params.push(operand)
                 } else {
@@ -158,12 +172,12 @@ export class MysqlWhereBuilder {
                 if (operand === null) {
                   // Check that JSON_TYPE is not NULL (not just that the field exists)
                   conditions.push(
-                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) != 'NULL'`
+                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) != 'NULL'`
                   )
                 } else if (typeof operand === 'boolean') {
                   // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
                   conditions.push(
-                    `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}') != ?`
+                    `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}') != ?`
                   )
                   params.push(operand)
                 } else {
@@ -218,7 +232,7 @@ export class MysqlWhereBuilder {
                   if (nullCount > 0) {
                     // Use JSON_TYPE to check for NULL because ->> returns string "null" not SQL NULL
                     conditions_parts.push(
-                      `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) = 'NULL'`
+                      `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = 'NULL'`
                     )
                   }
 
@@ -278,12 +292,12 @@ export class MysqlWhereBuilder {
                   if (operand) {
                     // Field must exist
                     conditions.push(
-                      `JSON_CONTAINS_PATH(${JSON_DOCUMENT_COLUMN_NAME}, 'one', '$.${key}')`
+                      `JSON_CONTAINS_PATH(${JSON_DOCUMENT_COLUMN_NAME}, 'one', '$.${sanitizedKey}')`
                     )
                   } else {
                     // Field must not exist
                     conditions.push(
-                      `NOT JSON_CONTAINS_PATH(${JSON_DOCUMENT_COLUMN_NAME}, 'one', '$.${key}')`
+                      `NOT JSON_CONTAINS_PATH(${JSON_DOCUMENT_COLUMN_NAME}, 'one', '$.${sanitizedKey}')`
                     )
                   }
                 } else {
@@ -306,8 +320,10 @@ export class MysqlWhereBuilder {
                   }
                   const mysqlType =
                     typeMap[operand.toLowerCase()] || operand.toUpperCase()
+                  // Validate the type to prevent SQL injection
+                  const sanitizedType = validateJsonType(mysqlType)
                   conditions.push(
-                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) = '${mysqlType}'`
+                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = '${sanitizedType}'`
                   )
                 } else {
                   throw new Error(`Operand for $type must be a string`)
@@ -318,12 +334,12 @@ export class MysqlWhereBuilder {
         } else {
           if (value === null) {
             // Use JSON_TYPE to check for NULL because ->> returns string "null" not SQL NULL
-            const condition = `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}')) = 'NULL'`
+            const condition = `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = 'NULL'`
             conditions.push(condition)
           } else if (typeof value === 'boolean') {
             // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
             conditions.push(
-              `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${key}') = ?`
+              `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}') = ?`
             )
             params.push(value)
           } else {

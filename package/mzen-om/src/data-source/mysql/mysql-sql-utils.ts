@@ -83,3 +83,49 @@ export function jsonValue(doc: string, path: string): string {
 export function jsonUnquote(sql: string): string {
   return `JSON_UNQUOTE(${sql})`
 }
+
+/**
+ * Sanitizes a JSON path key to prevent SQL injection
+ * Allows alphanumeric characters, underscores, and dots for nested properties
+ * Throws an error if the key contains invalid characters
+ */
+export function sanitizeJsonPathKey(key: string): string {
+  if (!/^[a-zA-Z0-9_.]+$/.test(key)) {
+    throw new Error(`Invalid JSON path key: ${key}`)
+  }
+  return key
+}
+
+/**
+ * Validates a SQL operator against a whitelist
+ * Throws an error if the operator is not in the allowed list
+ */
+export function validateOperator(operator: string): string {
+  const allowedOperators = ['=', '!=', '>', '<', '>=', '<=']
+  if (!allowedOperators.includes(operator)) {
+    throw new Error(`Invalid SQL operator: ${operator}`)
+  }
+  return operator
+}
+
+/**
+ * Validates a MySQL JSON type name against a whitelist
+ * Throws an error if the type is not in the allowed list
+ */
+export function validateJsonType(type: string): string {
+  const allowedTypes = [
+    'DATETIME',
+    'STRING',
+    'INTEGER',
+    'DOUBLE',
+    'BOOLEAN',
+    'ARRAY',
+    'OBJECT',
+    'NULL',
+  ]
+  const upperType = type.toUpperCase()
+  if (!allowedTypes.includes(upperType)) {
+    throw new Error(`Invalid JSON type: ${type}`)
+  }
+  return upperType
+}

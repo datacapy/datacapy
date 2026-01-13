@@ -10,6 +10,9 @@ import {
   jsonValue,
   left,
   strToDate,
+  sanitizeJsonPathKey,
+  validateOperator,
+  validateJsonType,
 } from './mysql-sql-utils'
 
 describe('MySQL SQL Utils', () => {
@@ -185,6 +188,296 @@ describe('MySQL SQL Utils', () => {
       const leftResult = left('date_column', 10)
       const finalResult = strToDate(leftResult, '%Y-%m-%d')
       expect(finalResult).toBe("STR_TO_DATE(LEFT(date_column, 10), '%Y-%m-%d')")
+    })
+  })
+
+  describe('SQL Injection Protection', () => {
+    describe('sanitizeJsonPathKey', () => {
+      it('should allow valid alphanumeric keys', () => {
+        expect(sanitizeJsonPathKey('name')).toBe('name')
+        expect(sanitizeJsonPathKey('userName')).toBe('userName')
+        expect(sanitizeJsonPathKey('user123')).toBe('user123')
+        expect(sanitizeJsonPathKey('Name123')).toBe('Name123')
+      })
+
+      it('should allow underscores in keys', () => {
+        expect(sanitizeJsonPathKey('user_name')).toBe('user_name')
+        expect(sanitizeJsonPathKey('_private')).toBe('_private')
+        expect(sanitizeJsonPathKey('user_id_123')).toBe('user_id_123')
+      })
+
+      it('should allow dots for nested paths', () => {
+        expect(sanitizeJsonPathKey('address.city')).toBe('address.city')
+        expect(sanitizeJsonPathKey('user.profile.name')).toBe(
+          'user.profile.name'
+        )
+        expect(sanitizeJsonPathKey('a.b.c.d')).toBe('a.b.c.d')
+      })
+
+      it('should allow combination of alphanumeric, underscores, and dots', () => {
+        expect(sanitizeJsonPathKey('user_profile.first_name')).toBe(
+          'user_profile.first_name'
+        )
+        expect(sanitizeJsonPathKey('data123.field_456.value')).toBe(
+          'data123.field_456.value'
+        )
+      })
+
+      it('should reject keys with SQL injection attempts - quotes', () => {
+        expect(() => sanitizeJsonPathKey("name' OR '1'='1")).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() =>
+          sanitizeJsonPathKey('name"; DROP TABLE users; --')
+        ).toThrow('Invalid JSON path key')
+        expect(() => sanitizeJsonPathKey("name' --")).toThrow(
+          'Invalid JSON path key'
+        )
+      })
+
+      it('should reject keys with SQL injection attempts - semicolons', () => {
+        expect(() => sanitizeJsonPathKey('name; DELETE FROM users')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('id;')).toThrow(
+          'Invalid JSON path key'
+        )
+      })
+
+      it('should reject keys with SQL injection attempts - spaces', () => {
+        expect(() => sanitizeJsonPathKey('name OR 1=1')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('id AND 1=1')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('user name')).toThrow(
+          'Invalid JSON path key'
+        )
+      })
+
+      it('should reject keys with special characters', () => {
+        expect(() => sanitizeJsonPathKey('name-field')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name@domain')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name#tag')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name$var')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name%mod')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name&and')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name*star')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name(paren')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name)paren')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name+plus')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name=equals')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name[bracket')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name]bracket')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name{brace')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name}brace')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name|pipe')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name\\backslash')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name/slash')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name<less')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name>greater')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name?question')).toThrow(
+          'Invalid JSON path key'
+        )
+      })
+
+      it('should reject keys with control characters', () => {
+        expect(() => sanitizeJsonPathKey('name\n')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name\r')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name\t')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name\0')).toThrow(
+          'Invalid JSON path key'
+        )
+      })
+
+      it('should reject keys with SQL comments', () => {
+        expect(() => sanitizeJsonPathKey('name--comment')).toThrow(
+          'Invalid JSON path key'
+        )
+        expect(() => sanitizeJsonPathKey('name/*comment*/')).toThrow(
+          'Invalid JSON path key'
+        )
+      })
+
+      it('should reject empty strings', () => {
+        expect(() => sanitizeJsonPathKey('')).toThrow('Invalid JSON path key')
+      })
+    })
+
+    describe('validateOperator', () => {
+      it('should allow valid comparison operators', () => {
+        expect(validateOperator('=')).toBe('=')
+        expect(validateOperator('!=')).toBe('!=')
+        expect(validateOperator('>')).toBe('>')
+        expect(validateOperator('<')).toBe('<')
+        expect(validateOperator('>=')).toBe('>=')
+        expect(validateOperator('<=')).toBe('<=')
+      })
+
+      it('should reject invalid operators', () => {
+        expect(() => validateOperator('OR')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('AND')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('LIKE')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('IN')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('BETWEEN')).toThrow(
+          'Invalid SQL operator'
+        )
+      })
+
+      it('should reject SQL injection attempts via operators', () => {
+        expect(() => validateOperator("= OR '1'='1")).toThrow(
+          'Invalid SQL operator'
+        )
+        expect(() => validateOperator('= --')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('; DROP TABLE')).toThrow(
+          'Invalid SQL operator'
+        )
+        expect(() => validateOperator('= UNION SELECT')).toThrow(
+          'Invalid SQL operator'
+        )
+      })
+
+      it('should reject operators with spaces', () => {
+        expect(() => validateOperator('= ')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator(' =')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('> OR 1=1')).toThrow(
+          'Invalid SQL operator'
+        )
+      })
+
+      it('should reject empty or malformed operators', () => {
+        expect(() => validateOperator('')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('==')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('===')).toThrow('Invalid SQL operator')
+        expect(() => validateOperator('<>')).toThrow('Invalid SQL operator')
+      })
+    })
+
+    describe('validateJsonType', () => {
+      it('should allow valid JSON types in uppercase', () => {
+        expect(validateJsonType('DATETIME')).toBe('DATETIME')
+        expect(validateJsonType('STRING')).toBe('STRING')
+        expect(validateJsonType('INTEGER')).toBe('INTEGER')
+        expect(validateJsonType('DOUBLE')).toBe('DOUBLE')
+        expect(validateJsonType('BOOLEAN')).toBe('BOOLEAN')
+        expect(validateJsonType('ARRAY')).toBe('ARRAY')
+        expect(validateJsonType('OBJECT')).toBe('OBJECT')
+        expect(validateJsonType('NULL')).toBe('NULL')
+      })
+
+      it('should allow valid JSON types in lowercase and convert to uppercase', () => {
+        expect(validateJsonType('datetime')).toBe('DATETIME')
+        expect(validateJsonType('string')).toBe('STRING')
+        expect(validateJsonType('integer')).toBe('INTEGER')
+        expect(validateJsonType('double')).toBe('DOUBLE')
+        expect(validateJsonType('boolean')).toBe('BOOLEAN')
+        expect(validateJsonType('array')).toBe('ARRAY')
+        expect(validateJsonType('object')).toBe('OBJECT')
+        expect(validateJsonType('null')).toBe('NULL')
+      })
+
+      it('should allow valid JSON types in mixed case and convert to uppercase', () => {
+        expect(validateJsonType('DateTime')).toBe('DATETIME')
+        expect(validateJsonType('String')).toBe('STRING')
+        expect(validateJsonType('Boolean')).toBe('BOOLEAN')
+      })
+
+      it('should reject invalid JSON types', () => {
+        expect(() => validateJsonType('VARCHAR')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType('TEXT')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType('INT')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType('FLOAT')).toThrow('Invalid JSON type')
+      })
+
+      it('should reject SQL injection attempts via type names', () => {
+        expect(() => validateJsonType("STRING' OR '1'='1")).toThrow(
+          'Invalid JSON type'
+        )
+        expect(() => validateJsonType('STRING; DROP TABLE')).toThrow(
+          'Invalid JSON type'
+        )
+        expect(() => validateJsonType("STRING' --")).toThrow(
+          'Invalid JSON type'
+        )
+        expect(() => validateJsonType('STRING UNION SELECT')).toThrow(
+          'Invalid JSON type'
+        )
+      })
+
+      it('should reject types with special characters', () => {
+        expect(() => validateJsonType('STRING-TYPE')).toThrow(
+          'Invalid JSON type'
+        )
+        expect(() => validateJsonType('STRING_TYPE')).toThrow(
+          'Invalid JSON type'
+        )
+        expect(() => validateJsonType('STRING TYPE')).toThrow(
+          'Invalid JSON type'
+        )
+        expect(() => validateJsonType('STRING/*comment*/')).toThrow(
+          'Invalid JSON type'
+        )
+      })
+
+      it('should reject empty or malformed type names', () => {
+        expect(() => validateJsonType('')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType(' ')).toThrow('Invalid JSON type')
+      })
+
+      it('should reject SQL commands disguised as types', () => {
+        expect(() => validateJsonType('DROP')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType('DELETE')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType('UPDATE')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType('INSERT')).toThrow('Invalid JSON type')
+        expect(() => validateJsonType('SELECT')).toThrow('Invalid JSON type')
+      })
     })
   })
 })
