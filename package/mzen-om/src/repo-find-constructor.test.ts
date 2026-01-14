@@ -4,11 +4,11 @@ import MockDataSource from 'data-source/mock'
 describe('constructor', function () {
   it('should return entity objects if constructor specified in repo schema', async () => {
     class User {
-      name_first: string
-      name_last: string
-      constructor() {
-        this.name_first = ''
-        this.name_last = ''
+      name_first?: string
+      name_last?: string
+      constructor(data: any) {
+        this.name_first = data?.name_first
+        this.name_last = data?.name_last
       }
       getFullname() {
         return this.name_first + ' ' + this.name_last
@@ -36,40 +36,46 @@ describe('constructor', function () {
   })
   it('should return entity objects if constructor specified in relation repo schema', async () => {
     class Timezone {
-      name: string
-      constructor() {
-        this.name = ''
+      _id?: string
+      userId?: string
+      name?: string
+      constructor(data: any) {
+        this._id = data?._id
+        this.userId = data?.userId
+        this.name = data?.name
       }
       getName() {
         return this.name
       }
     }
     class User {
-      name_first: string
-      name_last: string
+      _id?: string
+      name?: string
       userTimezone?: Timezone
-      constructor() {
-        this.name_first = ''
-        this.name_last = ''
-      }
-      getFullname() {
-        return this.name_first + ' ' + this.name_last
+      constructor(data: any) {
+        this._id = data?._id
+        this.name = data?.name
+        this.userTimezone = data?.userTimezone
+          ? new Timezone(data.userTimezone)
+          : undefined
       }
     }
 
     var data = {
-      userTimezone: [{ _id: '1', name: 'Europe/London' }],
-      user: [{ _id: '1', name: 'Kevin Foster', timeZoneId: '1' }],
+      userTimezone: [{ _id: '1', userId: '1', name: 'Europe/London' }],
+      user: [{ _id: '1', name: 'Kevin Foster' }],
     }
     var dataSource = new MockDataSource(data)
 
     var userRepo = new Repo({
       name: 'user',
+      schema: { $construct: 'User' },
+      constructors: [User, Timezone],
       relations: {
         userTimezone: {
-          type: 'belongsToOne',
+          type: 'hasOne',
           repo: 'userTimezone',
-          key: 'timeZoneId',
+          key: 'userId',
           alias: 'userTimezone',
           autoPopulate: true,
         },
@@ -80,7 +86,7 @@ describe('constructor', function () {
     var userTimezoneRepo = new Repo({
       name: 'userTimezone',
       schema: { $construct: 'Timezone' },
-      constructors: [Timezone],
+      constructors: [User, Timezone],
     })
     userTimezoneRepo.dataSource = dataSource
     userRepo.repos.userTimezone = userTimezoneRepo
@@ -91,34 +97,41 @@ describe('constructor', function () {
   })
   it('should return entity objects if constructor specified by relation of relation schema', async () => {
     class Country {
-      name: string
-      constructor() {
-        this.name = ''
+      _id?: string
+      name?: string
+      constructor(data: any) {
+        this._id = data?._id
+        this.name = data?.name
       }
       getName() {
         return this.name + ' Country'
       }
     }
     class Timezone {
-      name: string
+      _id?: string
+      name?: string
+      countryId?: string
       country?: Country
-      constructor() {
-        this.name = ''
+      constructor(data: any) {
+        this._id = data?._id
+        this.name = data?.name
+        this.countryId = data?.countryId
+        this.country = data?.country ? new Country(data.country) : undefined
       }
       getName() {
         return this.name
       }
     }
     class User {
-      name_first: string
-      name_last: string
+      _id?: string
+      name?: string
+      timeZoneId?: string
       timezone?: Timezone
-      constructor() {
-        this.name_first = ''
-        this.name_last = ''
-      }
-      getFullname() {
-        return this.name_first + ' ' + this.name_last
+      constructor(data: any) {
+        this._id = data?._id
+        this.name = data?.name
+        this.timeZoneId = data?.timeZoneId
+        this.timezone = data?.timezone ? new Timezone(data.timezone) : undefined
       }
     }
 
@@ -131,8 +144,10 @@ describe('constructor', function () {
 
     var userRepo = new Repo({
       name: 'user',
+      schema: { $construct: 'User' },
+      constructors: [User],
       relations: {
-        userTimezone: {
+        timezone: {
           type: 'belongsToOne',
           repo: 'timezone',
           key: 'timeZoneId',
@@ -145,6 +160,8 @@ describe('constructor', function () {
 
     var timezoneRepo = new Repo({
       name: 'timezone',
+      schema: { $construct: 'Timezone' },
+      constructors: [Timezone],
       relations: {
         country: {
           type: 'belongsToOne',
@@ -173,21 +190,21 @@ describe('constructor', function () {
   })
   it('should return embedded entity objects if embedded constructor specified in repo schema', async () => {
     class Contact {
-      address: string
-      constructor() {
-        this.address = ''
+      address?: string
+      constructor(data: any) {
+        this.address = data?.address
       }
       getAddress() {
         return this.address + ' (@)'
       }
     }
     class User {
-      name_first: string
-      name_last: string
+      name_first?: string
+      name_last?: string
       contact?: Contact
-      constructor() {
-        this.name_first = ''
-        this.name_last = ''
+      constructor(data: any) {
+        this.name_first = data?.name_first
+        this.name_last = data?.name_last
       }
       getFullname() {
         return this.name_first + ' ' + this.name_last
@@ -233,32 +250,32 @@ describe('constructor', function () {
   })
   it('should return deep embedded entity objects if embedded constructor specified in repo schema', async () => {
     class Contact {
-      address: string
-      constructor() {
-        this.address = ''
+      address?: string
+      constructor(data: any) {
+        this.address = data?.address
       }
       getAddress() {
         return this.address + ' (@)'
       }
     }
     class User {
-      name_first: string
-      name_last: string
+      name_first?: string
+      name_last?: string
       contact?: Contact
-      constructor() {
-        this.name_first = ''
-        this.name_last = ''
+      constructor(data: any) {
+        this.name_first = data?.name_first
+        this.name_last = data?.name_last
       }
       getFullname() {
         return this.name_first + ' ' + this.name_last
       }
     }
     class Website {
-      name_first: string
+      name_first?: string
       users: User[]
-      constructor() {
-        this.name_first = ''
-        this.users = []
+      constructor(data: any) {
+        this.name_first = data?.name_first
+        this.users = data?.users || []
       }
     }
 

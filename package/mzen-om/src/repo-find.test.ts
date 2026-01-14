@@ -74,5 +74,5 @@ describe('find()', () => {
   })
 
   // Import other test files
-  require('./repo-find/find-relation')
+  require('./repo-find-relation.test')
 })

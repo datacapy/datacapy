@@ -393,10 +393,10 @@ describe('Repo', () => {
     */
   })
 
-  require('./repo-find')
-  require('./repo-find-one')
-  require('./repo-insert-many')
-  require('./repo-insert-one')
-  require('./repo-update-many')
-  require('./repo-update-one')
+  require('./repo-find.test')
+  require('./repo-find-one.test')
+  require('./repo-insert-many.test')
+  require('./repo-insert-one.test')
+  require('./repo-update-many.test')
+  require('./repo-update-one.test')
 })

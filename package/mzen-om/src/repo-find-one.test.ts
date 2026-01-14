@@ -78,6 +78,6 @@ describe('findOne()', function () {
     expect(doc?.password).toBe('Abc')
   })
 
-  require('./repo-find-one/find-one-constructor')
-  require('./repo-find-one/find-one-relation')
+  require('./repo-find-one-constructor.test')
+  require('./repo-find-one-relation.test')
 })
