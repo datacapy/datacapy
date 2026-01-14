@@ -13,6 +13,19 @@ import {
 } from './mysql-sql-utils'
 
 /**
+ * Regex metacharacters that indicate a pattern is not a simple literal string
+ */
+const REGEX_METACHARACTERS = /[.+*?^$|[\](){}\\]/
+
+/**
+ * Checks if a pattern is a simple literal string without regex metacharacters.
+ * Simple literals can be optimized to use LIKE '%pattern%' instead of REGEXP.
+ */
+export function isSimpleLiteralPattern(pattern: string): boolean {
+  return !REGEX_METACHARACTERS.test(pattern)
+}
+
+/**
  * Column existence checker function type
  */
 export type ColumnExistsChecker = (
@@ -252,6 +265,7 @@ export class MysqlWhereBuilder {
                 // Get $options from sibling key if present
                 const options = (value as Record<string, any>).$options || ''
                 let pattern: string
+                let isCaseInsensitive = false
 
                 if (typeof operand === 'string') {
                   pattern = operand
@@ -260,8 +274,7 @@ export class MysqlWhereBuilder {
                   // Note: MySQL REGEXP doesn't support all JS regex flags
                   pattern = operand.source
                   if (operand.ignoreCase) {
-                    // MySQL 8.0+ supports case-insensitive with (?i) prefix
-                    pattern = `(?i)${pattern}`
+                    isCaseInsensitive = true
                   }
                 } else {
                   throw new Error(
@@ -270,16 +283,30 @@ export class MysqlWhereBuilder {
                 }
 
                 // Apply case-insensitive option from sibling $options
-                if (
-                  typeof options === 'string' &&
-                  options.includes('i') &&
-                  !pattern.startsWith('(?i)')
-                ) {
-                  pattern = `(?i)${pattern}`
+                if (typeof options === 'string' && options.includes('i')) {
+                  isCaseInsensitive = true
                 }
 
-                conditions.push(`${jsonPathExpression} REGEXP ?`)
-                params.push(pattern)
+                // Optimize simple literal patterns to use LIKE instead of REGEXP
+                // LIKE is more efficient for simple substring matching
+                if (isSimpleLiteralPattern(pattern)) {
+                  if (isCaseInsensitive) {
+                    // MySQL LIKE is case-insensitive by default with most collations
+                    conditions.push(`${jsonPathExpression} LIKE ?`)
+                    params.push(`%${pattern}%`)
+                  } else {
+                    // Use LIKE BINARY for case-sensitive matching
+                    conditions.push(`${jsonPathExpression} LIKE BINARY ?`)
+                    params.push(`%${pattern}%`)
+                  }
+                } else {
+                  // Use REGEXP for patterns with regex metacharacters
+                  if (isCaseInsensitive) {
+                    pattern = `(?i)${pattern}`
+                  }
+                  conditions.push(`${jsonPathExpression} REGEXP ?`)
+                  params.push(pattern)
+                }
                 break
               }
               case '$options':
