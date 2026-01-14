@@ -36,7 +36,8 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
       expect(stripped).toBe(
         "(jdoc->>'$.nameFirst' = ? AND jdoc->>'$.nameLast' = ? AND jdoc->>'$.age' > ?)"
       )
-      expect(result.params).toEqual([25, 'John', 'Smith'])
+      // Params are in clause order: nameFirst, nameLast, age
+      expect(result.params).toEqual(['John', 'Smith', 25])
     })
 
     it('should handle $or operator', async () => {
@@ -75,7 +76,8 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
       expect(stripped).toBe(
         "((jdoc->>'$.age' >= ? AND jdoc->>'$.age' <= ?) OR jdoc->>'$.name' = ?)"
       )
-      expect(result.params).toEqual(['John', 18, 65])
+      // Params are in clause order: age>=, age<=, name
+      expect(result.params).toEqual([18, 65, 'John'])
     })
   })
 

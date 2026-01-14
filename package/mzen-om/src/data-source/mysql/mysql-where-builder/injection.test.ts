@@ -280,8 +280,8 @@ describe('MysqlWhereBuilder - SQL Injection Protection', () => {
       expect(result.clause).not.toContain('DROP')
       expect(result.clause).not.toContain('UNION')
       expect(result.clause).not.toContain('--')
-      // Parameter order: $in values first, then $gte value, then simple equality values
-      expect(result.params).toEqual(['active', 'pending', 'John', 'Doe', 18])
+      // Params are in clause order: first_name, last_name, age, status $in values
+      expect(result.params).toEqual(['John', 'Doe', 18, 'active', 'pending'])
     })
   })
 

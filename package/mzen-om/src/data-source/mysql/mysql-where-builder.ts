@@ -9,21 +9,11 @@ import {
   sanitizeIdentifier,
   sanitizeJsonPathKey,
   validateOperator,
-  validateJsonType,
 } from './mysql-sql-utils'
+import { OperatorRegistry, OperatorContext } from './mysql-where-operators'
 
-/**
- * Regex metacharacters that indicate a pattern is not a simple literal string
- */
-const REGEX_METACHARACTERS = /[.+*?^$|[\](){}\\]/
-
-/**
- * Checks if a pattern is a simple literal string without regex metacharacters.
- * Simple literals can be optimized to use LIKE '%pattern%' instead of REGEXP.
- */
-export function isSimpleLiteralPattern(pattern: string): boolean {
-  return !REGEX_METACHARACTERS.test(pattern)
-}
+// Re-export for backward compatibility
+export { isSimpleLiteralPattern } from './mysql-where-operators'
 
 /**
  * Column existence checker function type
@@ -39,6 +29,7 @@ export type ColumnExistsChecker = (
 export class MysqlWhereBuilder {
   private columnExistsChecker?: ColumnExistsChecker
   private tableName?: string
+  private operatorRegistry = new OperatorRegistry()
 
   /**
    * Sets up the column existence checker for generated column optimization
@@ -120,6 +111,19 @@ export class MysqlWhereBuilder {
   }
 
   /**
+   * Creates the operator context for handlers
+   */
+  private createContext(): OperatorContext {
+    return {
+      buildTypeAwareCondition: this.buildTypeAwareCondition.bind(this),
+      buildWhereClause: this.buildWhereClause.bind(this),
+      jsonColumnName: JSON_DOCUMENT_COLUMN_NAME,
+      sanitizeKey: sanitizeJsonPathKey,
+      convertValue: convertValue,
+    }
+  }
+
+  /**
    * Builds a WHERE clause from a query selection object
    */
   async buildWhereClause(query: QuerySelection): Promise<{
@@ -128,249 +132,57 @@ export class MysqlWhereBuilder {
   }> {
     const conditions: string[] = []
     const params: any[] = []
+    const context = this.createContext()
 
-    for (let [key, value] of Object.entries(query)) {
-      if (key === '$and' || key === '$or' || key === '$nor') {
-        if (Array.isArray(value)) {
-          const subClauses = await Promise.all(
-            value.map(async (subQuery) => {
-              const { clause, params: subParams } =
-                await this.buildWhereClause(subQuery)
-              params.push(...subParams)
-              return clause
-            })
-          )
-          let operator = key === '$and' ? ' AND ' : ' OR '
-          let finalClause = `(${subClauses.join(operator)})`
+    for (const [key, value] of Object.entries(query)) {
+      // Handle logical operators at the top level
+      if (this.operatorRegistry.isLogicalOperator(key)) {
+        const handler = this.operatorRegistry.getLogicalHandler()
+        const result = await handler.handle(key, value, context)
+        conditions.push(result.condition)
+        params.push(...result.params)
+        continue
+      }
 
-          if (key === '$nor') {
-            finalClause = `NOT ${finalClause}`
-          }
+      // Handle field-level queries
+      const sanitizedKey = sanitizeJsonPathKey(key)
 
-          conditions.push(finalClause)
-        }
-      } else if (key === '$not') {
-        const { clause, params: subParams } = await this.buildWhereClause(value)
-        params.push(...subParams)
-        conditions.push(`NOT (${clause})`)
-      } else {
-        // Sanitize the key to prevent SQL injection
-        const sanitizedKey = sanitizeJsonPathKey(key)
-        const jsonPathExpression = `${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizedKey}'`
+      if (typeof value === 'object' && value !== null) {
+        // Object value means operators are specified
+        for (const [operator, operand] of Object.entries(value)) {
+          const handler = this.operatorRegistry.getSelectionHandler(operator)
 
-        if (typeof value === 'object' && value !== null) {
-          for (let [operator, operand] of Object.entries(value)) {
-            switch (operator) {
-              case '$eq':
-                if (operand === null) {
-                  // Use JSON_TYPE to check for NULL because ->> returns string "null" not SQL NULL
-                  const condition = `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = 'NULL'`
-                  conditions.push(condition)
-                } else if (typeof operand === 'boolean') {
-                  // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
-                  conditions.push(
-                    `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}') = ?`
-                  )
-                  params.push(operand)
-                } else {
-                  conditions.push(
-                    await this.buildTypeAwareCondition(key, '=', operand)
-                  )
-                  params.push(convertValue(operand))
-                }
-                break
-              case '$ne':
-                if (operand === null) {
-                  // Check that JSON_TYPE is not NULL (not just that the field exists)
-                  conditions.push(
-                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) != 'NULL'`
-                  )
-                } else if (typeof operand === 'boolean') {
-                  // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
-                  conditions.push(
-                    `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}') != ?`
-                  )
-                  params.push(operand)
-                } else {
-                  conditions.push(
-                    await this.buildTypeAwareCondition(key, '!=', operand)
-                  )
-                  params.push(convertValue(operand))
-                }
-                break
-              case '$gt':
-                conditions.push(
-                  await this.buildTypeAwareCondition(key, '>', operand)
-                )
-                params.push(convertValue(operand))
-                break
-              case '$gte':
-                conditions.push(
-                  await this.buildTypeAwareCondition(key, '>=', operand)
-                )
-                params.push(convertValue(operand))
-                break
-              case '$lt':
-                conditions.push(
-                  await this.buildTypeAwareCondition(key, '<', operand)
-                )
-                params.push(convertValue(operand))
-                break
-              case '$lte':
-                conditions.push(
-                  await this.buildTypeAwareCondition(key, '<=', operand)
-                )
-                params.push(convertValue(operand))
-                break
-              case '$in':
-                if (Array.isArray(operand)) {
-                  // Handle null values in the array
-                  const nullCount = operand.filter((v) => v === null).length
-                  const nonNullValues = operand.filter((v) => v !== null)
+          if (handler) {
+            const result = await handler.handle(
+              operator,
+              key,
+              operand,
+              context,
+              value // Pass all siblings for $options access
+            )
 
-                  const conditions_parts: string[] = []
-
-                  if (nonNullValues.length > 0) {
-                    let placeholders = nonNullValues.map((_p) => '?').join(', ')
-                    conditions_parts.push(
-                      `${jsonPathExpression} IN (${placeholders})`
-                    )
-                    nonNullValues.forEach((value) => {
-                      params.push(convertValue(value))
-                    })
-                  }
-
-                  if (nullCount > 0) {
-                    // Use JSON_TYPE to check for NULL because ->> returns string "null" not SQL NULL
-                    conditions_parts.push(
-                      `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = 'NULL'`
-                    )
-                  }
-
-                  if (conditions_parts.length === 1) {
-                    conditions.push(conditions_parts[0])
-                  } else {
-                    conditions.push(`(${conditions_parts.join(' OR ')})`)
-                  }
-                } else {
-                  throw new Error(`Operand for $in must be an array`)
-                }
-                break
-              case '$like':
-                conditions.push(`${jsonPathExpression} LIKE ?`)
-                params.push(convertValue(operand))
-                break
-              case '$regex': {
-                // Handle MongoDB-style $regex operator
-                // Get $options from sibling key if present
-                const options = (value as Record<string, any>).$options || ''
-                let pattern: string
-                let isCaseInsensitive = false
-
-                if (typeof operand === 'string') {
-                  pattern = operand
-                } else if (operand instanceof RegExp) {
-                  // Convert RegExp to string pattern
-                  // Note: MySQL REGEXP doesn't support all JS regex flags
-                  pattern = operand.source
-                  if (operand.ignoreCase) {
-                    isCaseInsensitive = true
-                  }
-                } else {
-                  throw new Error(
-                    `Invalid operand for $regex: ${typeof operand}`
-                  )
-                }
-
-                // Apply case-insensitive option from sibling $options
-                if (typeof options === 'string' && options.includes('i')) {
-                  isCaseInsensitive = true
-                }
-
-                // Optimize simple literal patterns to use LIKE instead of REGEXP
-                // LIKE is more efficient for simple substring matching
-                if (isSimpleLiteralPattern(pattern)) {
-                  if (isCaseInsensitive) {
-                    // MySQL LIKE is case-insensitive by default with most collations
-                    conditions.push(`${jsonPathExpression} LIKE ?`)
-                    params.push(`%${pattern}%`)
-                  } else {
-                    // Use LIKE BINARY for case-sensitive matching
-                    conditions.push(`${jsonPathExpression} LIKE BINARY ?`)
-                    params.push(`%${pattern}%`)
-                  }
-                } else {
-                  // Use REGEXP for patterns with regex metacharacters
-                  if (isCaseInsensitive) {
-                    pattern = `(?i)${pattern}`
-                  }
-                  conditions.push(`${jsonPathExpression} REGEXP ?`)
-                  params.push(pattern)
-                }
-                break
-              }
-              case '$options':
-                // Skip $options as it's handled with $regex
-                break
-              case '$exists':
-                if (typeof operand === 'boolean') {
-                  if (operand) {
-                    // Field must exist
-                    conditions.push(
-                      `JSON_CONTAINS_PATH(${JSON_DOCUMENT_COLUMN_NAME}, 'one', '$.${sanitizedKey}')`
-                    )
-                  } else {
-                    // Field must not exist
-                    conditions.push(
-                      `NOT JSON_CONTAINS_PATH(${JSON_DOCUMENT_COLUMN_NAME}, 'one', '$.${sanitizedKey}')`
-                    )
-                  }
-                } else {
-                  throw new Error(`Operand for $exists must be a boolean`)
-                }
-                break
-              case '$type':
-                if (typeof operand === 'string') {
-                  // Map MongoDB type names to MySQL JSON_TYPE values
-                  const typeMap: Record<string, string> = {
-                    date: 'DATETIME',
-                    string: 'STRING',
-                    number: 'INTEGER',
-                    double: 'DOUBLE',
-                    bool: 'BOOLEAN',
-                    boolean: 'BOOLEAN',
-                    array: 'ARRAY',
-                    object: 'OBJECT',
-                    null: 'NULL',
-                  }
-                  const mysqlType =
-                    typeMap[operand.toLowerCase()] || operand.toUpperCase()
-                  // Validate the type to prevent SQL injection
-                  const sanitizedType = validateJsonType(mysqlType)
-                  conditions.push(
-                    `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = '${sanitizedType}'`
-                  )
-                } else {
-                  throw new Error(`Operand for $type must be a string`)
-                }
-                break
+            if (result) {
+              conditions.push(result.condition)
+              params.push(...result.params)
             }
           }
+        }
+      } else {
+        // Direct value - implicit $eq
+        if (value === null) {
+          // Use JSON_TYPE to check for NULL because ->> returns string "null" not SQL NULL
+          conditions.push(
+            `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = 'NULL'`
+          )
+        } else if (typeof value === 'boolean') {
+          // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
+          conditions.push(
+            `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}') = ?`
+          )
+          params.push(value)
         } else {
-          if (value === null) {
-            // Use JSON_TYPE to check for NULL because ->> returns string "null" not SQL NULL
-            const condition = `JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')) = 'NULL'`
-            conditions.push(condition)
-          } else if (typeof value === 'boolean') {
-            // Handle boolean values - use JSON_EXTRACT to compare as JSON boolean
-            conditions.push(
-              `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}') = ?`
-            )
-            params.push(value)
-          } else {
-            conditions.push(await this.buildTypeAwareCondition(key, '=', value))
-            params.push(convertValue(value))
-          }
+          conditions.push(await this.buildTypeAwareCondition(key, '=', value))
+          params.push(convertValue(value))
         }
       }
     }
