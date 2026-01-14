@@ -5,7 +5,7 @@ import {
   DataSourceMysql,
 } from 'data-source'
 import Repo from 'repo'
-import RepoPopulator from 'repo-populator'
+import RepoPopulator from 'repo/populator'
 import Service from 'service'
 import Schema from 'mzen-schema'
 

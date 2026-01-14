@@ -1,5 +1,9 @@
 import { QuerySelection } from '../../interface'
-import { LogicalOperatorHandler, OperatorContext, OperatorResult } from './types'
+import {
+  LogicalOperatorHandler,
+  OperatorContext,
+  OperatorResult,
+} from './types'
 
 /**
  * Handler for logical operators: $and, $or, $nor, $not
