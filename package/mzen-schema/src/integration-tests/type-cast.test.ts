@@ -570,4 +570,33 @@ describe('type cast', function () {
 
     expect(data.colors[0]).toBe('red')
   })
+  it('should skip type casting when $noCast is true', async () => {
+    const data = {
+      answers: {
+        q1: true,
+        q2: 3,
+        q3: 'hello',
+      },
+    }
+
+    const schema = new Schema({
+      answers: {
+        '$type': Object,
+        '$noCast': true,
+        '*': {
+          $or: [{ $type: Boolean }, { $type: Number }, { $type: String }],
+        },
+      },
+    })
+
+    await schema.validate(data)
+
+    // Values should NOT be cast - they should remain their original types
+    expect(data.answers.q1).toBe(true)
+    expect(typeof data.answers.q1).toBe('boolean')
+    expect(data.answers.q2).toBe(3)
+    expect(typeof data.answers.q2).toBe('number')
+    expect(data.answers.q3).toBe('hello')
+    expect(typeof data.answers.q3).toBe('string')
+  })
 })

@@ -83,6 +83,11 @@ export class SchemaFieldFilter implements SchemaFieldFilterInterface {
 
     // Handle $or operator - try each spec's filters in priority order
     if (spec && spec.$or && Array.isArray(spec.$or)) {
+      // If $noCast is set, skip type casting entirely - just return the value as-is
+      if (spec.$noCast === true) {
+        return value
+      }
+
       const orSpecs = spec.$or
 
       for (const orSpec of orSpecs) {
@@ -148,10 +153,11 @@ export class SchemaFieldFilter implements SchemaFieldFilterInterface {
       value = await Filter.filter(value, { defaultValue })
     }
 
-    if (value != undefined) {
+    if (value != undefined && spec?.$noCast !== true) {
       // We only attempt to type cast if the type was specified, the value is not null and not undefined
       // - a type cast failure would result in an error which we do not want in the case of undefined or null
       // - these indicate no-value, and so there is nothing to cast
+      // Skip type casting if $noCast is true
       if (fieldType && fieldType != SchemaTypes.Mixed)
         value = this.fieldTypeCaster.typeCast(fieldType, value, path, meta)
     }
@@ -168,12 +174,25 @@ export class SchemaFieldFilter implements SchemaFieldFilterInterface {
       !Array.isArray(value) &&
       matchAllFilterSpec
     ) {
+      // Inherit $noCast and $strict from parent spec
+      const inheritedMatchAllSpec = {
+        ...matchAllFilterSpec,
+        ...(spec?.$noCast !== undefined &&
+          matchAllFilterSpec.$noCast === undefined && {
+            $noCast: spec.$noCast,
+          }),
+        ...(spec?.$strict !== undefined &&
+          matchAllFilterSpec.$strict === undefined && {
+            $strict: spec.$strict,
+          }),
+      }
+
       // Iterate through each property and apply the match-all spec
       for (const propName in value) {
         if (typeof value[propName] === 'function') continue
 
         const propValue = await this.filterField({
-          spec: matchAllFilterSpec,
+          spec: inheritedMatchAllSpec,
           specParent: spec,
           fieldName: propName,
           value: value[propName],

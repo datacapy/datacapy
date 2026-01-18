@@ -110,6 +110,17 @@ export abstract class BuilderBase<T = any> {
   }
 
   /**
+   * Disable type casting for this field and all nested fields
+   * When true, values are stored as-is without type conversion
+   * Inherits down the tree unless explicitly set to false on a nested field
+   * @param value - true to disable casting, false to enable (default: true)
+   */
+  noCast(value: boolean = true): this {
+    this.spec.$noCast = value
+    return this
+  }
+
+  /**
    * Mark this field as a database relation
    * Used by REST API to handle related entities
    */

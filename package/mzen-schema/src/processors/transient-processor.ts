@@ -106,20 +106,24 @@ export class SchemaTransientProcessor implements SchemaTransientProcessorInterfa
               mapperMeta.root
             )
           } else {
-            const fieldType = this.fieldTypeCaster.specToFieldType(
-              spec,
-              container[fieldName]
-            )
-            if (container[fieldName] != undefined) {
-              // We only attempt to type cast if the type was specified, the value is not null and not undefined
-              // - a type cast failure would result in an error which we do not want in the case of undefined or null
-              // - these indicate no-value, and so there is nothing to cast
-              if (fieldType && fieldType != SchemaTypes.Mixed) {
-                container[fieldName] = this.fieldTypeCaster.typeCast(
-                  fieldType,
-                  container[fieldName],
-                  path
-                )
+            // Skip type casting if $noCast is true (inherited from parent specs)
+            const noCast = spec?.$noCast === true
+            if (!noCast) {
+              const fieldType = this.fieldTypeCaster.specToFieldType(
+                spec,
+                container[fieldName]
+              )
+              if (container[fieldName] != undefined) {
+                // We only attempt to type cast if the type was specified, the value is not null and not undefined
+                // - a type cast failure would result in an error which we do not want in the case of undefined or null
+                // - these indicate no-value, and so there is nothing to cast
+                if (fieldType && fieldType != SchemaTypes.Mixed) {
+                  container[fieldName] = this.fieldTypeCaster.typeCast(
+                    fieldType,
+                    container[fieldName],
+                    path
+                  )
+                }
               }
             }
           }

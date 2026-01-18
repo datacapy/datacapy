@@ -13,6 +13,10 @@ export interface SchemaSpec {
   // All other non array values can be null regardless
   // - unless specifically configured as notNull via $validate config
   $nullable?: boolean
+  // Disable type casting for this field and all nested fields
+  // - When true, values are stored as-is without type conversion
+  // - Inherits down the tree unless explicitly set to false on a nested field
+  $noCast?: boolean
   [key: string]: SchemaSpec | any
 }
 

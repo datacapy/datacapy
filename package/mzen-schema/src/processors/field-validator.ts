@@ -98,6 +98,13 @@ export class SchemaFieldValidator implements SchemaFieldValidatorInterface {
 
     // Handle $or operator - try each spec in priority order
     if (spec && spec.$or && Array.isArray(spec.$or)) {
+      // If $noCast is set, skip type casting entirely - just validate the value as-is
+      if (spec.$noCast === true) {
+        // With $noCast, we just return the value without any type casting
+        // The value will be validated but not converted
+        return value
+      }
+
       const orSpecs = spec.$or
       const orErrors: Array<{ [path: string]: string[] }> = []
       let matchedSpec: SchemaSpec | null = null
@@ -217,11 +224,20 @@ export class SchemaFieldValidator implements SchemaFieldValidatorInterface {
       matchAllSpec
     ) {
       // Iterate through each property and validate using the match-all spec
+      // Inherit $noCast and $strict from parent spec
+      const inheritedMatchAllSpec = {
+        ...matchAllSpec,
+        ...(spec?.$noCast !== undefined &&
+          matchAllSpec.$noCast === undefined && { $noCast: spec.$noCast }),
+        ...(spec?.$strict !== undefined &&
+          matchAllSpec.$strict === undefined && { $strict: spec.$strict }),
+      }
+
       for (const propName in value) {
         if (typeof value[propName] === 'function') continue
 
         const propValue = await this.validateField({
-          spec: matchAllSpec,
+          spec: inheritedMatchAllSpec,
           specParent: spec,
           fieldName: propName,
           value: value[propName],

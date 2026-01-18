@@ -225,6 +225,7 @@ export class SchemaIterator {
       TypeCaster.getType(child) == Object
     ) {
       if (child.$strict === undefined) child.$strict = parent.$strict
+      if (child.$noCast === undefined) child.$noCast = parent.$noCast
     }
     return child
   }
@@ -262,7 +263,21 @@ export class SchemaIterator {
 
     for (const fieldName in object) {
       if (matchAllSpec !== undefined) {
-        finalSpec[fieldName] = matchAllSpec
+        // Inherit parent properties (like $noCast, $strict) into match-all specs
+        const inheritedSpec = { ...matchAllSpec }
+        if (
+          spec?.$noCast !== undefined &&
+          inheritedSpec.$noCast === undefined
+        ) {
+          inheritedSpec.$noCast = spec.$noCast
+        }
+        if (
+          spec?.$strict !== undefined &&
+          inheritedSpec.$strict === undefined
+        ) {
+          inheritedSpec.$strict = spec.$strict
+        }
+        finalSpec[fieldName] = inheritedSpec
       } else if (
         finalSpec === undefined ||
         finalSpec[fieldName] === undefined
