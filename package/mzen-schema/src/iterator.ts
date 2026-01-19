@@ -263,19 +263,24 @@ export class SchemaIterator {
 
     for (const fieldName in object) {
       if (matchAllSpec !== undefined) {
-        // Inherit parent properties (like $noCast, $strict) into match-all specs
-        const inheritedSpec = { ...matchAllSpec }
-        if (
-          spec?.$noCast !== undefined &&
-          inheritedSpec.$noCast === undefined
-        ) {
-          inheritedSpec.$noCast = spec.$noCast
-        }
-        if (
-          spec?.$strict !== undefined &&
-          inheritedSpec.$strict === undefined
-        ) {
-          inheritedSpec.$strict = spec.$strict
+        // For array specs, use as-is; for object specs, inherit parent properties
+        let inheritedSpec
+        if (Array.isArray(matchAllSpec)) {
+          inheritedSpec = matchAllSpec
+        } else {
+          inheritedSpec = { ...matchAllSpec }
+          if (
+            spec?.$noCast !== undefined &&
+            inheritedSpec.$noCast === undefined
+          ) {
+            inheritedSpec.$noCast = spec.$noCast
+          }
+          if (
+            spec?.$strict !== undefined &&
+            inheritedSpec.$strict === undefined
+          ) {
+            inheritedSpec.$strict = spec.$strict
+          }
         }
         finalSpec[fieldName] = inheritedSpec
       } else if (
