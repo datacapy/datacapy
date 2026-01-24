@@ -42,6 +42,9 @@ export interface SchemaSpecValidate {
     | Array<SchemaSpecValidateOptionsEquality>
   inArray?: SchemaSpecValidateOptionsInArray
   regex?: SchemaSpecValidateOptionsRegex | Array<SchemaSpecValidateOptionsRegex>
+  remote?:
+    | SchemaSpecValidateOptionsRemote
+    | Array<SchemaSpecValidateOptionsRemote>
 }
 
 export interface SchemaSpecValidateOptions {
@@ -65,6 +68,17 @@ export interface SchemaSpecValidateOptionsInArray extends SchemaSpecValidateOpti
 
 export interface SchemaSpecValidateOptionsRegex extends SchemaSpecValidateOptions {
   pattern?: any
+}
+
+export interface SchemaSpecValidateOptionsRemote extends SchemaSpecValidateOptions {
+  url?: string
+  method?: string
+  params?: Record<string, any>
+  paramPaths?: Record<string, string>
+  data?: Record<string, any>
+  dataPaths?: Record<string, string>
+  timeout?: number
+  axios?: any
 }
 
 export default SchemaSpec

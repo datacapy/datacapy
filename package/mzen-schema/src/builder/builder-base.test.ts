@@ -65,6 +65,39 @@ describe('BuilderBase', () => {
       })
     })
 
+    describe('remote()', () => {
+      it('should set remote validation options', () => {
+        const options = { url: '/api/validate' }
+        const spec = sb.string().remote(options).build()
+        expect(spec.$validate?.remote).toEqual(options)
+      })
+
+      it('should accept full options object', () => {
+        const options = {
+          url: '/api/validate/username',
+          method: 'POST',
+          params: { type: 'username' },
+          paramPaths: { companyId: 'company.id' },
+          data: { context: 'registration' },
+          dataPaths: { userId: 'user.id' },
+          timeout: 10000,
+        }
+        const spec = sb.string().remote(options).build()
+        expect(spec.$validate?.remote).toEqual(options)
+      })
+
+      it('should work with other validations', () => {
+        const spec = sb
+          .string()
+          .required()
+          .remote({ url: '/api/validate' })
+          .build()
+
+        expect(spec.$validate?.required).toBe(true)
+        expect(spec.$validate?.remote).toEqual({ url: '/api/validate' })
+      })
+    })
+
     describe('validation method combinations', () => {
       it('should allow multiple validation methods on same field', () => {
         const spec = sb.string().required().notNull().notEmpty().build()

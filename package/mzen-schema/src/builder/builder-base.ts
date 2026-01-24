@@ -1,4 +1,7 @@
-import SchemaSpec, { SchemaSpecValidateOptions } from '../spec'
+import SchemaSpec, {
+  SchemaSpecValidateOptions,
+  SchemaSpecValidateOptionsRemote,
+} from '../spec'
 
 /**
  * Abstract base class for all field builders
@@ -49,6 +52,15 @@ export abstract class BuilderBase<T = any> {
   isEmpty(options?: SchemaSpecValidateOptions): this {
     if (!this.spec.$validate) this.spec.$validate = {}
     this.spec.$validate.isEmpty = options || true
+    return this
+  }
+
+  /**
+   * Validate field against a remote API endpoint
+   */
+  remote(options: SchemaSpecValidateOptionsRemote): this {
+    if (!this.spec.$validate) this.spec.$validate = {}
+    this.spec.$validate.remote = options
     return this
   }
 
