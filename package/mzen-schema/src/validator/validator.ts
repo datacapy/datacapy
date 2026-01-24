@@ -1,5 +1,5 @@
 import ValidatorInterface from './validator-interface'
-import ValidatorCustom from './validator-custom'
+import ValidatorCallback from './validator-callback'
 import ValidatorEmail from './validator-email'
 import ValidatorInArray from './validator-in-array'
 import ValidatorEquality from './validator-equality'
@@ -77,7 +77,7 @@ export class Validator {
 }
 
 // Add default validators
-Validator.addValidator(new ValidatorCustom())
+Validator.addValidator(new ValidatorCallback())
 Validator.addValidator(new ValidatorEmail())
 Validator.addValidator(new ValidatorInArray())
 Validator.addValidator(new ValidatorEquality())

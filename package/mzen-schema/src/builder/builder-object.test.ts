@@ -260,7 +260,7 @@ describe('BuilderObject', () => {
     it('should support filter()', () => {
       const customFn = (value: any) => typeof value === 'object'
       const spec = sb.object().filter(customFn).build()
-      expect(spec.$filter?.custom).toBe(customFn)
+      expect(spec.$filter?.callback).toBe(customFn)
     })
   })
 

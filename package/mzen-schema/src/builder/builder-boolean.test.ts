@@ -87,7 +87,7 @@ describe('BuilderBoolean', () => {
     it('should support filter()', () => {
       const customFn = (value: any) => value === true
       const spec = sb.boolean().filter(customFn).build()
-      expect(spec.$filter?.custom).toBe(customFn)
+      expect(spec.$filter?.callback).toBe(customFn)
     })
   })
 

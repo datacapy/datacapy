@@ -1,6 +1,6 @@
 import { FilterAbstract } from './filter-abstract'
 
-export class FilterCustom extends FilterAbstract {
+export class FilterCallback extends FilterAbstract {
   filter(value: any, options?) {
     var filter = options
     if (typeof filter == 'function') value = filter(value)
@@ -8,8 +8,8 @@ export class FilterCustom extends FilterAbstract {
   }
 
   getName() {
-    return 'custom'
+    return 'callback'
   }
 }
 
-export default FilterCustom
+export default FilterCallback

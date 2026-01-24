@@ -93,7 +93,7 @@ describe('applyFilters', () => {
       age: {
         $type: Number,
         $filter: {
-          custom: (value) => value * 2,
+          callback: (value) => value * 2,
         },
       },
     })

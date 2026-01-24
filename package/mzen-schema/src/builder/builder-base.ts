@@ -72,15 +72,18 @@ export abstract class BuilderBase<T = any> {
 
     const customConfig = { validator, ...options }
 
-    // Support multiple custom validators
-    if (this.spec.$validate.custom) {
-      if (Array.isArray(this.spec.$validate.custom)) {
-        this.spec.$validate.custom.push(customConfig)
+    // Support multiple callback validators
+    if (this.spec.$validate.callback) {
+      if (Array.isArray(this.spec.$validate.callback)) {
+        this.spec.$validate.callback.push(customConfig)
       } else {
-        this.spec.$validate.custom = [this.spec.$validate.custom, customConfig]
+        this.spec.$validate.callback = [
+          this.spec.$validate.callback,
+          customConfig,
+        ]
       }
     } else {
-      this.spec.$validate.custom = customConfig
+      this.spec.$validate.callback = customConfig
     }
 
     return this
@@ -120,7 +123,7 @@ export abstract class BuilderBase<T = any> {
    */
   filter(fn: (value: any) => boolean | string): this {
     if (!this.spec.$filter) this.spec.$filter = {}
-    this.spec.$filter.custom = fn
+    this.spec.$filter.callback = fn
     return this
   }
 

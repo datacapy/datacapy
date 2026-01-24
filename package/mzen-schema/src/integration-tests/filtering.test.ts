@@ -74,7 +74,7 @@ describe('filtering', () => {
         name: {
           $type: String,
           $filter: {
-            custom: (value) => {
+            callback: (value) => {
               return value + ' modified'
             },
           },

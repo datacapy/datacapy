@@ -118,7 +118,7 @@ describe('BuilderMixed', () => {
     it('should support filter()', () => {
       const customFn = (value: any) => value !== undefined
       const spec = sb.mixed().filter(customFn).build()
-      expect(spec.$filter?.custom).toBe(customFn)
+      expect(spec.$filter?.callback).toBe(customFn)
     })
   })
 
@@ -265,7 +265,7 @@ describe('BuilderMixed', () => {
       const spec = sb.mixed().filter(customFn).label('Polymorphic Data').build()
 
       expect(spec.$type).toBe(SchemaTypes.Mixed)
-      expect(spec.$filter?.custom).toBe(customFn)
+      expect(spec.$filter?.callback).toBe(customFn)
       expect(spec.$label).toBe('Polymorphic Data')
     })
   })

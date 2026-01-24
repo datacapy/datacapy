@@ -1,5 +1,5 @@
 export * from './filter'
-export * from './filter-custom'
+export * from './filter-callback'
 export * from './filter-default-value'
 export * from './filter-lowercase'
 export * from './filter-trim'

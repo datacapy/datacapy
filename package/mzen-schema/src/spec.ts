@@ -25,7 +25,7 @@ export interface SchemaSpecFilter {
   uppercase?: boolean
   lowercase?: boolean
   defaultValue?: any
-  custom?: (value: any) => boolean | string
+  callback?: (value: any) => boolean | string
   private?: boolean
   privateValue?: boolean
 }
@@ -41,7 +41,7 @@ export type CustomValidatorFn = (
   options: { root?: any; label?: string }
 ) => boolean | string | string[] | Promise<boolean | string | string[]>
 
-export interface SchemaSpecValidateOptionsCustom extends SchemaSpecValidateOptions {
+export interface SchemaSpecValidateOptionsCallback extends SchemaSpecValidateOptions {
   validator: CustomValidatorFn
 }
 
@@ -57,9 +57,9 @@ export interface SchemaSpecValidate {
     | Array<SchemaSpecValidateOptionsEquality>
   inArray?: SchemaSpecValidateOptionsInArray
   regex?: SchemaSpecValidateOptionsRegex | Array<SchemaSpecValidateOptionsRegex>
-  custom?:
-    | SchemaSpecValidateOptionsCustom
-    | Array<SchemaSpecValidateOptionsCustom>
+  callback?:
+    | SchemaSpecValidateOptionsCallback
+    | Array<SchemaSpecValidateOptionsCallback>
 }
 
 export interface SchemaSpecValidateOptions {

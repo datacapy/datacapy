@@ -1,5 +1,5 @@
 import { FilterAbstract } from './filter-abstract'
-import { FilterCustom } from './filter-custom'
+import { FilterCallback } from './filter-callback'
 import { FilterDefaultValue } from './filter-default-value'
 import { FilterLowercase } from './filter-lowercase'
 import { FilterTrim } from './filter-trim'
@@ -45,7 +45,7 @@ export class Filter {
   }
 }
 
-Filter.addFilter(new FilterCustom())
+Filter.addFilter(new FilterCallback())
 Filter.addFilter(new FilterDefaultValue())
 Filter.addFilter(new FilterLowercase())
 Filter.addFilter(new FilterTrim())

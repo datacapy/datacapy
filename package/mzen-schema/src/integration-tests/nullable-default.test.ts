@@ -177,7 +177,7 @@ describe('$schema reference with $nullable and defaultValue: null', () => {
       $type: Object,
       $filter: {
         // Some other filter in the schema
-        custom: (value) => value,
+        callback: (value) => value,
       },
       $spec: {
         en: { $type: String },
@@ -346,7 +346,7 @@ describe('$schema reference with $nullable and defaultValue: null', () => {
       $type: Object,
       $nullable: true,
       $filter: {
-        custom: (value) => value,
+        callback: (value) => value,
       },
       $spec: {
         en: { $type: String },

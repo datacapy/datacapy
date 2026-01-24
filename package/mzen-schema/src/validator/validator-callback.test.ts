@@ -1,9 +1,9 @@
-import { ValidatorCustom } from 'validator/index'
+import { ValidatorCallback } from './validator-callback'
 
-describe('validator - custom', () => {
+describe('validator - callback', () => {
   it('should return boolean true on success', () => {
     const value = 'Kevin'
-    const result = new ValidatorCustom().validate(value, {
+    const result = new ValidatorCallback().validate(value, {
       validator: (_value) => true,
     })
 
@@ -12,7 +12,7 @@ describe('validator - custom', () => {
 
   it('should return error message on failure', () => {
     const value = undefined
-    const result = new ValidatorCustom().validate(value, {
+    const result = new ValidatorCallback().validate(value, {
       validator: (_value) => 'error message',
     })
 

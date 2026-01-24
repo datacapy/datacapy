@@ -177,7 +177,7 @@ describe('BuilderArray', () => {
     it('should support filter()', () => {
       const customFn = (value: any) => Array.isArray(value)
       const spec = sb.array().filter(customFn).build()
-      expect(spec.$filter?.custom).toBe(customFn)
+      expect(spec.$filter?.callback).toBe(customFn)
     })
   })
 

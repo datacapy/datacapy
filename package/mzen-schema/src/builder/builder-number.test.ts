@@ -87,7 +87,7 @@ describe('BuilderNumber', () => {
     it('should support filter()', () => {
       const customFn = (value: any) => value > 0
       const spec = sb.number().filter(customFn).build()
-      expect(spec.$filter?.custom).toBe(customFn)
+      expect(spec.$filter?.callback).toBe(customFn)
     })
   })
 

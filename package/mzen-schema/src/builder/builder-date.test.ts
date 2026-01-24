@@ -93,7 +93,7 @@ describe('BuilderDate', () => {
     it('should support filter()', () => {
       const customFn = (value: any) => value instanceof Date
       const spec = sb.date().filter(customFn).build()
-      expect(spec.$filter?.custom).toBe(customFn)
+      expect(spec.$filter?.callback).toBe(customFn)
     })
   })
 

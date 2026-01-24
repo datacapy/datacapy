@@ -1,14 +1,14 @@
-import { FilterCustom } from './filter-custom'
+import { FilterCallback } from './filter-callback'
 
-describe('FilterCustom', () => {
-  let filter: FilterCustom
+describe('FilterCallback', () => {
+  let filter: FilterCallback
 
   beforeEach(() => {
-    filter = new FilterCustom()
+    filter = new FilterCallback()
   })
 
   it('should have correct name', () => {
-    expect(filter.getName()).toBe('custom')
+    expect(filter.getName()).toBe('callback')
   })
 
   it('should apply custom filter function', () => {

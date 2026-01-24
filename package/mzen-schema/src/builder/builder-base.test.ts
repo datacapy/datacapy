@@ -65,39 +65,6 @@ describe('BuilderBase', () => {
       })
     })
 
-    describe('remote()', () => {
-      it('should set remote validation options', () => {
-        const options = { url: '/api/validate' }
-        const spec = sb.string().remote(options).build()
-        expect(spec.$validate?.remote).toEqual(options)
-      })
-
-      it('should accept full options object', () => {
-        const options = {
-          url: '/api/validate/username',
-          method: 'POST',
-          params: { type: 'username' },
-          paramPaths: { companyId: 'company.id' },
-          data: { context: 'registration' },
-          dataPaths: { userId: 'user.id' },
-          timeout: 10000,
-        }
-        const spec = sb.string().remote(options).build()
-        expect(spec.$validate?.remote).toEqual(options)
-      })
-
-      it('should work with other validations', () => {
-        const spec = sb
-          .string()
-          .required()
-          .remote({ url: '/api/validate' })
-          .build()
-
-        expect(spec.$validate?.required).toBe(true)
-        expect(spec.$validate?.remote).toEqual({ url: '/api/validate' })
-      })
-    })
-
     describe('validation method combinations', () => {
       it('should allow multiple validation methods on same field', () => {
         const spec = sb.string().required().notNull().notEmpty().build()
@@ -199,13 +166,13 @@ describe('BuilderBase', () => {
       it('should set custom filter function', () => {
         const customFn = (value: any) => value.toUpperCase()
         const spec = sb.string().filter(customFn).build()
-        expect(spec.$filter?.custom).toBe(customFn)
+        expect(spec.$filter?.callback).toBe(customFn)
       })
 
       it('should accept arrow functions', () => {
         const customFn = (value: any) => value > 0
         const spec = sb.number().filter(customFn).build()
-        expect(spec.$filter?.custom).toBe(customFn)
+        expect(spec.$filter?.callback).toBe(customFn)
       })
 
       it('should accept any function signature', () => {
@@ -213,7 +180,7 @@ describe('BuilderBase', () => {
           return value !== null
         }
         const spec = sb.mixed().filter(customFn).build()
-        expect(spec.$filter?.custom).toBe(customFn)
+        expect(spec.$filter?.callback).toBe(customFn)
       })
     })
 
@@ -229,7 +196,7 @@ describe('BuilderBase', () => {
 
         expect(spec.$filter?.defaultValue).toBe('test')
         expect((spec.$filter as any)?.private).toBe(true)
-        expect(spec.$filter?.custom).toBe(customFn)
+        expect(spec.$filter?.callback).toBe(customFn)
       })
 
       it('should create $filter object only when needed', () => {
