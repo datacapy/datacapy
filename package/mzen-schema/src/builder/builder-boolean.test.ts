@@ -84,9 +84,9 @@ describe('BuilderBoolean', () => {
       expect((spec.$filter as any)?.privateValue).toBe(true)
     })
 
-    it('should support custom()', () => {
+    it('should support filter()', () => {
       const customFn = (value: any) => value === true
-      const spec = sb.boolean().custom(customFn).build()
+      const spec = sb.boolean().filter(customFn).build()
       expect(spec.$filter?.custom).toBe(customFn)
     })
   })

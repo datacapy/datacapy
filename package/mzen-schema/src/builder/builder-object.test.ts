@@ -257,9 +257,9 @@ describe('BuilderObject', () => {
       expect((spec.$filter as any)?.private).toBe(true)
     })
 
-    it('should support custom()', () => {
+    it('should support filter()', () => {
       const customFn = (value: any) => typeof value === 'object'
-      const spec = sb.object().custom(customFn).build()
+      const spec = sb.object().filter(customFn).build()
       expect(spec.$filter?.custom).toBe(customFn)
     })
   })

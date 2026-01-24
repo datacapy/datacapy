@@ -118,7 +118,7 @@ export abstract class BuilderBase<T = any> {
   /**
    * Apply custom filter function
    */
-  custom(fn: (value: any) => boolean | string): this {
+  filter(fn: (value: any) => boolean | string): this {
     if (!this.spec.$filter) this.spec.$filter = {}
     this.spec.$filter.custom = fn
     return this

@@ -115,9 +115,9 @@ describe('BuilderMixed', () => {
       expect((spec.$filter as any)?.privateValue).toBe(true)
     })
 
-    it('should support custom()', () => {
+    it('should support filter()', () => {
       const customFn = (value: any) => value !== undefined
-      const spec = sb.mixed().custom(customFn).build()
+      const spec = sb.mixed().filter(customFn).build()
       expect(spec.$filter?.custom).toBe(customFn)
     })
   })
@@ -258,11 +258,11 @@ describe('BuilderMixed', () => {
       expect(spec.$label).toBe('Internal Data')
     })
 
-    it('should create a mixed field with custom validation', () => {
+    it('should create a mixed field with custom filter', () => {
       const customFn = (value: any) => {
         return value && typeof value === 'object' && 'type' in value
       }
-      const spec = sb.mixed().custom(customFn).label('Polymorphic Data').build()
+      const spec = sb.mixed().filter(customFn).label('Polymorphic Data').build()
 
       expect(spec.$type).toBe(SchemaTypes.Mixed)
       expect(spec.$filter?.custom).toBe(customFn)

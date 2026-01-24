@@ -174,9 +174,9 @@ describe('BuilderArray', () => {
       expect((spec.$filter as any)?.private).toBe(true)
     })
 
-    it('should support custom()', () => {
+    it('should support filter()', () => {
       const customFn = (value: any) => Array.isArray(value)
-      const spec = sb.array().custom(customFn).build()
+      const spec = sb.array().filter(customFn).build()
       expect(spec.$filter?.custom).toBe(customFn)
     })
   })

@@ -195,16 +195,16 @@ describe('BuilderBase', () => {
       })
     })
 
-    describe('custom()', () => {
+    describe('filter()', () => {
       it('should set custom filter function', () => {
         const customFn = (value: any) => value.toUpperCase()
-        const spec = sb.string().custom(customFn).build()
+        const spec = sb.string().filter(customFn).build()
         expect(spec.$filter?.custom).toBe(customFn)
       })
 
       it('should accept arrow functions', () => {
         const customFn = (value: any) => value > 0
-        const spec = sb.number().custom(customFn).build()
+        const spec = sb.number().filter(customFn).build()
         expect(spec.$filter?.custom).toBe(customFn)
       })
 
@@ -212,7 +212,7 @@ describe('BuilderBase', () => {
         const customFn = function (value: any) {
           return value !== null
         }
-        const spec = sb.mixed().custom(customFn).build()
+        const spec = sb.mixed().filter(customFn).build()
         expect(spec.$filter?.custom).toBe(customFn)
       })
     })
@@ -224,7 +224,7 @@ describe('BuilderBase', () => {
           .string()
           .default('test')
           .private()
-          .custom(customFn)
+          .filter(customFn)
           .build()
 
         expect(spec.$filter?.defaultValue).toBe('test')
