@@ -7,7 +7,6 @@ import ValidatorIsEmpty from './validator-is-empty'
 import ValidatorNotEmpty from './validator-not-empty'
 import ValidatorNotNull from './validator-not-null'
 import ValidatorRegex from './validator-regex'
-import ValidatorRemote from './validator-remote'
 import ValidatorRequired from './validator-required'
 import ValidatorValueLength from './validator-value-length'
 
@@ -86,7 +85,6 @@ Validator.addValidator(new ValidatorIsEmpty())
 Validator.addValidator(new ValidatorNotEmpty())
 Validator.addValidator(new ValidatorNotNull())
 Validator.addValidator(new ValidatorRegex())
-Validator.addValidator(new ValidatorRemote())
 Validator.addValidator(new ValidatorRequired())
 Validator.addValidator(new ValidatorValueLength())
 

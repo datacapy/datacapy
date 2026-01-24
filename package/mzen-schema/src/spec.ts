@@ -30,6 +30,21 @@ export interface SchemaSpecFilter {
   privateValue?: boolean
 }
 
+/**
+ * Custom validator function type.
+ * @param value - The value being validated
+ * @param options - Validation options including root object and label
+ * @returns true if valid, or error message string(s) if invalid
+ */
+export type CustomValidatorFn = (
+  value: any,
+  options: { root?: any; label?: string }
+) => boolean | string | string[] | Promise<boolean | string | string[]>
+
+export interface SchemaSpecValidateOptionsCustom extends SchemaSpecValidateOptions {
+  validator: CustomValidatorFn
+}
+
 export interface SchemaSpecValidate {
   notNull?: boolean | SchemaSpecValidateOptions
   required?: boolean | SchemaSpecValidateOptions
@@ -42,9 +57,9 @@ export interface SchemaSpecValidate {
     | Array<SchemaSpecValidateOptionsEquality>
   inArray?: SchemaSpecValidateOptionsInArray
   regex?: SchemaSpecValidateOptionsRegex | Array<SchemaSpecValidateOptionsRegex>
-  remote?:
-    | SchemaSpecValidateOptionsRemote
-    | Array<SchemaSpecValidateOptionsRemote>
+  custom?:
+    | SchemaSpecValidateOptionsCustom
+    | Array<SchemaSpecValidateOptionsCustom>
 }
 
 export interface SchemaSpecValidateOptions {
@@ -68,17 +83,6 @@ export interface SchemaSpecValidateOptionsInArray extends SchemaSpecValidateOpti
 
 export interface SchemaSpecValidateOptionsRegex extends SchemaSpecValidateOptions {
   pattern?: any
-}
-
-export interface SchemaSpecValidateOptionsRemote extends SchemaSpecValidateOptions {
-  url?: string
-  method?: string
-  params?: Record<string, any>
-  paramPaths?: Record<string, string>
-  data?: Record<string, any>
-  dataPaths?: Record<string, string>
-  timeout?: number
-  axios?: any
 }
 
 export default SchemaSpec

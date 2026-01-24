@@ -1,6 +1,6 @@
 import SchemaSpec, {
   SchemaSpecValidateOptions,
-  SchemaSpecValidateOptionsRemote,
+  CustomValidatorFn,
 } from '../spec'
 
 /**
@@ -56,11 +56,33 @@ export abstract class BuilderBase<T = any> {
   }
 
   /**
-   * Validate field against a remote API endpoint
+   * Add a custom validation function.
+   * The function receives (value, options) where options includes:
+   * - root: the full object being validated
+   * - label: the field label
+   *
+   * @param validator - Function that returns true if valid, or error message(s) if invalid
+   * @param options - Optional validation options (name, message)
    */
-  remote(options: SchemaSpecValidateOptionsRemote): this {
+  validate(
+    validator: CustomValidatorFn,
+    options?: SchemaSpecValidateOptions
+  ): this {
     if (!this.spec.$validate) this.spec.$validate = {}
-    this.spec.$validate.remote = options
+
+    const customConfig = { validator, ...options }
+
+    // Support multiple custom validators
+    if (this.spec.$validate.custom) {
+      if (Array.isArray(this.spec.$validate.custom)) {
+        this.spec.$validate.custom.push(customConfig)
+      } else {
+        this.spec.$validate.custom = [this.spec.$validate.custom, customConfig]
+      }
+    } else {
+      this.spec.$validate.custom = customConfig
+    }
+
     return this
   }
 
