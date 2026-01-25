@@ -2,7 +2,7 @@
 export function genUuid(): string {
   const timestamp = BigInt(Date.now());
   const timestampHex = timestamp.toString(16).padStart(12, "0");
-  const randomHex = crypto
+  const randomHex = globalThis.crypto
     .getRandomValues(new Uint8Array(16))
     .reduce((acc, byte) => acc + byte.toString(16).padStart(2, "0"), "");
 
