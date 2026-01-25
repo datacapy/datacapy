@@ -1,6 +1,7 @@
 import { Schema } from './schema'
+import clone from 'clone'
 
-export const clone = require('clone')
+export { clone }
 
 // Re-export core classes (at root)
 export * from './schema'
