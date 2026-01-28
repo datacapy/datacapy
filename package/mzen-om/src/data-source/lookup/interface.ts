@@ -17,20 +17,25 @@
  */
 export interface DataSourceLookup {
   /**
-   * Look up connection details by generic key.
+   * Look up connection details by datasource name and generic key.
    *
+   * @param dataSourceName - The logical datasource name (e.g., 'project', 'tenant')
    * @param key - Application-specific identifier (projectId, tenantId, etc.)
    * @returns Connection details or null if not found
    * @throws Error if lookup fails (network error, etc.)
    */
-  lookup(key: string): Promise<DataSourceConnectionDetails | null>
+  lookup(
+    dataSourceName: string,
+    key: string
+  ): Promise<DataSourceConnectionDetails | null>
 
   /**
    * Optional: Invalidate cache when datasource config changes.
    *
+   * @param dataSourceName - The datasource name to invalidate
    * @param key - The key to invalidate from cache
    */
-  invalidate?(key: string): Promise<void>
+  invalidate?(dataSourceName: string, key: string): Promise<void>
 }
 
 /**
@@ -93,38 +98,52 @@ export abstract class BaseDataSourceLookup implements DataSourceLookup {
     this.cacheTTL = cacheTTL
   }
 
-  async lookup(key: string): Promise<DataSourceConnectionDetails | null> {
+  protected getCacheKey(dataSourceName: string, key: string): string {
+    return `${dataSourceName}:${key}`
+  }
+
+  async lookup(
+    dataSourceName: string,
+    key: string
+  ): Promise<DataSourceConnectionDetails | null> {
+    const cacheKey = this.getCacheKey(dataSourceName, key)
+
     // Check cache
-    const cached = this.cache.get(key)
+    const cached = this.cache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
       return cached.data
     }
 
     // Perform lookup
-    const data = await this.performLookup(key)
+    const data = await this.performLookup(dataSourceName, key)
 
     // Cache result
-    this.cache.set(key, { data, timestamp: Date.now() })
+    this.cache.set(cacheKey, { data, timestamp: Date.now() })
 
     return data
   }
 
-  async invalidate(key: string): Promise<void> {
-    this.cache.delete(key)
-    await this.performInvalidate(key)
+  async invalidate(dataSourceName: string, key: string): Promise<void> {
+    const cacheKey = this.getCacheKey(dataSourceName, key)
+    this.cache.delete(cacheKey)
+    await this.performInvalidate(dataSourceName, key)
   }
 
   /**
    * Implement this method to perform the actual lookup
    */
   protected abstract performLookup(
+    dataSourceName: string,
     key: string
   ): Promise<DataSourceConnectionDetails | null>
 
   /**
    * Optional: Implement this to handle cache invalidation beyond memory cache
    */
-  protected async performInvalidate(key: string): Promise<void> {
+  protected async performInvalidate(
+    dataSourceName: string,
+    key: string
+  ): Promise<void> {
     // Default: no-op
   }
 

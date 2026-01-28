@@ -251,15 +251,17 @@ export class ModelManager {
     // Priority 2: Dynamic lookup via lookupKey
     if (entry?.lookupKey && this.dataSourceRegistry && this.dataSourceLookup) {
       try {
+        const registryKey = `${key}:${entry.lookupKey}`
         const dataSource = await this.dataSourceRegistry.getOrCreate(
-          entry.lookupKey,
+          registryKey,
           async () => {
             const details = await this.dataSourceLookup!.lookup(
+              key,
               entry.lookupKey!
             )
             if (!details) {
               throw new Error(
-                `No datasource configuration found for key: ${entry.lookupKey}`
+                `No datasource configuration found for datasource "${key}" with key: ${entry.lookupKey}`
               )
             }
             return await this.dataSourceRegistry!.createDataSourceFromDetails(
@@ -273,7 +275,7 @@ export class ModelManager {
           throw error
         }
         this.logger.warn(
-          `Failed to get dynamic datasource for key ${entry.lookupKey}, falling back to default`,
+          `Failed to get dynamic datasource for "${key}" with key ${entry.lookupKey}, falling back to default`,
           error
         )
       }
