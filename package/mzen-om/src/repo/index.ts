@@ -338,18 +338,18 @@ export class Repo<T> {
       )
     }
 
-    if (!context?.lookupKey && !context?.dataSourceKey) {
+    // Get context entry for this specific datasource
+    const dataSourceName = this.config.dataSource
+    const entry = context?.getForDataSource(dataSourceName)
+
+    if (!entry?.lookupKey && !entry?.dataSourceKey) {
       throw new Error(
         `No datasource context provided for dynamic repo: ${this.getName()}. ` +
           `Provide context with lookupKey or dataSourceKey in query options.`
       )
     }
 
-    // Use ModelManager's dynamic resolution with the named datasource
-    return await this.modelManager.getDataSourceDynamic(
-      this.config.dataSource, // Pass the datasource name (e.g., 'project')
-      context
-    )
+    return await this.modelManager.getDataSourceDynamic(dataSourceName, entry)
   }
 
   async reset() {
@@ -437,8 +437,13 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return this.findPopulate(docs, optionsPropagate)
@@ -472,8 +477,13 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return this.findPopulate(docs, optionsPropagate)
@@ -503,8 +513,13 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return result
@@ -574,6 +589,7 @@ export class Repo<T> {
     return {
       filterPrivate: options.filterPrivate,
       populate: options.populate,
+      context: options.context,
     }
   }
 
@@ -634,8 +650,13 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return result
@@ -676,8 +697,13 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return result
@@ -767,8 +793,13 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return result
@@ -795,8 +826,13 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return result
@@ -840,8 +876,13 @@ export class Repo<T> {
     const result = await dataSource.deleteMany(this.config.collectionName, f, o)
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return result
@@ -862,8 +903,13 @@ export class Repo<T> {
     const result = await dataSource.deleteOne(this.config.collectionName, f, o)
 
     // Release datasource reference if using registry
-    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
-      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
     }
 
     return result

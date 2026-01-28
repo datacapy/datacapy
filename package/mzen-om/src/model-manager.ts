@@ -8,6 +8,7 @@ import {
   DataSourceRegistryConfig,
   DataSourceLookup,
   DataSourceContext,
+  DataSourceContextEntry,
 } from 'data-source'
 import Repo from 'repo'
 import RepoPopulator from 'repo/populator'
@@ -234,35 +235,31 @@ export class ModelManager {
    */
   async getDataSourceDynamic(
     key: string,
-    context?: DataSourceContext
+    entry?: DataSourceContextEntry
   ): Promise<DataSourceInterface> {
-    // Priority 1: Explicit dataSourceKey in context
-    if (context?.dataSourceKey) {
-      const ds = this.dataSources[context.dataSourceKey]
+    // Priority 1: Explicit dataSourceKey in entry
+    if (entry?.dataSourceKey) {
+      const ds = this.dataSources[entry.dataSourceKey]
       if (ds) {
         return ds
       }
-      if (!context.useDefault) {
-        throw new Error(`DataSource not found: ${context.dataSourceKey}`)
+      if (!entry.useDefault) {
+        throw new Error(`DataSource not found: ${entry.dataSourceKey}`)
       }
     }
 
     // Priority 2: Dynamic lookup via lookupKey
-    if (
-      context?.lookupKey &&
-      this.dataSourceRegistry &&
-      this.dataSourceLookup
-    ) {
+    if (entry?.lookupKey && this.dataSourceRegistry && this.dataSourceLookup) {
       try {
         const dataSource = await this.dataSourceRegistry.getOrCreate(
-          context.lookupKey,
+          entry.lookupKey,
           async () => {
             const details = await this.dataSourceLookup!.lookup(
-              context.lookupKey!
+              entry.lookupKey!
             )
             if (!details) {
               throw new Error(
-                `No datasource configuration found for key: ${context.lookupKey}`
+                `No datasource configuration found for key: ${entry.lookupKey}`
               )
             }
             return await this.dataSourceRegistry!.createDataSourceFromDetails(
@@ -272,11 +269,11 @@ export class ModelManager {
         )
         return dataSource
       } catch (error) {
-        if (!context.useDefault) {
+        if (!entry.useDefault) {
           throw error
         }
         this.logger.warn(
-          `Failed to get dynamic datasource for key ${context.lookupKey}, falling back to default`,
+          `Failed to get dynamic datasource for key ${entry.lookupKey}, falling back to default`,
           error
         )
       }
@@ -290,7 +287,7 @@ export class ModelManager {
 
     // Priority 4: Default datasource
     const defaultKey = Object.keys(this.dataSources)[0]
-    if (defaultKey && (context?.useDefault || !context)) {
+    if (defaultKey && (entry?.useDefault || !entry)) {
       return this.dataSources[defaultKey]
     }
 
@@ -463,10 +460,13 @@ export class ModelManager {
       throw new Error(`Repo not found: ${repoName}`)
     }
 
-    // Get the actual datasource using context
+    // Resolve entry for this repo's datasource
+    const entry = context.getForDataSource(repo.config.dataSource)
+
+    // Get the actual datasource using resolved entry
     const actualDS = await this.getDataSourceDynamic(
       repo.config.dataSource,
-      context
+      entry
     )
 
     // Create indexes on the resolved datasource
@@ -482,7 +482,7 @@ export class ModelManager {
     }
 
     this.logger.log(
-      `[ModelManager] Initialized dynamic repo: ${repoName} for context: ${context.lookupKey}`
+      `[ModelManager] Initialized dynamic repo: ${repoName} for datasource: ${repo.config.dataSource}`
     )
   }
 
@@ -501,7 +501,7 @@ export class ModelManager {
     )
 
     this.logger.log(
-      `[ModelManager] Initializing ${repos.length} dynamic repos for datasource: ${dsName}, context: ${context.lookupKey}`
+      `[ModelManager] Initializing ${repos.length} dynamic repos for datasource: ${dsName}`
     )
 
     for (const repo of repos) {

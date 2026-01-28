@@ -5,10 +5,13 @@
  * Flows from request → service → repo → datasource.
  *
  * The meaning of lookupKey is application-specific:
- * - In veysur: lookupKey = projectId (multi-project isolation)
- * - Other apps: lookupKey could be tenantId, customerId, orgId, etc.
+ * - lookupKey could be tenantId, customerId, orgId, etc.
  */
-export interface DataSourceContextOptions {
+
+/**
+ * Context options for a specific datasource
+ */
+export interface DataSourceContextEntry {
   /**
    * Generic key used to look up datasource connection details.
    * Application-specific meaning (projectId, tenantId, etc.)
@@ -28,46 +31,78 @@ export interface DataSourceContextOptions {
   useDefault?: boolean
 }
 
+/**
+ * Map of datasource names to their context options.
+ * Key is datasource name (e.g., 'project', 'tenant')
+ * Use '*' as wildcard to apply to all datasources
+ */
+export type DataSourceContextOptions = Record<string, DataSourceContextEntry>
+
 export class DataSourceContext {
-  public readonly lookupKey?: string
-  public readonly dataSourceKey?: string
-  public readonly useDefault: boolean
+  private readonly dataSourceContexts: Map<string, DataSourceContextEntry>
 
   constructor(options: DataSourceContextOptions = {}) {
-    this.lookupKey = options.lookupKey
-    this.dataSourceKey = options.dataSourceKey
-    this.useDefault = options.useDefault ?? false
+    this.dataSourceContexts = new Map(Object.entries(options))
   }
 
   /**
    * Check if this context requires dynamic datasource resolution
    */
   isDynamic(): boolean {
-    return !!this.lookupKey || !!this.dataSourceKey
+    return this.dataSourceContexts.size > 0
+  }
+
+  /**
+   * Get context for a specific datasource name
+   * Returns the specific context or falls back to wildcard ('*')
+   */
+  getForDataSource(dataSourceName: string): DataSourceContextEntry | undefined {
+    // Check specific datasource, then wildcard
+    return (
+      this.dataSourceContexts.get(dataSourceName) ||
+      this.dataSourceContexts.get('*')
+    )
   }
 
   /**
    * Create a new context with merged options
    */
   merge(options: DataSourceContextOptions): DataSourceContext {
-    return new DataSourceContext({
-      lookupKey: options.lookupKey ?? this.lookupKey,
-      dataSourceKey: options.dataSourceKey ?? this.dataSourceKey,
-      useDefault: options.useDefault ?? this.useDefault,
-    })
+    const merged = {
+      ...Object.fromEntries(this.dataSourceContexts),
+      ...options,
+    }
+    return new DataSourceContext(merged)
   }
 
   /**
    * Create context from a lookup key (convenience method)
+   * Uses wildcard to apply to all datasources
    */
   static fromLookupKey(key: string): DataSourceContext {
-    return new DataSourceContext({ lookupKey: key })
+    return new DataSourceContext({ '*': { lookupKey: key } })
   }
 
   /**
    * Create context from a datasource key (convenience method)
+   * Uses wildcard to apply to all datasources
    */
   static fromDataSourceKey(key: string): DataSourceContext {
-    return new DataSourceContext({ dataSourceKey: key })
+    return new DataSourceContext({ '*': { dataSourceKey: key } })
+  }
+
+  /**
+   * Create multi-datasource context (convenience method)
+   *
+   * @example
+   * const context = DataSourceContext.fromDataSources({
+   *   project: { lookupKey: projectId },
+   *   tenant: { lookupKey: tenantId },
+   * })
+   */
+  static fromDataSources(
+    dataSources: DataSourceContextOptions
+  ): DataSourceContext {
+    return new DataSourceContext(dataSources)
   }
 }
