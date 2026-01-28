@@ -39,17 +39,17 @@ export interface DataSourceContextEntry {
 export type DataSourceContextOptions = Record<string, DataSourceContextEntry>
 
 export class DataSourceContext {
-  private readonly dataSourceContexts: Map<string, DataSourceContextEntry>
+  private readonly dataSourceContexts: DataSourceContextOptions
 
   constructor(options: DataSourceContextOptions = {}) {
-    this.dataSourceContexts = new Map(Object.entries(options))
+    this.dataSourceContexts = { ...options }
   }
 
   /**
    * Check if this context requires dynamic datasource resolution
    */
   isDynamic(): boolean {
-    return this.dataSourceContexts.size > 0
+    return Object.keys(this.dataSourceContexts).length > 0
   }
 
   /**
@@ -57,10 +57,8 @@ export class DataSourceContext {
    * Returns the specific context or falls back to wildcard ('*')
    */
   getForDataSource(dataSourceName: string): DataSourceContextEntry | undefined {
-    // Check specific datasource, then wildcard
     return (
-      this.dataSourceContexts.get(dataSourceName) ||
-      this.dataSourceContexts.get('*')
+      this.dataSourceContexts[dataSourceName] || this.dataSourceContexts['*']
     )
   }
 
@@ -68,11 +66,7 @@ export class DataSourceContext {
    * Create a new context with merged options
    */
   merge(options: DataSourceContextOptions): DataSourceContext {
-    const merged = {
-      ...Object.fromEntries(this.dataSourceContexts),
-      ...options,
-    }
-    return new DataSourceContext(merged)
+    return new DataSourceContext({ ...this.dataSourceContexts, ...options })
   }
 
   /**
