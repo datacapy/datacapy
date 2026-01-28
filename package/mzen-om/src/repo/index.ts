@@ -527,41 +527,70 @@ export class Repo<T> {
 
   async groupCount(
     groupFields: string[],
-    query?: QuerySelection
+    query?: QuerySelection,
+    options?: RepoQueryOptions
   ): Promise<Array<{ _id: any; count: number }>> {
     this.initSchema()
 
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
 
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
+
     query = query ? query : {}
-    return this.dataSource.groupCount(
+    const result = await dataSource.groupCount(
       this.config.collectionName,
       groupFields,
       query
     )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
+    }
+
+    return result
   }
 
-  async findGroup(groupFields: string[], query?: QuerySelection) {
+  async findGroup(
+    groupFields: string[],
+    query?: QuerySelection,
+    options?: RepoQueryOptions
+  ) {
     this.initSchema()
 
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
 
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
+
     query = query ? query : {}
-    return this.dataSource.findGroup(
+    const result = await dataSource.findGroup(
       this.config.collectionName,
       groupFields,
       query
     )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+      }
+    }
+
+    return result
   }
 
   private normalizeFindOptions(options: RepoQueryOptions) {

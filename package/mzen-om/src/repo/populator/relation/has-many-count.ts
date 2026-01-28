@@ -14,7 +14,7 @@ export class RelationHasManyCount extends RelationAbstract {
 
     config.query[key] = { $in: relationIds }
 
-    var groupCounts = await relationRepo.groupCount([key], config.query)
+    var groupCounts = await relationRepo.groupCount([key], config.query, config)
 
     var values: {
       [key: string]: number
