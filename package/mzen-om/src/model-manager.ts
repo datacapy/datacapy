@@ -1,15 +1,12 @@
 import {
-  DataSourceMongodb,
-  DataSourceMock,
   DataSourceInterface,
-  DataSourceMysql,
-  DataSourceDynamic,
   DataSourceRegistry,
   DataSourceRegistryConfig,
   DataSourceLookup,
   DataSourceContext,
   DataSourceContextEntry,
 } from 'data-source'
+import DataSourceManager from 'data-source-manager'
 import Repo from 'repo'
 import RepoPopulator from 'repo/populator'
 import Service from 'service'
@@ -21,6 +18,7 @@ export interface ModelManagerConfigDataSource {
   name?: string
   type?: 'mongodb' | 'mock' | 'mysql' | 'dynamic' | string
   config?: { [key: string]: any }
+  data?: { [key: string]: any }
 }
 
 export interface ModelManagerConfig {
@@ -51,7 +49,7 @@ export class ModelManager {
     [key: string]: Function[]
   }
   config: ModelManagerConfig
-  dataSources: { [key: string]: DataSourceInterface }
+  dataSourceManager: DataSourceManager
   constructors: { [key: string]: Function }
   schemas: { [key: string]: Schema }
   repos: { [key: string]: Repo<any> }
@@ -59,10 +57,22 @@ export class ModelManager {
   repoPopulator?: RepoPopulator
   logger: Logger
 
-  // Dynamic datasource support
-  dataSourceRegistry?: DataSourceRegistry
-  dataSourceLookup?: DataSourceLookup
-  dynamicRepos: string[] // Track repos with dynamic datasources
+  // Delegation getters for backward compatibility
+  get dataSources() {
+    return this.dataSourceManager.dataSources
+  }
+  set dataSources(v) {
+    this.dataSourceManager.dataSources = v
+  }
+  get dataSourceRegistry() {
+    return this.dataSourceManager.dataSourceRegistry
+  }
+  get dataSourceLookup() {
+    return this.dataSourceManager.dataSourceLookup
+  }
+  get dynamicRepos() {
+    return this.dataSourceManager.dynamicRepos
+  }
 
   constructor(options?: ModelManagerConfig) {
     this.config = options ? options : {}
@@ -78,15 +88,19 @@ export class ModelManager {
 
     this.logger = console
 
+    this.dataSourceManager = new DataSourceManager(
+      this.logger,
+      this.config.dataSourceRegistryConfig,
+      this.config.enableDynamicDataSources
+    )
+
     this.initialised = false
     this.initialisers = {}
     this.shutdownHandlers = {}
-    this.dataSources = {}
     this.constructors = {}
     this.schemas = {}
     this.repos = {}
     this.services = {}
-    this.dynamicRepos = []
 
     if (this.config.constructors) {
       this.addConstructors(this.config.constructors)
@@ -104,6 +118,7 @@ export class ModelManager {
 
   setLogger(logger) {
     this.logger = logger
+    this.dataSourceManager.logger = logger
   }
 
   addInitialiser(initialiser, stage?: string) {
@@ -155,60 +170,12 @@ export class ModelManager {
     }
   }
 
-  async initDataSourceFromConfig(options) {
-    switch (options.type) {
-      case 'mysql':
-        return await this.initDataSource(
-          options.name,
-          new DataSourceMysql(options.config)
-        )
-        break
-      case 'mongodb':
-        return await this.initDataSource(
-          options.name,
-          new DataSourceMongodb(options.config)
-        )
-        break
-      case 'mock':
-        return await this.initDataSource(
-          options.name,
-          new DataSourceMock(options.data ? options.data : {})
-        )
-        break
-      case 'dynamic':
-        // Create placeholder datasource - doesn't connect
-        const ds = new DataSourceDynamic(options.config || {})
-        this.addDataSource(options.name, ds)
-        this.logger.log(
-          `[ModelManager] Created DynamicDataSource placeholder: ${options.name}`
-        )
-        return ds
-        break
-    }
+  async initDataSourceFromConfig(options: ModelManagerConfigDataSource) {
+    return this.dataSourceManager.initDataSourceFromConfig(options)
   }
 
   async initDataSource(name: string, dataSource) {
-    const waitMs = 500
-    const maxAttempts = 3
-    let attempt = 0
-    const attemptConnect = async () => {
-      attempt++
-      try {
-        await dataSource.connect()
-        this.addDataSource(name, dataSource)
-      } catch (error) {
-        if (attempt < maxAttempts) {
-          await new Promise((resolve) =>
-            setTimeout(() => resolve(attemptConnect()), waitMs)
-          )
-        } else {
-          throw error
-        }
-      }
-    }
-    await attemptConnect()
-
-    return dataSource
+    return this.dataSourceManager.initDataSource(name, dataSource)
   }
 
   getRepoPopulator(): RepoPopulator {
@@ -221,8 +188,8 @@ export class ModelManager {
     this.repoPopulator = repoPopulator
   }
 
-  getDataSource(name) {
-    return this.dataSources[name]
+  getDataSource(name: string) {
+    return this.dataSourceManager.getDataSource(name)
   }
 
   /**
@@ -230,74 +197,18 @@ export class ModelManager {
    * Supports both static and dynamic datasource modes.
    *
    * @param key - Datasource name or lookup key
-   * @param context - Optional context for dynamic resolution
+   * @param entry - Optional context entry for dynamic resolution
    * @returns Datasource instance
    */
   async getDataSourceDynamic(
     key: string,
     entry?: DataSourceContextEntry
   ): Promise<DataSourceInterface> {
-    // Priority 1: Explicit dataSourceKey in entry
-    if (entry?.dataSourceKey) {
-      const ds = this.dataSources[entry.dataSourceKey]
-      if (ds) {
-        return ds
-      }
-      if (!entry.useDefault) {
-        throw new Error(`DataSource not found: ${entry.dataSourceKey}`)
-      }
-    }
-
-    // Priority 2: Dynamic lookup via lookupKey
-    if (entry?.lookupKey && this.dataSourceRegistry && this.dataSourceLookup) {
-      try {
-        const registryKey = `${key}:${entry.lookupKey}`
-        const dataSource = await this.dataSourceRegistry.getOrCreate(
-          registryKey,
-          async () => {
-            const details = await this.dataSourceLookup!.lookup(
-              key,
-              entry.lookupKey!
-            )
-            if (!details) {
-              throw new Error(
-                `No datasource configuration found for datasource "${key}" with key: ${entry.lookupKey}`
-              )
-            }
-            return await this.dataSourceRegistry!.createDataSourceFromDetails(
-              details
-            )
-          }
-        )
-        return dataSource
-      } catch (error) {
-        if (!entry.useDefault) {
-          throw error
-        }
-        this.logger.warn(
-          `Failed to get dynamic datasource for "${key}" with key ${entry.lookupKey}, falling back to default`,
-          error
-        )
-      }
-    }
-
-    // Priority 3: Static datasource by key
-    const staticDs = this.dataSources[key]
-    if (staticDs) {
-      return staticDs
-    }
-
-    // Priority 4: Default datasource
-    const defaultKey = Object.keys(this.dataSources)[0]
-    if (defaultKey && (entry?.useDefault || !entry)) {
-      return this.dataSources[defaultKey]
-    }
-
-    throw new Error(`No datasource available for key: ${key}`)
+    return this.dataSourceManager.getDataSourceDynamic(key, entry)
   }
 
-  addDataSource(name, dataSource: any) {
-    this.dataSources[name] = dataSource
+  addDataSource(name: string, dataSource: DataSourceInterface) {
+    this.dataSourceManager.addDataSource(name, dataSource)
   }
 
   /**
@@ -306,7 +217,7 @@ export class ModelManager {
    * @param lookup - DataSourceLookup implementation
    */
   setDataSourceLookup(lookup: DataSourceLookup) {
-    this.dataSourceLookup = lookup
+    this.dataSourceManager.setDataSourceLookup(lookup)
   }
 
   addConstructor(value) {
@@ -370,11 +281,7 @@ export class ModelManager {
   }
 
   async loadDataSources() {
-    let promises: Promise<DataSourceInterface>[] = []
-    this.config.dataSources?.forEach((dataSource) => {
-      promises.push(this.initDataSourceFromConfig(dataSource))
-    })
-    await Promise.all(promises)
+    await this.dataSourceManager.loadDataSources(this.config.dataSources ?? [])
     return this
   }
 
@@ -415,7 +322,7 @@ export class ModelManager {
 
         // Skip initialization for dynamic datasources
         if (repo.dataSource.isDynamic?.()) {
-          this.dynamicRepos.push(repo.getName())
+          this.dataSourceManager.trackDynamicRepo(repo.getName())
           this.logger.log(
             `[ModelManager] Skipped initialization for dynamic repo: ${repo.getName()}`
           )
@@ -457,35 +364,7 @@ export class ModelManager {
     repoName: string,
     context: DataSourceContext
   ): Promise<void> {
-    const repo = this.repos[repoName]
-    if (!repo) {
-      throw new Error(`Repo not found: ${repoName}`)
-    }
-
-    // Resolve entry for this repo's datasource
-    const entry = context.getForDataSource(repo.config.dataSource)
-
-    // Get the actual datasource using resolved entry
-    const actualDS = await this.getDataSourceDynamic(
-      repo.config.dataSource,
-      entry
-    )
-
-    // Create indexes on the resolved datasource
-    if (repo.config.indexes) {
-      for (let indexName in repo.config.indexes) {
-        const index = repo.config.indexes[indexName]
-        await actualDS.createIndex(
-          repo.config.collectionName,
-          index.spec,
-          index.options
-        )
-      }
-    }
-
-    this.logger.log(
-      `[ModelManager] Initialized dynamic repo: ${repoName} for datasource: ${repo.config.dataSource}`
-    )
+    return this.dataSourceManager.initDynamicRepo(repoName, context, this.repos)
   }
 
   /**
@@ -498,20 +377,10 @@ export class ModelManager {
     dsName: string,
     context: DataSourceContext
   ): Promise<void> {
-    const repos = Object.values(this.repos).filter(
-      (r) => r.config.dataSource === dsName && r.dataSource?.isDynamic?.()
-    )
-
-    this.logger.log(
-      `[ModelManager] Initializing ${repos.length} dynamic repos for datasource: ${dsName}`
-    )
-
-    for (const repo of repos) {
-      await this.initDynamicRepo(repo.getName(), context)
-    }
-
-    this.logger.log(
-      `[ModelManager] Initialized ${repos.length} dynamic repos for datasource: ${dsName}`
+    return this.dataSourceManager.initDynamicReposForDataSource(
+      dsName,
+      context,
+      this.repos
     )
   }
 
@@ -520,15 +389,6 @@ export class ModelManager {
       await this.runInitialisers()
       await this.runInitialisers('00-init')
       await this.loadDataSources()
-
-      // Initialize dynamic datasource registry if enabled
-      if (this.config.enableDynamicDataSources) {
-        this.dataSourceRegistry = new DataSourceRegistry({
-          ...this.config.dataSourceRegistryConfig,
-          logger: this.logger,
-        })
-        this.logger.log('[ModelManager] Dynamic datasources enabled')
-      }
 
       await this.initSchemas()
       await this.initRepos()
@@ -544,17 +404,8 @@ export class ModelManager {
     // Should down should be in reverse order of init
     await this.runShutdownHandlers('99-final')
 
-    // Close dynamic datasource registry
-    if (this.dataSourceRegistry) {
-      await this.dataSourceRegistry.close()
-    }
-
-    // Close static datasources
-    let promises: Promise<void>[] = []
-    Object.values(this.dataSources).forEach(async (dataSource) => {
-      promises.push(dataSource.close())
-    })
-    await Promise.all(promises)
+    await this.dataSourceManager.closeRegistry()
+    await this.dataSourceManager.closeAll()
 
     await this.runShutdownHandlers('00-init')
     await this.runShutdownHandlers()
