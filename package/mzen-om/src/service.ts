@@ -14,6 +14,7 @@ export class Service {
   repos: { [key: string]: Repo<any> }
   services: { [key: string]: Service }
   logger: Logger
+  modelManager?: any // ModelManager instance for dynamic datasource initialization
 
   constructor(options?: ServiceConfig) {
     this.config = options ? options : {}
@@ -34,6 +35,10 @@ export class Service {
 
   setLogger(logger) {
     this.logger = logger
+  }
+
+  setModelManager(modelManager: any) {
+    this.modelManager = modelManager
   }
 
   init() {

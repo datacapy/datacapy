@@ -58,6 +58,12 @@ export class DataSourceMongodb implements DataSourceInterface {
     return this
   }
 
+  async createDatabase(databaseName: string, options?: any): Promise<void> {
+    // MongoDB creates databases implicitly when you write to them
+    // No explicit database creation needed
+    return Promise.resolve()
+  }
+
   async find<Type>(
     collectionName: string,
     query?: QuerySelection,

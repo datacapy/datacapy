@@ -84,7 +84,10 @@ export interface QueryPersistResultInsertOne extends QueryPersistResult {
 }
 
 export interface DataSourceInterface {
+  isDynamic?(): boolean
   connect(): Promise<DataSourceInterface>
+
+  createDatabase?(databaseName: string, options?: any): Promise<void>
 
   find(
     collectionName: string,

@@ -10,6 +10,7 @@ import {
   QueryPersistResultInsertOne,
   IndexSpec,
 } from 'data-source/interface'
+import { DataSourceContext } from 'data-source/context'
 import Schema, {
   SchemaValidationResult,
   SchemaSpec,
@@ -84,6 +85,8 @@ export interface RepoQueryOptions extends QuerySelectionOptions {
   // mzen query validator can not handle complex queries
   // - some times the only option is to skip query validation
   skipValidation?: boolean
+  // Context for dynamic datasource resolution
+  context?: DataSourceContext
   [key: string]: any // allow implementation specific props
 }
 
@@ -100,6 +103,7 @@ export class Repo<T> {
   services: Record<string, Service>
   relationPaths: Array<string>
   logger: Logger
+  modelManager?: any // ModelManager instance for dynamic datasource resolution
 
   constructor(options?: RepoConfig) {
     this.initialised = false
@@ -231,6 +235,10 @@ export class Repo<T> {
     this.populator = populator
   }
 
+  setModelManager(modelManager: any) {
+    this.modelManager = modelManager
+  }
+
   addConstructor<T extends Function>(value: T) {
     this.constructors[value.name] = value
   }
@@ -301,6 +309,49 @@ export class Repo<T> {
     }
   }
 
+  /**
+   * Get datasource with dynamic resolution support.
+   * Resolves datasource based on config and optional context.
+   *
+   * @param context - Optional context for dynamic resolution
+   * @returns DataSource instance
+   */
+  async getDataSource(
+    context?: DataSourceContext
+  ): Promise<DataSourceInterface> {
+    const isDynamic = this.dataSource?.isDynamic?.()
+
+    // Static route: not a dynamic datasource
+    if (!isDynamic) {
+      if (this.dataSource) {
+        return this.dataSource
+      }
+      throw new Error(
+        `No static datasource configured for repo: ${this.getName()}`
+      )
+    }
+
+    // Dynamic route: datasource is dynamic
+    if (!this.modelManager) {
+      throw new Error(
+        `ModelManager not set for dynamic datasource resolution in repo: ${this.getName()}`
+      )
+    }
+
+    if (!context?.lookupKey && !context?.dataSourceKey) {
+      throw new Error(
+        `No datasource context provided for dynamic repo: ${this.getName()}. ` +
+          `Provide context with lookupKey or dataSourceKey in query options.`
+      )
+    }
+
+    // Use ModelManager's dynamic resolution with the named datasource
+    return await this.modelManager.getDataSourceDynamic(
+      this.config.dataSource, // Pass the datasource name (e.g., 'project')
+      context
+    )
+  }
+
   async reset() {
     // This method drops the collection and re-creates it with indexes if any are defined
     await this.drop()
@@ -364,12 +415,12 @@ export class Repo<T> {
     if (this.schema == undefined) {
       throw new Error('No data schema initialised')
     }
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
 
     const optionsAll = this.normalizeFindOptions(options ? options : {})
     const optionsPropagate = this.getPropagateOptions(optionsAll)
@@ -379,11 +430,17 @@ export class Repo<T> {
     let errors = await this.validateQuery(query, options)
     if (errors) throw new RepoErrorValidation(errors)
 
-    var docs = await this.dataSource.find(
+    var docs = await dataSource.find(
       this.config.collectionName,
       query,
       optionsQuery
     )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
     return this.findPopulate(docs, optionsPropagate)
   }
 
@@ -393,12 +450,12 @@ export class Repo<T> {
   ): Promise<T> {
     this.initSchema()
 
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
 
     const optionsAll = this.normalizeFindOptions(options ? options : {})
     const optionsPropagate = this.getPropagateOptions(optionsAll)
@@ -408,11 +465,17 @@ export class Repo<T> {
     let errors = await this.validateQuery(query, options)
     if (errors) throw new RepoErrorValidation(errors)
 
-    var docs = await this.dataSource.findOne(
+    var docs = await dataSource.findOne(
       this.config.collectionName,
       query,
       optionsQuery
     )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
     return this.findPopulate(docs, optionsPropagate)
   }
 
@@ -422,18 +485,29 @@ export class Repo<T> {
   ): Promise<number> {
     this.initSchema()
 
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
 
     query = query ? query : {}
     let errors = await this.validateQuery(query, options)
     if (errors) throw new RepoErrorValidation(errors)
 
-    return this.dataSource.count(this.config.collectionName, query, options)
+    const result = await dataSource.count(
+      this.config.collectionName,
+      query,
+      options
+    )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
+    return result
   }
 
   async groupCount(
@@ -534,12 +608,12 @@ export class Repo<T> {
     if (this.schema == undefined) {
       throw new Error('No schema provided')
     }
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
 
     docs = Array.prototype.slice.call(docs) // We use Array.slice() to make a copy of the original args
     docs = this.stripTransients(docs)
@@ -553,7 +627,18 @@ export class Repo<T> {
       throw new RepoErrorValidation(validateResult.errors)
     }
 
-    return this.dataSource.insertMany(this.config.collectionName, docs, options)
+    const result = await dataSource.insertMany(
+      this.config.collectionName,
+      docs,
+      options
+    )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
+    return result
   }
 
   async insertOne(
@@ -565,12 +650,12 @@ export class Repo<T> {
     if (this.schema == undefined) {
       throw new Error('No schema provided')
     }
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
 
     doc = clone(doc) // We use Array.slice() to make a copy of the original args
     doc = this.stripTransients(doc)
@@ -584,7 +669,18 @@ export class Repo<T> {
       throw new RepoErrorValidation(validateResult.errors)
     }
 
-    return this.dataSource.insertOne(this.config.collectionName, doc, options)
+    const result = await dataSource.insertOne(
+      this.config.collectionName,
+      doc,
+      options
+    )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
+    return result
   }
 
   async _updatePrepare(
@@ -655,14 +751,27 @@ export class Repo<T> {
     update: QueryUpdate,
     options?
   ): Promise<QueryPersistResult> {
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
+
     const { f, u, o } = await this._updatePrepare(filter, update, options)
-    return this.dataSource.updateMany(this.config.collectionName, f, u, o)
+    const result = await dataSource.updateMany(
+      this.config.collectionName,
+      f,
+      u,
+      o
+    )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
+    return result
   }
 
   async updateOne(
@@ -670,14 +779,27 @@ export class Repo<T> {
     update: QueryUpdate,
     options?
   ): Promise<QueryPersistResult> {
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
+
     const { f, u, o } = await this._updatePrepare(filter, update, options)
-    return this.dataSource.updateOne(this.config.collectionName, f, u, o)
+    const result = await dataSource.updateOne(
+      this.config.collectionName,
+      f,
+      u,
+      o
+    )
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
+    return result
   }
 
   async _deletePrepare(
@@ -707,28 +829,44 @@ export class Repo<T> {
     filter: QuerySelection,
     options?
   ): Promise<QueryPersistResult> {
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
+
     const { f, o } = await this._deletePrepare(filter, options)
-    return this.dataSource.deleteMany(this.config.collectionName, f, o)
+    const result = await dataSource.deleteMany(this.config.collectionName, f, o)
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
+    return result
   }
 
   async deleteOne(
     filter: QuerySelection,
     options?
   ): Promise<QueryPersistResult> {
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
+
     const { f, o } = await this._deletePrepare(filter, options)
-    return this.dataSource.deleteOne(this.config.collectionName, f, o)
+    const result = await dataSource.deleteOne(this.config.collectionName, f, o)
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.() && options?.context?.lookupKey) {
+      this.modelManager?.dataSourceRegistry?.release(options.context.lookupKey)
+    }
+
+    return result
   }
 
   async validateQuery(query?: QuerySelection, options?: RepoQueryOptions) {

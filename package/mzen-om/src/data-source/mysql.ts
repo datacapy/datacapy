@@ -45,6 +45,25 @@ export class DataSourceMysql implements DataSourceInterface {
     return this
   }
 
+  async createDatabase(
+    databaseName: string,
+    options?: {
+      charset?: string
+      collate?: string
+      ifNotExists?: boolean
+    }
+  ): Promise<void> {
+    const charset = options?.charset || 'utf8mb4'
+    const collate = options?.collate || 'utf8mb4_unicode_ci'
+    const ifNotExists = options?.ifNotExists !== false // default true
+
+    const sql = `CREATE DATABASE ${ifNotExists ? 'IF NOT EXISTS ' : ''}\`${databaseName}\`
+      CHARACTER SET ${charset}
+      COLLATE ${collate}`
+
+    await this.query(sql)
+  }
+
   async find<Type>(
     tableName: string,
     query?: QuerySelection,
