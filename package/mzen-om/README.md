@@ -1,125 +1,220 @@
-# mzen
-## NodeJS application model
+# mzen-om
 
-NodeJS Application Model 
+NodeJS Object Document Mapping (ODM) framework for building robust applications with MongoDB and MySQL support.
 
-- Model elements are defined by Schemas, Services and Repositories
-  - Schemas define data structures and validation rules
-  - Repositories are responsible for persisting data
-    - Data saved and retrieved from the database via repositories
-    - Each repository has a schema which defines it data structure
-    - Repositories can define relations between each other (one-many, many-to-many etc)
-    - Services use repositories to save and load entities
-  - Services handle interaction between (checkout, authenticator, report-generator, email)
-- Schema
-  - Validation
-  - Type-casting
-- Object Document Mapping (ODM)
-  - Populate documents into constructor instances
-  - Populate document relations
-- Data sources
-  - Currently supports MongoDB and MySQL
-  - Dynamic datasource resolution with DataSourceContext
-  - Multi-datasource support for complex architectures
+## Key Features
 
-- Document relation population
-  - Common relations supported
-    - hasOne
-    - hasMany
-    - hasManyCount (count of the number of matching related documents)
-    - belongsToOne
-    - belongsToMany (many-to-many using an embedded reference array)
-    - embeddedHasOne (an embedded relation joins on data within the same document)
-    - embeddedHasMany 
-    - embeddedBelongsToOne
-    - embeddedBelongsToMany
-  - Basic query optimisation
-  - Relations may be configured to auto-populate allowing a complex reference tree to be loaded with minimum code
-    - Population of relations (and nested relations) may be enabled/disabled in query options
-  - Relations may be auto-populated from initial query or manually populated on to an existing result set
+- **Model Elements** - Define your application with Schemas, Repositories, and Services
+- **Relations** - Comprehensive relation system (hasOne, hasMany, belongsTo, etc.)
+- **Validation** - Built-in and custom validators with type-casting
+- **Multi-DataSource Support** - Dynamic datasource routing for multi-tenant architectures
+- **Composite Keys** - Advanced multi-field relation matching
+- **Query Optimization** - Automatic query optimization for efficient database operations
 
-- Data validation and type-casting
-  - Define document structure as a set of fields and embedded documents
-  - Built-in validators
-    - required
-      - field must be present
-    - notNull
-    - notEmpty
-    - length (min/max)
-    - regex
-    - equality (must be equal to another field in the same object)
-    - email
-  - Supports custom validators
-  - Default values
-    - Default value is used when validating, inserting or updating a field with an undefined or null value
-  - Type-casting
-    - When field type is configured, value is cast to the required type on validation, insert or update
-    - Cast failure produces a validation error
-      - e.g. casting the string 'three' to type number would produce NaN resulting in a validation error
-    - Supports ObjectID type (BSON/MongoDB)
+## Quick Start
 
-## Dynamic DataSource Resolution
+### Define a Schema
 
-### DataSourceContext API
+```typescript
+import { Schema } from 'mzen-om'
 
-The `DataSourceContext` class enables dynamic datasource routing at runtime. This is useful for multi-tenant architectures where different entities route to different databases.
+const userSchema = new Schema({
+  name: { type: String, required: true },
+  email: { type: String, validator: 'email' },
+  age: { type: Number, min: 0 }
+})
+```
 
-#### Basic Usage
+### Create a Repository
+
+```typescript
+import { Repo } from 'mzen-om'
+
+export class RepoUser extends Repo<User> {
+  constructor() {
+    super({
+      name: 'user',
+      schema: userSchema,
+      relations: {
+        posts: {
+          type: 'hasMany',
+          repo: 'post',
+          pkey: '_id',
+          key: 'authorId'
+        }
+      }
+    })
+  }
+}
+```
+
+### Use in Services
+
+```typescript
+const repo = new RepoUser()
+
+// Find with relations
+const users = await repo.find({}, {
+  populate: {
+    posts: true
+  }
+})
+
+// Insert
+await repo.insert({
+  name: 'Alice',
+  email: 'alice@example.com',
+  age: 30
+})
+```
+
+## Core Concepts
+
+### Model Elements
+
+- **Schemas** - Define data structure and validation rules
+- **Repositories** - Handle data persistence and queries
+- **Services** - Implement business logic and coordinate repositories
+
+### Relations
+
+Support for common relation types:
+- `hasOne` / `hasMany` - Parent has related children
+- `belongsToOne` / `belongsToMany` - Child belongs to parent(s)
+- `hasManyCount` - Count of related documents
+- Embedded relations for nested data structures
+
+See [Relations Documentation](docs/relations.md) for details.
+
+### Validation
+
+Built-in validators:
+- `required`, `notNull`, `notEmpty`
+- `length` (min/max for strings and arrays)
+- `regex` pattern matching
+- `email` format validation
+- Custom validators
+
+See [Validation Documentation](docs/validation.md) for details.
+
+### Dynamic DataSource Resolution
+
+Multi-tenant support with runtime datasource routing:
 
 ```typescript
 import { DataSourceContext } from 'mzen-om'
 
-// Create context with explicit datasource names
+// Create context for routing
 const context = DataSourceContext.fromDataSources({
   project: { lookupKey: projectId }
 })
 
-// Use context in repository operations
+// Use context in queries
 const surveys = await repo.find(query, { context })
 ```
 
-#### Multi-DataSource Contexts
+See [DataSource Context Documentation](docs/datasource-context.md) for details.
 
-For complex scenarios with multiple datasources:
+## Documentation
+
+### Core Documentation
+- [Architecture](docs/architecture.md) - System design and components
+- [Relations](docs/relations.md) - Relation system overview
+- [Validation](docs/validation.md) - Data validation and type-casting
+
+### Advanced Features
+- [Composite Keys](docs/composite-keys.md) - Multi-field relation matching
+- [DataSource Context](docs/datasource-context.md) - Multi-datasource support
+- [Performance](docs/performance.md) - Optimization strategies
+
+### Development
+- [Testing](docs/testing.md) - Testing guide and patterns
+- [Debugging](docs/debugging.md) - Troubleshooting guide
+
+## Multi-DataSource Configuration
+
+### Register Lookup Implementation
+
+```typescript
+import { DataSourceLookup } from 'mzen-om'
+
+const projectLookup: DataSourceLookup = {
+  async lookup(dataSourceName, lookupKey) {
+    // Fetch project configuration
+    const project = await db.projects.findOne({ _id: lookupKey })
+
+    return {
+      type: 'mongodb',
+      config: {
+        uri: project.databaseUri,
+        database: project.databaseName
+      }
+    }
+  }
+}
+
+modelManager.setDataSourceLookup('project', projectLookup)
+```
+
+### Configure Repositories
+
+```typescript
+export class RepoSurvey extends Repo<Survey> {
+  constructor() {
+    super({
+      name: 'survey',
+      dataSource: 'project', // Dynamic routing
+    })
+  }
+}
+```
+
+### Use in Services
+
+```typescript
+async getAll({ projectId }) {
+  const context = DataSourceContext.fromDataSources({
+    project: { lookupKey: projectId }
+  })
+
+  return await this.getRepo('survey').find({}, { context })
+}
+```
+
+## Examples
+
+### Cross-DataSource Relations
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
   project: { lookupKey: projectId },
-  tenant: { lookupKey: tenantId },
+  tenant: { lookupKey: tenantId }
 })
 
-// Each repo uses its configured datasource name
 await repoSurvey.findOne(surveyId, {
   context,
   populate: {
-    tenant: true // Uses 'tenant' context automatically
+    tenant: true  // Automatically uses 'tenant' context
   }
 })
 ```
 
-#### Configuration
-
-Register a lookup implementation for each datasource:
+### Composite Key Relations
 
 ```typescript
-// Configure lookup for 'project' datasource
-modelManager.setDataSourceLookup('project', projectLookup)
-
-// Configure lookup for 'tenant' datasource (if needed)
-modelManager.setDataSourceLookup('tenant', tenantLookup)
-```
-
-#### DataSourceLookup Interface
-
-Implement this interface to provide datasource details:
-
-```typescript
-interface DataSourceLookup {
-  lookup(
-    dataSourceName: string,
-    lookupKey: string
-  ): Promise<DataSourceDetails | undefined>
+relations: {
+  participant: {
+    type: 'belongsToOne',
+    repo: 'surveyParticipant',
+    key: 'participantId',
+    keys: {
+      surveyId: 'surveyId',
+      projectId: 'projectId'
+    }
+  }
 }
 ```
 
-See application documentation for detailed usage examples.
+## License
+
+[Add your license here]
