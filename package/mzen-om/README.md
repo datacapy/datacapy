@@ -18,7 +18,9 @@ NodeJS Application Model
   - Populate documents into constructor instances
   - Populate document relations
 - Data sources
-  - Currently only supports MongoDB
+  - Currently supports MongoDB and MySQL
+  - Dynamic datasource resolution with DataSourceContext
+  - Multi-datasource support for complex architectures
 
 - Document relation population
   - Common relations supported
@@ -55,3 +57,69 @@ NodeJS Application Model
     - Cast failure produces a validation error
       - e.g. casting the string 'three' to type number would produce NaN resulting in a validation error
     - Supports ObjectID type (BSON/MongoDB)
+
+## Dynamic DataSource Resolution
+
+### DataSourceContext API
+
+The `DataSourceContext` class enables dynamic datasource routing at runtime. This is useful for multi-tenant architectures where different entities route to different databases.
+
+#### Basic Usage
+
+```typescript
+import { DataSourceContext } from 'mzen-om'
+
+// Create context with explicit datasource names
+const context = DataSourceContext.fromDataSources({
+  project: { lookupKey: projectId }
+})
+
+// Use context in repository operations
+const surveys = await repo.find(query, { context })
+```
+
+#### Multi-DataSource Contexts
+
+For complex scenarios with multiple datasources:
+
+```typescript
+const context = DataSourceContext.fromDataSources({
+  project: { lookupKey: projectId },
+  tenant: { lookupKey: tenantId },
+})
+
+// Each repo uses its configured datasource name
+await repoSurvey.findOne(surveyId, {
+  context,
+  populate: {
+    tenant: true // Uses 'tenant' context automatically
+  }
+})
+```
+
+#### Configuration
+
+Register a lookup implementation for each datasource:
+
+```typescript
+// Configure lookup for 'project' datasource
+modelManager.setDataSourceLookup('project', projectLookup)
+
+// Configure lookup for 'tenant' datasource (if needed)
+modelManager.setDataSourceLookup('tenant', tenantLookup)
+```
+
+#### DataSourceLookup Interface
+
+Implement this interface to provide datasource details:
+
+```typescript
+interface DataSourceLookup {
+  lookup(
+    dataSourceName: string,
+    lookupKey: string
+  ): Promise<DataSourceDetails | undefined>
+}
+```
+
+See application documentation for detailed usage examples.

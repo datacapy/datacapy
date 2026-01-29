@@ -32,7 +32,7 @@ type RepoLike = {
 export class DataSourceManager {
   dataSources: { [key: string]: DataSourceInterface }
   dataSourceRegistry?: DataSourceRegistry
-  dataSourceLookup?: DataSourceLookup
+  dataSourceLookups: Map<string, DataSourceLookup>
   dynamicRepos: string[] // Track repos with dynamic datasources
   logger: Logger
 
@@ -42,6 +42,7 @@ export class DataSourceManager {
     enableDynamic?: boolean
   ) {
     this.dataSources = {}
+    this.dataSourceLookups = new Map()
     this.dynamicRepos = []
     this.logger = logger
 
@@ -151,16 +152,20 @@ export class DataSourceManager {
     }
 
     // Priority 2: Dynamic lookup via lookupKey
-    if (entry?.lookupKey && this.dataSourceRegistry && this.dataSourceLookup) {
+    if (entry?.lookupKey && this.dataSourceRegistry) {
+      const lookup = this.dataSourceLookups.get(key)
+      if (!lookup) {
+        throw new Error(
+          `No DataSourceLookup configured for datasource "${key}". ` +
+            `Available datasources: ${Array.from(this.dataSourceLookups.keys()).join(', ')}`
+        )
+      }
       try {
         const registryKey = `${key}:${entry.lookupKey}`
         const dataSource = await this.dataSourceRegistry.getOrCreate(
           registryKey,
           async () => {
-            const details = await this.dataSourceLookup!.lookup(
-              key,
-              entry.lookupKey!
-            )
+            const details = await lookup.lookup(key, entry.lookupKey!)
             if (!details) {
               throw new Error(
                 `No datasource configuration found for datasource "${key}" with key: ${entry.lookupKey}`
@@ -199,12 +204,23 @@ export class DataSourceManager {
   }
 
   /**
-   * Set the datasource lookup implementation
+   * Set the datasource lookup implementation for a specific datasource
    *
+   * @param name - Datasource name (e.g., 'project')
    * @param lookup - DataSourceLookup implementation
    */
-  setDataSourceLookup(lookup: DataSourceLookup) {
-    this.dataSourceLookup = lookup
+  setDataSourceLookup(name: string, lookup: DataSourceLookup) {
+    this.dataSourceLookups.set(name, lookup)
+  }
+
+  /**
+   * Get the datasource lookup implementation for a specific datasource
+   *
+   * @param name - Datasource name
+   * @returns DataSourceLookup implementation or undefined
+   */
+  getDataSourceLookup(name: string): DataSourceLookup | undefined {
+    return this.dataSourceLookups.get(name)
   }
 
   /**

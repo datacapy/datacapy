@@ -34,7 +34,6 @@ export interface DataSourceContextEntry {
 /**
  * Map of datasource names to their context options.
  * Key is datasource name (e.g., 'project', 'tenant')
- * Use '*' as wildcard to apply to all datasources
  */
 export type DataSourceContextOptions = Record<string, DataSourceContextEntry>
 
@@ -54,12 +53,10 @@ export class DataSourceContext {
 
   /**
    * Get context for a specific datasource name
-   * Returns the specific context or falls back to wildcard ('*')
+   * Returns the specific context only (no wildcard fallback)
    */
   getForDataSource(dataSourceName: string): DataSourceContextEntry | undefined {
-    return (
-      this.dataSourceContexts[dataSourceName] || this.dataSourceContexts['*']
-    )
+    return this.dataSourceContexts[dataSourceName]
   }
 
   /**
@@ -70,23 +67,7 @@ export class DataSourceContext {
   }
 
   /**
-   * Create context from a lookup key (convenience method)
-   * Uses wildcard to apply to all datasources
-   */
-  static fromLookupKey(key: string): DataSourceContext {
-    return new DataSourceContext({ '*': { lookupKey: key } })
-  }
-
-  /**
-   * Create context from a datasource key (convenience method)
-   * Uses wildcard to apply to all datasources
-   */
-  static fromDataSourceKey(key: string): DataSourceContext {
-    return new DataSourceContext({ '*': { dataSourceKey: key } })
-  }
-
-  /**
-   * Create multi-datasource context (convenience method)
+   * Create multi-datasource context
    *
    * @example
    * const context = DataSourceContext.fromDataSources({

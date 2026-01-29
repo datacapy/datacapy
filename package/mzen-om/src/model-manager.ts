@@ -67,8 +67,8 @@ export class ModelManager {
   get dataSourceRegistry() {
     return this.dataSourceManager.dataSourceRegistry
   }
-  get dataSourceLookup() {
-    return this.dataSourceManager.dataSourceLookup
+  get dataSourceLookups() {
+    return this.dataSourceManager.dataSourceLookups
   }
   get dynamicRepos() {
     return this.dataSourceManager.dynamicRepos
@@ -212,12 +212,23 @@ export class ModelManager {
   }
 
   /**
-   * Set the datasource lookup implementation
+   * Set the datasource lookup implementation for a specific datasource
    *
+   * @param name - Datasource name (e.g., 'project')
    * @param lookup - DataSourceLookup implementation
    */
-  setDataSourceLookup(lookup: DataSourceLookup) {
-    this.dataSourceManager.setDataSourceLookup(lookup)
+  setDataSourceLookup(name: string, lookup: DataSourceLookup) {
+    this.dataSourceManager.setDataSourceLookup(name, lookup)
+  }
+
+  /**
+   * Get the datasource lookup implementation for a specific datasource
+   *
+   * @param name - Datasource name
+   * @returns DataSourceLookup implementation or undefined
+   */
+  getDataSourceLookup(name: string): DataSourceLookup | undefined {
+    return this.dataSourceManager.getDataSourceLookup(name)
   }
 
   addConstructor(value) {
