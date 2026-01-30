@@ -30,8 +30,10 @@ export interface ModelManagerConfig {
   app?: any // adhoc app configuration passed by consumers
 
   // Dynamic datasource configuration
-  enableDynamicDataSources?: boolean
-  dataSourceRegistryConfig?: DataSourceRegistryConfig
+  dynamicDataSource?: {
+    enable?: boolean
+    registry?: DataSourceRegistryConfig
+  }
 }
 
 /**
@@ -90,8 +92,8 @@ export class ModelManager {
 
     this.dataSourceManager = new DataSourceManager(
       this.logger,
-      this.config.dataSourceRegistryConfig,
-      this.config.enableDynamicDataSources
+      this.config.dynamicDataSource?.registry,
+      this.config.dynamicDataSource?.enable
     )
 
     this.initialised = false

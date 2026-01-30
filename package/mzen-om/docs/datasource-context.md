@@ -255,11 +255,13 @@ class CachedProjectLookup implements DataSourceLookup {
 
 ```typescript
 {
-  enableDynamicDataSources: true,
-  dataSourceRegistryConfig: {
-    maxSize: 50,                    // Max datasources in pool
-    idleTimeout: 30 * 60 * 1000,   // 30 minutes
-    healthCheckInterval: 5 * 60 * 1000  // 5 minutes
+  dynamicDataSource: {
+    enable: true,
+    registry: {
+      maxSize: 50,                    // Max datasources in pool
+      idleTimeout: 30 * 60 * 1000,   // 30 minutes
+      healthCheckInterval: 5 * 60 * 1000  // 5 minutes
+    }
   }
 }
 ```
