@@ -13,7 +13,7 @@ This file contains high-level guidance and implementation patterns specifically 
 - **[docs/architecture.md](docs/architecture.md)** - Core concepts and system design
 - **[docs/relations.md](docs/relations.md)** - Relation system overview and usage
 - **[docs/composite-keys.md](docs/composite-keys.md)** - Composite key implementation details
-- **[docs/datasource-context.md](docs/datasource-context.md)** - Multi-datasource system
+- **[docs/dynamic-datasource.md](docs/dynamic-datasource.md)** - Multi-datasource system
 - **[docs/validation.md](docs/validation.md)** - Validation and type-casting
 - **[docs/testing.md](docs/testing.md)** - Testing patterns and MockDataSource
 - **[docs/performance.md](docs/performance.md)** - Optimization strategies
@@ -246,7 +246,7 @@ Test files are in `src/repo-populator/relation/_tests/`.
 
 For detailed technical information, always refer to:
 - [docs/composite-keys.md](docs/composite-keys.md) - Complete composite key implementation
-- [docs/datasource-context.md](docs/datasource-context.md) - DataSourceContext system details
+- [docs/dynamic-datasource.md](docs/dynamic-datasource.md) - DataSourceContext system details
 - [docs/relations.md](docs/relations.md) - Relation configuration and usage
 - [docs/debugging.md](docs/debugging.md) - Troubleshooting guide
 

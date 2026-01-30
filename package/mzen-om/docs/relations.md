@@ -196,7 +196,7 @@ Relations support composite keys for multi-field matching. See [Composite Keys](
 
 ### Cross-DataSource Relations
 
-Relations can span multiple datasources. See [DataSource Context](datasource-context.md) for details.
+Relations can span multiple datasources. See [DataSource Context](dynamic-datasource.md) for details.
 
 ## See Also
 

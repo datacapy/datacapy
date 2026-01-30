@@ -213,5 +213,5 @@ npm test -- --coverage
 
 - [Architecture](architecture.md) - Understanding the system structure
 - [Relations](relations.md) - Testing relation population
-- [DataSource Context](datasource-context.md) - Testing dynamic datasources
+- [DataSource Context](dynamic-datasource.md) - Testing dynamic datasources
 - [Validation](validation.md) - Testing validation rules

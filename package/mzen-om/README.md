@@ -113,7 +113,7 @@ const context = DataSourceContext.fromDataSources({
 const surveys = await repo.find(query, { context })
 ```
 
-See [DataSource Context Documentation](docs/datasource-context.md) for details.
+See [DataSource Context Documentation](docs/dynamic-datasource.md) for details.
 
 ## Documentation
 
@@ -124,7 +124,7 @@ See [DataSource Context Documentation](docs/datasource-context.md) for details.
 
 ### Advanced Features
 - [Composite Keys](docs/composite-keys.md) - Multi-field relation matching
-- [DataSource Context](docs/datasource-context.md) - Multi-datasource support
+- [DataSource Context](docs/dynamic-datasource.md) - Multi-datasource support
 - [Performance](docs/performance.md) - Optimization strategies
 
 ### Development

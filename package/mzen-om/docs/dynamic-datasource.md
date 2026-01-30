@@ -308,7 +308,8 @@ See [Testing](testing.md) for more details.
 
 ## See Also
 
-- [Dynamic DataSources - Advanced](datasource-dynamic-advanced.md) - BaseDataSourceLookup, DataSourceRegistry internals
+- [Multiple Dynamic DataSources](dynamic-datasource-multiple.md) - Using multiple datasources simultaneously
+- [Dynamic DataSources - Advanced](dynamic-datasource-advanced.md) - BaseDataSourceLookup, DataSourceRegistry internals
 - [Architecture](architecture.md) - Overall system design
 - [Testing](testing.md) - Testing with dynamic datasources
 - [Performance](performance.md) - Optimization strategies

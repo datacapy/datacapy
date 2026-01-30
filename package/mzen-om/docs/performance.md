@@ -258,5 +258,5 @@ When optimizing performance:
 ## See Also
 
 - [Composite Keys](composite-keys.md) - Query optimization strategies
-- [DataSource Context](datasource-context.md) - Connection pooling and registry
+- [DataSource Context](dynamic-datasource.md) - Connection pooling and registry
 - [Debugging](debugging.md) - Troubleshooting performance issues

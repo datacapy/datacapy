@@ -177,7 +177,7 @@ console.log('Context datasources:', Object.keys(context.dataSources))
 console.log('Repo datasource:', repo.config.dataSource)
 ```
 
-See [DataSource Context](datasource-context.md) for detailed troubleshooting.
+See [DataSource Context](dynamic-datasource.md) for detailed troubleshooting.
 
 ### Validation Errors
 
@@ -262,6 +262,6 @@ If you're stuck:
 
 - [Relations](relations.md) - Understanding relation configuration
 - [Composite Keys](composite-keys.md) - Multi-field relation matching
-- [DataSource Context](datasource-context.md) - Dynamic datasource debugging
+- [DataSource Context](dynamic-datasource.md) - Dynamic datasource debugging
 - [Performance](performance.md) - Query optimization
 - [Testing](testing.md) - Testing strategies

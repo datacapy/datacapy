@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers advanced features for dynamic datasource management in mzen-om. For basic usage of DataSourceContext and DataSourceLookup, see [DataSource Context](datasource-context.md).
+This guide covers advanced features for dynamic datasource management in mzen-om. For basic usage of DataSourceContext and DataSourceLookup, see [Dynamic DataSource](dynamic-datasource.md).
 
 **Topics covered:**
 - BaseDataSourceLookup - Abstract class with built-in caching
@@ -453,6 +453,6 @@ class DistributedLookup extends BaseDataSourceLookup {
 
 ## See Also
 
-- [DataSource Context](datasource-context.md) - Basic usage guide
+- [Dynamic DataSource](dynamic-datasource.md) - Basic usage guide
 - [Performance](performance.md) - Optimization strategies
 - [Architecture](architecture.md) - System design

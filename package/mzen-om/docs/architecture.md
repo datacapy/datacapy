@@ -50,7 +50,7 @@ Additional features:
 - Multi-datasource support for complex architectures
 - Connection pooling and registry management
 
-See [DataSource Context](datasource-context.md) for detailed information.
+See [DataSource Context](dynamic-datasource.md) for detailed information.
 
 ## Class Hierarchy
 
@@ -86,4 +86,4 @@ RelationAbstract (base)
 
 - [Relations](relations.md) - Learn about the relation system
 - [Validation](validation.md) - Learn about data validation
-- [DataSource Context](datasource-context.md) - Learn about multi-datasource support
+- [DataSource Context](dynamic-datasource.md) - Learn about multi-datasource support
