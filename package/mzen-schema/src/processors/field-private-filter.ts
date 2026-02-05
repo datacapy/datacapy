@@ -38,7 +38,9 @@ export interface SchemaFieldPrivateFilterInterface {
  * This class coordinates with:
  * - SchemaIterator: For traversing the object structure
  */
-export class SchemaFieldPrivateFilter implements SchemaFieldPrivateFilterInterface {
+export class SchemaFieldPrivateFilter
+  implements SchemaFieldPrivateFilterInterface
+{
   /**
    * Filter private fields from an object
    *

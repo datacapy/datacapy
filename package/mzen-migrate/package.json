@@ -1,0 +1,46 @@
+{
+  "name": "mzen-migrate",
+  "type": "commonjs",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Database migration tool for mzen-om applications",
+  "main": "./dist/index",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "mzen-migrate": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "prepare": "pnpm run build",
+    "prepublishOnly": "pnpm test",
+    "build": "pnpm run clean && tsc && tsc-alias -p tsconfig.json && pnpm run build-minimise",
+    "build-minimise": "find ./dist -type d -name '__tests__' -exec rm -rf {} +",
+    "clean": "rm -rf ./dist/*",
+    "test": "jest",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/kevin-foster-uk/mzen",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kevin-foster-uk/mzen.git"
+  },
+  "dependencies": {
+    "mzen-om": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "prettier": "^3.5.3",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.7.0",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "/dist",
+    "/tsconfig.json"
+  ]
+}

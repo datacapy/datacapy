@@ -64,7 +64,9 @@ export interface SchemaTransientProcessorInterface {
  * - ObjectPathAccessor: For resolving path references
  * - Collection: For array construction
  */
-export class SchemaTransientProcessor implements SchemaTransientProcessorInterface {
+export class SchemaTransientProcessor
+  implements SchemaTransientProcessorInterface
+{
   private fieldTypeCaster: SchemaFieldTypeCaster
 
   constructor(fieldTypeCaster: SchemaFieldTypeCaster) {
