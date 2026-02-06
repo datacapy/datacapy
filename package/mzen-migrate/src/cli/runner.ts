@@ -53,6 +53,8 @@ export class CliRunner {
           Object.keys(cliArgs.context).length > 0
             ? cliArgs.context
             : config.context,
+        contextLookup: cliArgs.contextLookup,
+        contextResolver: config.contextResolver, // Provided by config file
         patchDirectory: cliArgs.patchDirectory || config.patchDirectory,
         targetVersion: cliArgs.targetVersion || config.targetVersion,
         dryRun: cliArgs.dryRun || config.dryRun,

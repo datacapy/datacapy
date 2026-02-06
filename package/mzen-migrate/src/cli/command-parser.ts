@@ -8,6 +8,7 @@ export interface CliArguments {
   config?: string; // -c, --config
   datasource?: string; // --datasource
   context: Record<string, string>; // --context (can be specified multiple times)
+  contextLookup?: string; // --context-lookup (pattern for batch migrations)
   patchDirectory?: string; // -d, --patch-dir
   targetVersion?: string; // -t, --target
   dryRun: boolean; // --dry-run
@@ -61,6 +62,10 @@ export class CommandParser {
           result.context[key] = value;
           break;
         }
+
+        case "--context-lookup":
+          result.contextLookup = args[++i];
+          break;
 
         case "-d":
         case "--patch-dir":
@@ -138,6 +143,9 @@ REQUIRED OPTIONS:
 OPTIONAL OPTIONS:
   --context <key=value>      Context for dynamic datasources (can be specified multiple times)
                              Example: --context projectId=abc123
+  --context-lookup <pattern> Lookup pattern for batch migrations across multiple contexts
+                             Example: --context-lookup "*" (migrate all projects)
+                             Requires contextResolver to be configured
   -d, --patch-dir <dir>      Patch directory (default: ./migrate)
   -t, --target <version>     Target version to migrate to (default: latest)
                              Format: YYYY-MM-DD_HHMM
@@ -152,6 +160,9 @@ EXAMPLES:
 
   # Migrate specific project database
   mzen-migrate --config ./migrate.config.js --datasource project --context projectId=abc123
+
+  # Migrate ALL project databases (batch migration)
+  mzen-migrate --config ./migrate.config.js --datasource project --context-lookup "*"
 
   # Dry run to preview changes
   mzen-migrate --config ./migrate.config.js --datasource db --dry-run

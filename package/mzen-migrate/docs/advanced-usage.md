@@ -57,7 +57,80 @@ export default class AddProjectFeature implements DatabasePatchInterface {
 }
 ```
 
-#### Migrating All Projects
+#### Migrating All Projects (Wildcard Pattern)
+
+Use the context lookup feature to migrate all projects with a single command:
+
+```bash
+# Migrate all project databases sequentially
+mzen-migrate --config ./migrate.config.js \
+  --datasource project \
+  --context-lookup "*"
+
+# With dry-run to preview
+mzen-migrate --config ./migrate.config.js \
+  --datasource project \
+  --context-lookup "*" \
+  --dry-run
+```
+
+This requires implementing a `ContextResolver` in your application's configuration:
+
+```typescript
+// migrate.config.js
+import { ContextResolverProject } from './src/context/ContextResolverProject'
+import { modelManager } from './src/model-manager'
+
+export default async () => {
+  await modelManager.init()
+
+  // Create context resolver for wildcard pattern support
+  const accountDataSource = modelManager.getDataSource('db')
+  const contextResolver = new ContextResolverProject(accountDataSource)
+
+  return {
+    modelManager,
+    contextResolver,  // Enable context lookup patterns
+    patchDirectory: './migrate',
+  }
+}
+```
+
+**ContextResolver implementation example:**
+
+```typescript
+// src/context/ContextResolverProject.ts
+import { ContextResolver } from 'mzen-migrate'
+import { DataSourceInterface } from 'mzen-om'
+
+export class ContextResolverProject implements ContextResolver {
+  constructor(private accountDataSource: DataSourceInterface) {}
+
+  async resolve(pattern: string): Promise<Array<Record<string, string>>> {
+    if (pattern === '*') {
+      // Query all projects from account database
+      const projects = await this.accountDataSource.find('project', {})
+
+      // Convert to context value objects
+      return projects.map(project => ({
+        projectId: project._id
+      }))
+    }
+
+    // Support other patterns as needed
+    throw new Error(`Unsupported context pattern: ${pattern}`)
+  }
+}
+```
+
+**How it works:**
+
+1. The `--context-lookup "*"` pattern is passed to the ContextResolver
+2. The resolver queries the account database for all projects
+3. MigrationManager runs migrations sequentially for each project (one at a time)
+4. If any project fails, the process stops immediately (fail-fast)
+
+**Alternative: Shell script approach** (if you don't want to implement ContextResolver):
 
 ```bash
 #!/bin/bash

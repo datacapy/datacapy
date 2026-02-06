@@ -47,6 +47,11 @@ export class MigrationManager {
     const startTime = new Date();
 
     try {
+      // Check if this is a batch migration (contextLookup provided)
+      if (this.config.contextLookup) {
+        return await this.migrateBatch(startTime);
+      }
+
       if (this.config.dryRun) {
         this.logger.logDryRun();
       }
@@ -199,6 +204,141 @@ export class MigrationManager {
 
       throw error;
     }
+  }
+
+  /**
+   * Execute batch migration across multiple contexts
+   *
+   * Resolves a context lookup pattern into multiple contexts,
+   * then runs migrations sequentially for each context.
+   * Stops on first failure (fail-fast).
+   */
+  private async migrateBatch(startTime: Date): Promise<MigrationResult> {
+    const { contextLookup, contextResolver } = this.config;
+
+    if (!contextResolver) {
+      throw new Error(
+        "contextResolver is required when contextLookup is provided",
+      );
+    }
+
+    if (!contextLookup) {
+      throw new Error("contextLookup pattern is required for batch migration");
+    }
+
+    this.logger.info(`Resolving context pattern: ${contextLookup}`);
+
+    // Resolve pattern into list of contexts
+    let contexts: Array<Record<string, string>>;
+    try {
+      contexts = await contextResolver.resolve(contextLookup);
+    } catch (error) {
+      throw new Error(
+        `Failed to resolve context pattern "${contextLookup}": ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    if (contexts.length === 0) {
+      this.logger.info(`No contexts found for pattern "${contextLookup}"`);
+      return {
+        totalPatches: 0,
+        successCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        patchResults: [],
+        previousVersion: null,
+        currentVersion: null,
+        totalDuration: Date.now() - startTime.getTime(),
+        dryRun: this.config.dryRun,
+        startTime,
+        endTime: new Date(),
+      };
+    }
+
+    this.logger.info(
+      `Found ${contexts.length} context(s) to migrate sequentially`,
+    );
+
+    if (this.config.dryRun) {
+      this.logger.logDryRun();
+    }
+
+    // Track aggregate results
+    const allPatchResults: PatchResult[] = [];
+    let totalSuccessCount = 0;
+    let totalFailedCount = 0;
+    let totalSkippedCount = 0;
+
+    // Migrate each context sequentially
+    for (let i = 0; i < contexts.length; i++) {
+      const context = contexts[i];
+      const contextStr = JSON.stringify(context);
+
+      this.logger.info(
+        `\n[${i + 1}/${contexts.length}] Migrating context: ${contextStr}`,
+      );
+
+      try {
+        // Create a new migration manager with this specific context
+        const contextConfig: MigrationConfig = {
+          ...this.config,
+          context,
+          contextLookup: undefined, // Don't recurse
+          contextResolver: undefined,
+        };
+
+        const contextManager = new MigrationManager(contextConfig);
+        const result = await contextManager.migrate();
+
+        // Aggregate results
+        allPatchResults.push(...result.patchResults);
+        totalSuccessCount += result.successCount;
+        totalFailedCount += result.failedCount;
+        totalSkippedCount += result.skippedCount;
+
+        // Stop on failure (fail-fast)
+        if (result.failedCount > 0) {
+          this.logger.error(
+            `Migration failed for context ${contextStr}. Stopping batch migration.`,
+          );
+          break;
+        }
+
+        this.logger.info(
+          `✓ Context ${contextStr} migrated successfully (${result.successCount} patches applied)`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Migration failed for context ${contextStr}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        // Stop on first error (fail-fast)
+        throw error;
+      }
+    }
+
+    const endTime = new Date();
+    const totalDuration = endTime.getTime() - startTime.getTime();
+
+    this.logger.info("\n=== Batch Migration Summary ===");
+    this.logger.info(`Total contexts migrated: ${contexts.length}`);
+    this.logger.info(`Total patches applied: ${totalSuccessCount}`);
+    this.logger.info(`Total patches failed: ${totalFailedCount}`);
+    this.logger.info(`Total patches skipped: ${totalSkippedCount}`);
+    this.logger.info(`Total duration: ${totalDuration}ms`);
+
+    return {
+      totalPatches: allPatchResults.length,
+      successCount: totalSuccessCount,
+      failedCount: totalFailedCount,
+      skippedCount: totalSkippedCount,
+      patchResults: allPatchResults,
+      previousVersion: null, // Not meaningful in batch context
+      currentVersion: null, // Not meaningful in batch context
+      totalDuration,
+      dryRun: this.config.dryRun,
+      startTime,
+      endTime,
+    };
   }
 
   /**

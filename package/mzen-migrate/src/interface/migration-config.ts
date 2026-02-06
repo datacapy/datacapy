@@ -1,5 +1,6 @@
 import { ModelManager } from "mzen-om";
 import { DataSourceContext } from "mzen-om/dist/data-source";
+import { ContextResolver } from "./context-resolver";
 
 /**
  * MigrationConfig
@@ -29,6 +30,21 @@ export interface MigrationConfig {
    * Can also be a simple key-value map: { projectId: 'abc123' }
    */
   context?: DataSourceContext | Record<string, string>;
+
+  // Context lookup for batch migrations (optional)
+  /**
+   * Context lookup pattern for batch migrations across multiple contexts
+   * Example: "*" for all projects, "ownerId=xyz" for filtered
+   * Requires contextResolver to be provided
+   */
+  contextLookup?: string;
+
+  /**
+   * Context resolver for expanding lookup patterns into context values
+   * Required when contextLookup is provided
+   * Example: ContextResolverProject to resolve "*" into all project IDs
+   */
+  contextResolver?: ContextResolver;
 
   // Migration Configuration
   /**
