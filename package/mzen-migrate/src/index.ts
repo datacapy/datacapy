@@ -14,6 +14,7 @@ export { MigrationLogger } from "./logger/migration-logger";
 
 // Interface exports
 export { DatabasePatchInterface } from "./interface/database-patch";
+export { ContextResolver } from "./interface/context-resolver";
 
 export {
   MigrationConfig,
