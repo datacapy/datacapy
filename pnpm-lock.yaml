@@ -35,6 +35,9 @@ importers:
 
   package/mzen-migrate:
     dependencies:
+      mzen-id:
+        specifier: workspace:*
+        version: link:../mzen-id
       mzen-om:
         specifier: workspace:*
         version: link:../mzen-om

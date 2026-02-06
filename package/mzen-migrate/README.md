@@ -620,6 +620,12 @@ class VersionManager {
 }
 ```
 
+## Documentation
+
+- **[Architecture](./docs/architecture.md)** - Migration system internals and technical implementation
+- **[Best Practices](./docs/best-practices.md)** - Guidelines for writing safe, maintainable migrations
+- **[Advanced Usage](./docs/advanced-usage.md)** - Advanced patterns, troubleshooting, and deployment
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request on GitHub.

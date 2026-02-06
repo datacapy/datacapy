@@ -27,6 +27,7 @@
     "url": "https://github.com/kevin-foster-uk/mzen.git"
   },
   "dependencies": {
+    "mzen-id": "workspace:*",
     "mzen-om": "workspace:*"
   },
   "devDependencies": {

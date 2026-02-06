@@ -1,4 +1,5 @@
 import { DataSourceInterface } from "mzen-om/dist/data-source";
+import { genUniqueId } from "mzen-id";
 
 /**
  * MetaRecord
@@ -6,6 +7,7 @@ import { DataSourceInterface } from "mzen-om/dist/data-source";
  * Schema for migration meta table records
  */
 export interface MetaRecord {
+  _id?: string;
   version: string;
   description: string;
   appliedAt: Date;
@@ -42,6 +44,7 @@ export class MetaTable {
       // Table doesn't exist, create it by inserting a dummy record and removing it
       // This works for both MySQL and MongoDB datasources
       const dummyRecord: MetaRecord = {
+        _id: genUniqueId(),
         version: "0000-00-00_0000",
         description: "Initial meta table creation",
         appliedAt: new Date(),
@@ -115,6 +118,7 @@ export class MetaTable {
     duration?: number,
   ): Promise<void> {
     const record: MetaRecord = {
+      _id: genUniqueId(),
       version,
       description,
       appliedAt: new Date(),
