@@ -64,8 +64,9 @@ export class MysqlSqlBuilder {
     }
 
     let limitClause = ''
-    if (options?.limit) {
-      limitClause = `LIMIT ${options.limit}`
+    if (options?.limit || options?.skip) {
+      const limit = options.limit ?? Number.MAX_SAFE_INTEGER
+      limitClause = `LIMIT ${limit}`
       if (options.skip) {
         limitClause += ` OFFSET ${options.skip}`
       }

@@ -43,4 +43,14 @@ describe('MysqlSqlBuilder - buildSelectQuery', () => {
     )
     expect(result.sql).toContain('LIMIT 10 OFFSET 5')
   })
+
+  it('should apply skip without limit using MAX_SAFE_INTEGER as default limit', async () => {
+    const options = { skip: 5 }
+    const result = await sqlBuilder.buildSelectQuery(
+      'users',
+      undefined,
+      options
+    )
+    expect(result.sql).toContain(`LIMIT ${Number.MAX_SAFE_INTEGER} OFFSET 5`)
+  })
 })
