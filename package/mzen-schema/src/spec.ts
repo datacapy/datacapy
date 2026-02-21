@@ -41,8 +41,7 @@ export type CustomValidatorFn = (
   options: { root?: any; label?: string }
 ) => boolean | string | string[] | Promise<boolean | string | string[]>
 
-export interface SchemaSpecValidateOptionsCallback
-  extends SchemaSpecValidateOptions {
+export interface SchemaSpecValidateOptionsCallback extends SchemaSpecValidateOptions {
   validator: CustomValidatorFn
 }
 
@@ -68,25 +67,21 @@ export interface SchemaSpecValidateOptions {
   message?: string
 }
 
-export interface SchemaSpecValidateOptionsValueLength
-  extends SchemaSpecValidateOptions {
+export interface SchemaSpecValidateOptionsValueLength extends SchemaSpecValidateOptions {
   min?: number
   max?: number
 }
 
-export interface SchemaSpecValidateOptionsEquality
-  extends SchemaSpecValidateOptions {
+export interface SchemaSpecValidateOptionsEquality extends SchemaSpecValidateOptions {
   path: string
   root: any
 }
 
-export interface SchemaSpecValidateOptionsInArray
-  extends SchemaSpecValidateOptions {
+export interface SchemaSpecValidateOptionsInArray extends SchemaSpecValidateOptions {
   values?: Array<any>
 }
 
-export interface SchemaSpecValidateOptionsRegex
-  extends SchemaSpecValidateOptions {
+export interface SchemaSpecValidateOptionsRegex extends SchemaSpecValidateOptions {
   pattern?: any
 }
 
