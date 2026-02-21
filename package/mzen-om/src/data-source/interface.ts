@@ -62,13 +62,21 @@ export interface IndexSpec {
   [key: string]: string | number // { fieldName: 1 } or { fieldName: -1 } or { fieldName: 'text }
 }
 
+export type TypeHintValue =
+  | 'string'
+  | 'int'
+  | 'decimal'
+  | 'date'
+  | 'datetime'
+  | 'timestamp'
+
 export interface IndexOptions {
   name?: string
   unique?: boolean
   sparse?: boolean // may not be supported by all implementations
   background?: boolean // may not be supported by all implementations
   expireAfterSeconds?: number // may not be supported by all implementations
-  typeHint?: 'string' | 'int' | 'decimal' | 'date' | 'timestamp' // added for MySQL generated indexes
+  typeHint?: TypeHintValue | { [field: string]: TypeHintValue } // added for MySQL generated indexes; string applies to all fields, object maps per-field
 }
 
 export interface QueryPersistResult {

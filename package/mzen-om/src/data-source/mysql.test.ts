@@ -290,5 +290,60 @@ describe('DataSourceMysql', () => {
         "JSON_VALUE(jdoc, '$.address.city')"
       )
     })
+
+    it('should use per-field typeHint when typeHint is an object', async () => {
+      await dataSource.createIndex(
+        'projectSubscription',
+        { subscriptionCode: 1, started: -1 },
+        { typeHint: { started: 'timestamp' } }
+      )
+
+      const calls = mockQuery.mock.calls
+      const startedColumnCall = calls.find((call) =>
+        call[0].includes('ADD COLUMN `gen_started`')
+      )
+      const codeColumnCall = calls.find((call) =>
+        call[0].includes('ADD COLUMN `gen_subscriptionCode`')
+      )
+      expect(startedColumnCall).toBeDefined()
+      expect(startedColumnCall[0]).toContain('TIMESTAMP(3)')
+      expect(codeColumnCall).toBeDefined()
+      // subscriptionCode has no typeHint entry so defaults to VARCHAR
+      expect(codeColumnCall[0]).not.toContain('TIMESTAMP')
+    })
+
+    it('should fall back to undefined typeHint for fields not in the object', async () => {
+      await dataSource.createIndex(
+        'orders',
+        { status: 1, created: -1 },
+        { typeHint: { created: 'timestamp' } }
+      )
+
+      const calls = mockQuery.mock.calls
+      const createdColumnCall = calls.find((call) =>
+        call[0].includes('ADD COLUMN `gen_created`')
+      )
+      const statusColumnCall = calls.find((call) =>
+        call[0].includes('ADD COLUMN `gen_status`')
+      )
+      expect(createdColumnCall).toBeDefined()
+      expect(createdColumnCall[0]).toContain('TIMESTAMP(3)')
+      expect(statusColumnCall).toBeDefined()
+      expect(statusColumnCall[0]).not.toContain('TIMESTAMP')
+    })
+
+    it('should skip column creation when columnExists is true, even with object typeHint', async () => {
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(true)
+
+      await dataSource.createIndex(
+        'projectSubscription',
+        { subscriptionCode: 1, started: -1 },
+        { typeHint: { started: 'timestamp' } }
+      )
+
+      const calls = mockQuery.mock.calls
+      const addColumnCall = calls.find((call) => call[0].includes('ADD COLUMN'))
+      expect(addColumnCall).toBeUndefined()
+    })
   })
 })

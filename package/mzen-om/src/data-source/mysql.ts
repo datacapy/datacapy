@@ -16,7 +16,7 @@ import {
   GENERATED_COLUMN_PREFIX,
   JDOC_ID_PROP,
   JDOC_ID_SIZE,
-  COLUMN_SIZE_DEAULT,
+  COLUMN_SIZE_DEFAULT,
 } from './mysql/mysql-constants'
 import { MysqlSqlBuilder } from './mysql/mysql-sql-builder'
 import { ObjectPathAccessor } from 'mzen-schema'
@@ -332,7 +332,7 @@ export class DataSourceMysql implements DataSourceInterface {
 
       if (!(await this.columnExists(sanitizedTableName, generatedColumnName))) {
         const isIdField = /id$/i.test(field)
-        const size = isIdField ? JDOC_ID_SIZE : COLUMN_SIZE_DEAULT
+        const size = isIdField ? JDOC_ID_SIZE : COLUMN_SIZE_DEFAULT
         const collation = isIdField
           ? 'CHARACTER SET ascii COLLATE ascii_general_ci'
           : ''
@@ -343,7 +343,9 @@ export class DataSourceMysql implements DataSourceInterface {
           field,
           size,
           collation,
-          options?.typeHint
+          typeof options?.typeHint === 'object'
+            ? options.typeHint[field]
+            : options?.typeHint
         )
         await this.query(createColumnText)
       }

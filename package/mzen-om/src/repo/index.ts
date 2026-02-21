@@ -9,6 +9,8 @@ import {
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
   IndexSpec,
+  IndexOptions,
+  TypeHintValue,
 } from 'data-source/interface'
 import { DataSourceContext } from 'data-source/context'
 import Schema, {
@@ -32,34 +34,20 @@ export class RepoErrorValidation extends Error {
   }
 }
 
-export const TYPE_HINT_STRING = 'string'
-export const TYPE_HINT_INT = 'int'
-export const TYPE_HINT_DECIMAL = 'decimal'
-export const TYPE_HINT_DATE = 'date'
-export const TYPE_HINT_DATETIME = 'datetime'
-export const TYPE_HINT_TIMESTAMP = 'timestamp'
+export const TYPE_HINT_STRING: TypeHintValue = 'string'
+export const TYPE_HINT_INT: TypeHintValue = 'int'
+export const TYPE_HINT_DECIMAL: TypeHintValue = 'decimal'
+export const TYPE_HINT_DATE: TypeHintValue = 'date'
+export const TYPE_HINT_DATETIME: TypeHintValue = 'datetime'
+export const TYPE_HINT_TIMESTAMP: TypeHintValue = 'timestamp'
+
+export { TypeHintValue }
 
 export interface RepoIndexConfig {
   // fieldname or {fieldA: 1, fieldB: -1} or {location: '2dsphere', description: 'text', otherField: 1}
   spec: { [key: string]: number | string } | string
-  // boolean options indicates unique index
-  options?:
-    | boolean
-    | {
-        name?: string
-        unique?: boolean
-        sparse?: boolean
-        background?: boolean
-        expireAfterSeconds?: number
-        typeHint?:
-          | 'string'
-          | 'int'
-          | 'decimal'
-          | 'date'
-          | 'datetime'
-          | 'timestamp'
-        [key: string]: any // allow implementation specific props
-      }
+  // boolean options indicates unique index; object-form typeHint maps per-field types for composite indexes
+  options?: boolean | (IndexOptions & { [key: string]: any })
 }
 
 export interface RepoConfig {
