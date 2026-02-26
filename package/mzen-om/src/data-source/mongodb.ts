@@ -64,6 +64,12 @@ export class DataSourceMongodb implements DataSourceInterface {
     return Promise.resolve()
   }
 
+  async dropDatabase(databaseName: string, options?: any): Promise<void> {
+    // MongoDB drops databases implicitly when all collections are removed
+    // No explicit database deletion needed
+    return Promise.resolve()
+  }
+
   async find<Type>(
     collectionName: string,
     query?: QuerySelection,

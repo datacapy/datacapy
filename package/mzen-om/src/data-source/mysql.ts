@@ -64,6 +64,15 @@ export class DataSourceMysql implements DataSourceInterface {
     await this.query(sql)
   }
 
+  async dropDatabase(
+    databaseName: string,
+    options?: { ifExists?: boolean }
+  ): Promise<void> {
+    const ifExists = options?.ifExists !== false // default true
+    const sql = `DROP DATABASE ${ifExists ? 'IF EXISTS ' : ''}\`${databaseName}\``
+    await this.query(sql)
+  }
+
   async find<Type>(
     tableName: string,
     query?: QuerySelection,

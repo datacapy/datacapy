@@ -44,6 +44,11 @@ export class DataSourceMock implements DataSourceInterface {
     return Promise.resolve()
   }
 
+  async dropDatabase(databaseName: string, options?: any): Promise<void> {
+    // No-op for mock datasource - databases don't exist in the mock
+    return Promise.resolve()
+  }
+
   async find(
     collectionName: string,
     query?: QuerySelection,

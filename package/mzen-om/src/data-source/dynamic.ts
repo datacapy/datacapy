@@ -55,6 +55,12 @@ export class DataSourceDynamic implements DataSourceInterface {
     )
   }
 
+  async dropDatabase(databaseName: string, options?: any): Promise<void> {
+    throw new Error(
+      `Cannot drop database on dynamic datasource directly. Database deletion should happen outside of dynamic repo context.`
+    )
+  }
+
   // All query methods throw errors directing users to use repos with context
 
   async find(

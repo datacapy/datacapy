@@ -96,6 +96,7 @@ export interface DataSourceInterface {
   connect(): Promise<DataSourceInterface>
 
   createDatabase?(databaseName: string, options?: any): Promise<void>
+  dropDatabase?(databaseName: string, options?: any): Promise<void>
 
   find(
     collectionName: string,
