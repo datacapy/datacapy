@@ -86,12 +86,14 @@ export class MysqlWhereBuilder {
         const sanitizedColumnName = sanitizeIdentifier(generatedColumn)
         return `\`${sanitizedColumnName}\` ${sanitizedOperator} ?`
       } else {
-        // Fallback to CAST for proper date comparison
+        // JSON.stringify serializes Date objects as ISO 8601 (e.g. "2026-02-28T14:36:18.421Z").
+        // MySQL's CAST(... AS DATETIME) cannot parse ISO 8601 format, so use STR_TO_DATE
+        // with the first 19 characters (dropping milliseconds and Z suffix).
         const castExpression =
-          `CAST(JSON_UNQUOTE(JSON_EXTRACT(` +
+          `STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(` +
           `${JSON_DOCUMENT_COLUMN_NAME}, ` +
           `'$.${sanitizedKey}'` +
-          `)) AS DATETIME)`
+          `)), 19), '%Y-%m-%dT%H:%i:%s')`
         return `${castExpression} ${sanitizedOperator} ?`
       }
     } else {

@@ -14,7 +14,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) = ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') = ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
@@ -25,7 +25,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) != ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') != ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
@@ -36,7 +36,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) > ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') > ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
@@ -47,7 +47,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) >= ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') >= ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
@@ -58,7 +58,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) < ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') < ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
@@ -69,7 +69,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) <= ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') <= ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
@@ -95,7 +95,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "(CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) >= ? AND CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) <= ?)"
+      "(STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') >= ? AND STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') <= ?)"
     )
     expect(result.params).toEqual([
       '2023-01-01 00:00:00',
@@ -109,7 +109,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.timestamp')) AS DATETIME) = ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.timestamp')), 19), '%Y-%m-%dT%H:%i:%s') = ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:30:45'])
   })
@@ -125,7 +125,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')) AS DATETIME) >= ? AND jdoc->>'$.status' = ? AND JSON_EXTRACT(jdoc, '$.isActive') = ? AND jdoc->>'$.priority' > ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') >= ? AND jdoc->>'$.status' = ? AND JSON_EXTRACT(jdoc, '$.isActive') = ? AND jdoc->>'$.priority' > ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00', 'active', true, 5])
   })
@@ -160,7 +160,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.expiresAt')) AS DATETIME) <= ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.expiresAt')), 19), '%Y-%m-%dT%H:%i:%s') <= ?"
     )
     expect(result.params).toEqual([
       currentDate

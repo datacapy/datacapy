@@ -33,9 +33,9 @@ describe('MysqlWhereBuilder - Generated Column Optimization', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
 
-    // Should fallback to CAST expression
+    // Should fallback to STR_TO_DATE expression
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.created_at')) AS DATETIME) >= ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.created_at')), 19), '%Y-%m-%dT%H:%i:%s') >= ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
@@ -76,9 +76,9 @@ describe('MysqlWhereBuilder - Generated Column Optimization', () => {
     const result = await freshWhereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
 
-    // Should fallback to CAST expression when no checker is set
+    // Should fallback to STR_TO_DATE expression when no checker is set
     expect(stripped).toBe(
-      "CAST(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.created_at')) AS DATETIME) >= ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.created_at')), 19), '%Y-%m-%dT%H:%i:%s') >= ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
