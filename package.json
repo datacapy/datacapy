@@ -26,10 +26,13 @@
     "typecheck:mzen-om": "pnpm --filter mzen-om typecheck",
     "typecheck:mzen-server": "pnpm --filter mzen-server typecheck"
   },
-  "keywords": ["monorepo", "mzen"],
+  "keywords": [
+    "monorepo",
+    "mzen"
+  ],
   "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
   "devDependencies": {
-    "prettier": "^3.5.3"
+    "prettier": "^3.8.1"
   },
   "engines": {
     "node": ">=20.0.0",

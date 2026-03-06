@@ -27,19 +27,19 @@
     "bson-objectid": "^1.3.1",
     "clone": "^2.1.2",
     "mzen-id": "workspace:*",
-    "query": "kevin-foster-uk/query#mzen-query"
+    "query": "github:kevin-foster-uk/query#mzen-query"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.0",
-    "@types/node": "^20.0.0",
-    "eslint": "^9.25.1",
-    "jest": "^30.0.2",
-    "prettier": "^3.5.3",
-    "ts-jest": "^29.4.0",
-    "ts-node": "^10.7.0",
-    "tsc-alias": "^1.8.6",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.31.0"
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.19.37",
+    "eslint": "^9.39.3",
+    "jest": "^30.2.0",
+    "prettier": "^3.8.1",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
   },
   "files": [
     "/dist",
