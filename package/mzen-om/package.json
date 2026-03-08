@@ -7,7 +7,6 @@
   "main": "./dist/index",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "prepare": "husky && pnpm run build",
     "prepublishOnly": "pnpm test",
     "build": "pnpm run clean && tsc && tsc-alias -p tsconfig.json && pnpm run build-minimise",
     "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} +",

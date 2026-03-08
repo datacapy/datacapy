@@ -10,7 +10,6 @@
     "mzen-migrate": "./dist/cli/index.js"
   },
   "scripts": {
-    "prepare": "pnpm run build",
     "prepublishOnly": "pnpm test",
     "build": "pnpm run clean && tsc && tsc-alias -p tsconfig.json && pnpm run build-minimise",
     "build-minimise": "find ./dist -type d -name '__tests__' -exec rm -rf {} +",

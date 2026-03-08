@@ -7,7 +7,6 @@
   "main": "./dist/index",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "prepare": "pnpm run build",
     "prepublishOnly": "pnpm test",
     "test": "jest",
     "build": "pnpm run clean && tsc && pnpm run build-minimise",
