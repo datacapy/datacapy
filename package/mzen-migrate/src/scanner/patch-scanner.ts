@@ -77,9 +77,9 @@ export class PatchScanner {
   private async loadPatchFile(filePath: string): Promise<PatchFile | null> {
     const fileName = path.basename(filePath);
 
-    // Check file extension (must be .ts, .tsx, or .js)
+    // Check file extension (must be .ts, .tsx, or .js, but not .d.ts)
     const ext = path.extname(fileName);
-    if (![".ts", ".tsx", ".js"].includes(ext)) {
+    if (![".ts", ".tsx", ".js"].includes(ext) || fileName.endsWith(".d.ts")) {
       return null;
     }
 
