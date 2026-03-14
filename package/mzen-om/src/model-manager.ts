@@ -336,9 +336,6 @@ export class ModelManager {
         // Skip initialization for dynamic datasources
         if (repo.dataSource.isDynamic?.()) {
           this.dataSourceManager.trackDynamicRepo(repo.getName())
-          this.logger.log(
-            `[ModelManager] Skipped initialization for dynamic repo: ${repo.getName()}`
-          )
           return
         }
       } else if (defaultDataSourceName !== undefined) {
