@@ -201,7 +201,7 @@ export class Repo<T> {
   }
 
   getName(): string {
-    // If repo name == 'Repo' then we are most likely using the name of the default repo constrcutor.
+    // If repo name == 'Repo' then we are most likely using the name of the default repo constructor.
     // This can cause problems because repositories are referred to by name in the model and if we have multiple
     // repositories named 'Repo' we could not be sure which one we are working with
     // For this reason we do not permit a repository to be named 'Repo'
