@@ -430,7 +430,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -470,7 +470,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -506,7 +506,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -540,7 +540,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -574,7 +574,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -672,7 +672,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -719,7 +719,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -815,7 +815,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -848,7 +848,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -898,7 +898,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
@@ -925,7 +925,7 @@ export class Repo<T> {
         this.config.dataSource
       )?.lookupKey
       if (lookupKey) {
-        this.modelManager?.dataSourceRegistry?.release(lookupKey)
+        this.modelManager?.dataSourceRegistry?.release(`${this.config.dataSource}:${lookupKey}`)
       }
     }
 
