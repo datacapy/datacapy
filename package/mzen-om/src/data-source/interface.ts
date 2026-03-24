@@ -77,6 +77,7 @@ export interface IndexOptions {
   background?: boolean // may not be supported by all implementations
   expireAfterSeconds?: number // may not be supported by all implementations
   typeHint?: TypeHintValue | { [field: string]: TypeHintValue } // added for MySQL generated indexes; string applies to all fields, object maps per-field
+  lowercase?: boolean // MySQL only: stores LOWER() of the value for efficient case-insensitive LIKE queries
 }
 
 export interface QueryPersistResult {

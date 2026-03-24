@@ -79,7 +79,7 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const query = { createdAt: { $like: testDate } }
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
-    expect(stripped).toBe("jdoc->>'$.createdAt' LIKE ?")
+    expect(stripped).toBe("LOWER(jdoc->>'$.createdAt') LIKE ?")
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
 

@@ -94,7 +94,8 @@ export class MysqlDdlBuilder {
     field: string,
     size: number,
     collation: string,
-    typeHint?: 'string' | 'int' | 'decimal' | 'date' | 'datetime' | 'timestamp'
+    typeHint?: 'string' | 'int' | 'decimal' | 'date' | 'datetime' | 'timestamp',
+    lowercase?: boolean
   ): string {
     let columnType: string
     let extractFunction: string
@@ -132,6 +133,10 @@ export class MysqlDdlBuilder {
       default:
         columnType = `VARCHAR(${size}) ${collation}`
         extractFunction = jsonValueFunc
+    }
+
+    if (lowercase) {
+      extractFunction = `LOWER(${extractFunction})`
     }
 
     return stripWhitespace(`

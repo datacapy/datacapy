@@ -14,6 +14,7 @@ import {
 import {
   JSON_DOCUMENT_COLUMN_NAME,
   GENERATED_COLUMN_PREFIX,
+  GENERATED_COLUMN_LOWERCASE_SUFFIX,
   JDOC_ID_PROP,
   JDOC_ID_SIZE,
   COLUMN_SIZE_DEFAULT,
@@ -335,7 +336,9 @@ export class DataSourceMysql implements DataSourceInterface {
     for (const [field, order] of Object.entries(indexSpec)) {
       const formattedField = this.formatNestedColumnName(field)
       const sanitizedField = this.sqlBuilder.sanitizeIdentifier(formattedField)
-      const generatedColumnName = GENERATED_COLUMN_PREFIX + sanitizedField
+      const suffix = options?.lowercase ? GENERATED_COLUMN_LOWERCASE_SUFFIX : ''
+      const generatedColumnName =
+        GENERATED_COLUMN_PREFIX + sanitizedField + suffix
 
       columns[generatedColumnName] = order
 
@@ -354,7 +357,8 @@ export class DataSourceMysql implements DataSourceInterface {
           collation,
           typeof options?.typeHint === 'object'
             ? options.typeHint[field]
-            : options?.typeHint
+            : options?.typeHint,
+          options?.lowercase
         )
         await this.query(createColumnText)
       }

@@ -365,7 +365,8 @@ export class MysqlSqlBuilder {
     field: string,
     size: number,
     collation: string,
-    typeHint?: 'string' | 'int' | 'decimal' | 'date' | 'datetime' | 'timestamp'
+    typeHint?: 'string' | 'int' | 'decimal' | 'date' | 'datetime' | 'timestamp',
+    lowercase?: boolean
   ): string {
     return this.ddlBuilder.buildCreateColumnQuery(
       tableName,
@@ -373,7 +374,8 @@ export class MysqlSqlBuilder {
       field,
       size,
       collation,
-      typeHint
+      typeHint,
+      lowercase
     )
   }
 

@@ -92,12 +92,20 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
   })
 
   describe('$like operator', () => {
-    it('should handle $like operator', async () => {
+    it('should use LOWER() to force case-insensitive matching', async () => {
       const query = { name: { $like: 'John%' } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
-      expect(stripped).toBe("jdoc->>'$.name' LIKE ?")
-      expect(result.params).toEqual(['John%'])
+      expect(stripped).toBe("LOWER(jdoc->>'$.name') LIKE ?")
+      expect(result.params).toEqual(['john%'])
+    })
+
+    it('should lowercase the param regardless of input casing', async () => {
+      const query = { email: { $like: '%ACME%' } }
+      const result = await whereBuilder.buildWhereClause(query)
+      const stripped = stripWhitespace(result.clause)
+      expect(stripped).toBe("LOWER(jdoc->>'$.email') LIKE ?")
+      expect(result.params).toEqual(['%acme%'])
     })
   })
 })

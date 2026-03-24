@@ -43,6 +43,12 @@ export interface OperatorContext {
    * Converts value to MySQL-compatible format
    */
   convertValue(value: any): any
+
+  /**
+   * Returns the name of the pre-lowercased generated column for a field if one exists,
+   * or null if not. Used by string operators to avoid LOWER() on every row.
+   */
+  getLowercaseGeneratedColumnName(key: string): Promise<string | null>
 }
 
 /**

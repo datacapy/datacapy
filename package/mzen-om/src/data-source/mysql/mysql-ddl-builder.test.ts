@@ -189,6 +189,37 @@ describe('MysqlDdlBuilder', () => {
       expect(stripped).toContain("JSON_VALUE(jdoc, '$.name')")
       expect(stripped).toContain('STORED')
     })
+
+    it('should wrap extract expression with LOWER() when lowercase is true', () => {
+      const result = ddlBuilder.buildCreateColumnQuery(
+        'users',
+        'gen_email_lower',
+        'email',
+        255,
+        '',
+        'string',
+        true
+      )
+      const stripped = stripWhitespace(result)
+      expect(stripped).toContain('ADD COLUMN `gen_email_lower`')
+      expect(stripped).toContain("LOWER(JSON_VALUE(jdoc, '$.email'))")
+      expect(stripped).toContain('STORED')
+    })
+
+    it('should not wrap with LOWER() when lowercase is false', () => {
+      const result = ddlBuilder.buildCreateColumnQuery(
+        'users',
+        'gen_email',
+        'email',
+        255,
+        '',
+        'string',
+        false
+      )
+      const stripped = stripWhitespace(result)
+      expect(stripped).not.toContain('LOWER(')
+      expect(stripped).toContain("JSON_VALUE(jdoc, '$.email')")
+    })
   })
 
   describe('buildCreateIndexQuery', () => {

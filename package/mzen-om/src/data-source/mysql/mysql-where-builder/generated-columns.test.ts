@@ -83,3 +83,84 @@ describe('MysqlWhereBuilder - Generated Column Optimization', () => {
     expect(result.params).toEqual(['2023-01-01 12:00:00'])
   })
 })
+
+describe('MysqlWhereBuilder - Lowercase Generated Column Optimization', () => {
+  let whereBuilder: MysqlWhereBuilder
+
+  beforeEach(() => {
+    whereBuilder = new MysqlWhereBuilder()
+    // Mock checker: return true only for _lower columns
+    const mockChecker: ColumnExistsChecker = jest.fn((_, col) =>
+      Promise.resolve(col.endsWith('_lower'))
+    )
+    whereBuilder.setColumnExistsChecker(mockChecker, 'user')
+  })
+
+  it('should use gen_email_lower for $regex with $options: i', async () => {
+    const query = { email: { $regex: 'acme', $options: 'i' } }
+    const result = await whereBuilder.buildWhereClause(query)
+    const stripped = stripWhitespace(result.clause)
+    expect(stripped).toBe('`gen_email_lower` LIKE ?')
+    expect(result.params).toEqual(['%acme%'])
+  })
+
+  it('should use gen_email_lower for case-insensitive RegExp literal', async () => {
+    const query = { email: { $regex: /acme/i } }
+    const result = await whereBuilder.buildWhereClause(query)
+    const stripped = stripWhitespace(result.clause)
+    expect(stripped).toBe('`gen_email_lower` LIKE ?')
+    expect(result.params).toEqual(['%acme%'])
+  })
+
+  it('should use gen_email_lower for $like', async () => {
+    const query = { email: { $like: '%ACME%' } }
+    const result = await whereBuilder.buildWhereClause(query)
+    const stripped = stripWhitespace(result.clause)
+    expect(stripped).toBe('`gen_email_lower` LIKE ?')
+    expect(result.params).toEqual(['%acme%'])
+  })
+
+  it('should lowercase the search param to match the stored column value', async () => {
+    const query = { email: { $regex: 'ACME Corp', $options: 'i' } }
+    const result = await whereBuilder.buildWhereClause(query)
+    const stripped = stripWhitespace(result.clause)
+    expect(stripped).toBe('`gen_email_lower` LIKE ?')
+    expect(result.params).toEqual(['%acme corp%'])
+  })
+
+  it('should still use LOWER() fallback when no lowercase column exists', async () => {
+    const mockChecker: ColumnExistsChecker = jest.fn().mockResolvedValue(false)
+    whereBuilder.setColumnExistsChecker(mockChecker, 'user')
+
+    const query = { email: { $regex: 'acme', $options: 'i' } }
+    const result = await whereBuilder.buildWhereClause(query)
+    const stripped = stripWhitespace(result.clause)
+    expect(stripped).toBe("LOWER(jdoc->>'$.email') LIKE ?")
+    expect(result.params).toEqual(['%acme%'])
+  })
+
+  it('should not use lowercase column for case-sensitive $regex (no $options)', async () => {
+    const query = { email: { $regex: 'Acme' } }
+    const result = await whereBuilder.buildWhereClause(query)
+    const stripped = stripWhitespace(result.clause)
+    expect(stripped).toBe("jdoc->>'$.email' LIKE BINARY ?")
+    expect(result.params).toEqual(['%Acme%'])
+  })
+
+  it('should use gen_nameFirst_lower for $or user search pattern', async () => {
+    const search = 'John'
+    const query = {
+      $or: [
+        { email: { $regex: search, $options: 'i' } },
+        { nameFirst: { $regex: search, $options: 'i' } },
+        { nameLast: { $regex: search, $options: 'i' } },
+      ],
+    }
+    const result = await whereBuilder.buildWhereClause(query)
+    const stripped = stripWhitespace(result.clause)
+    expect(stripped).toBe(
+      '(`gen_email_lower` LIKE ? OR `gen_nameFirst_lower` LIKE ? OR `gen_nameLast_lower` LIKE ?)'
+    )
+    expect(result.params).toEqual(['%john%', '%john%', '%john%'])
+  })
+})

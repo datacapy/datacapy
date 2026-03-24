@@ -90,20 +90,36 @@ describe('MysqlWhereBuilder - Regex Operator', () => {
       expect(result.params).toEqual(['%John%'])
     })
 
-    it('should use LIKE for case-insensitive simple literal', async () => {
+    it('should use LOWER() for case-insensitive simple literal', async () => {
       const query = { name: { $regex: 'John', $options: 'i' } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
-      expect(stripped).toBe("jdoc->>'$.name' LIKE ?")
-      expect(result.params).toEqual(['%John%'])
+      expect(stripped).toBe("LOWER(jdoc->>'$.name') LIKE ?")
+      expect(result.params).toEqual(['%john%'])
     })
 
-    it('should use LIKE for case-insensitive RegExp literal', async () => {
+    it('should use LOWER() for case-insensitive RegExp literal', async () => {
       const query = { name: { $regex: /john/i } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
-      expect(stripped).toBe("jdoc->>'$.name' LIKE ?")
+      expect(stripped).toBe("LOWER(jdoc->>'$.name') LIKE ?")
       expect(result.params).toEqual(['%john%'])
+    })
+
+    it('should lowercase the param when $options: i is set', async () => {
+      const query = { email: { $regex: 'ACME', $options: 'i' } }
+      const result = await whereBuilder.buildWhereClause(query)
+      const stripped = stripWhitespace(result.clause)
+      expect(stripped).toBe("LOWER(jdoc->>'$.email') LIKE ?")
+      expect(result.params).toEqual(['%acme%'])
+    })
+
+    it('should use LIKE BINARY (case-sensitive) when no $options', async () => {
+      const query = { name: { $regex: 'John' } }
+      const result = await whereBuilder.buildWhereClause(query)
+      const stripped = stripWhitespace(result.clause)
+      expect(stripped).toBe("jdoc->>'$.name' LIKE BINARY ?")
+      expect(result.params).toEqual(['%John%'])
     })
 
     it('should use REGEXP for patterns with metacharacters', async () => {

@@ -1,3 +1,4 @@
+import { sanitizeIdentifier } from '../mysql-sql-utils'
 import { OperatorHandler, OperatorContext, OperatorResult } from './types'
 
 /**
@@ -35,21 +36,37 @@ export class StringOperatorHandler implements OperatorHandler {
     const jsonPathExpression = `${context.jsonColumnName}->>'$.${sanitizedKey}'`
 
     if (operator === '$like') {
+      const value = String(context.convertValue(operand))
+      const lowercaseColumn = await context.getLowercaseGeneratedColumnName(key)
+      if (lowercaseColumn) {
+        return {
+          condition: `\`${sanitizeIdentifier(lowercaseColumn)}\` LIKE ?`,
+          params: [value.toLowerCase()],
+        }
+      }
       return {
-        condition: `${jsonPathExpression} LIKE ?`,
-        params: [context.convertValue(operand)],
+        condition: `LOWER(${jsonPathExpression}) LIKE ?`,
+        params: [value.toLowerCase()],
       }
     }
 
     // Handle $regex
-    return this.handleRegex(jsonPathExpression, operand, siblingOperators)
+    return this.handleRegex(
+      key,
+      jsonPathExpression,
+      operand,
+      context,
+      siblingOperators
+    )
   }
 
-  private handleRegex(
+  private async handleRegex(
+    key: string,
     jsonPathExpression: string,
     operand: any,
+    context: OperatorContext,
     siblingOperators?: Record<string, any>
-  ): OperatorResult {
+  ): Promise<OperatorResult> {
     // Get $options from sibling key if present
     const options = siblingOperators?.$options || ''
     let pattern: string
@@ -77,10 +94,19 @@ export class StringOperatorHandler implements OperatorHandler {
     // LIKE is more efficient for simple substring matching
     if (isSimpleLiteralPattern(pattern)) {
       if (isCaseInsensitive) {
-        // MySQL LIKE is case-insensitive by default with most collations
+        const lowercaseColumn =
+          await context.getLowercaseGeneratedColumnName(key)
+        if (lowercaseColumn) {
+          return {
+            condition: `\`${sanitizeIdentifier(lowercaseColumn)}\` LIKE ?`,
+            params: [`%${pattern.toLowerCase()}%`],
+          }
+        }
+        // JSON extraction (->>) returns utf8mb4_bin collation, making plain LIKE
+        // case-sensitive. Wrap with LOWER() on both sides to force case-insensitive matching.
         return {
-          condition: `${jsonPathExpression} LIKE ?`,
-          params: [`%${pattern}%`],
+          condition: `LOWER(${jsonPathExpression}) LIKE ?`,
+          params: [`%${pattern.toLowerCase()}%`],
         }
       } else {
         // Use LIKE BINARY for case-sensitive matching

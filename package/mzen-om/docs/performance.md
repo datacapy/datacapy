@@ -258,5 +258,6 @@ When optimizing performance:
 ## See Also
 
 - [Composite Keys](composite-keys.md) - Query optimization strategies
+- [MySQL Indexes](mysql-indexes.md) - Generated columns and case-insensitive search indexes
 - [DataSource Context](dynamic-datasource.md) - Connection pooling and registry
 - [Debugging](debugging.md) - Troubleshooting performance issues

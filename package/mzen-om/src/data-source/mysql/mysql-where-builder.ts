@@ -2,6 +2,7 @@ import { QuerySelection } from '../interface'
 import {
   JSON_DOCUMENT_COLUMN_NAME,
   GENERATED_COLUMN_PREFIX,
+  GENERATED_COLUMN_LOWERCASE_SUFFIX,
 } from './mysql-constants'
 import {
   convertValue,
@@ -56,6 +57,28 @@ export class MysqlWhereBuilder {
         generatedColumnName
       )
       return exists ? generatedColumnName : null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Gets the pre-lowercased generated column name for a field if one exists, null otherwise.
+   * These columns store LOWER(field) and are used for efficient case-insensitive LIKE queries.
+   */
+  private async getLowercaseGeneratedColumnName(
+    field: string
+  ): Promise<string | null> {
+    if (!this.columnExistsChecker || !this.tableName) {
+      return null
+    }
+
+    const formattedField = formatNestedColumnName(field)
+    const columnName = `${GENERATED_COLUMN_PREFIX}${formattedField}${GENERATED_COLUMN_LOWERCASE_SUFFIX}`
+
+    try {
+      const exists = await this.columnExistsChecker(this.tableName, columnName)
+      return exists ? columnName : null
     } catch {
       return null
     }
@@ -119,6 +142,8 @@ export class MysqlWhereBuilder {
     return {
       buildTypeAwareCondition: this.buildTypeAwareCondition.bind(this),
       buildWhereClause: this.buildWhereClause.bind(this),
+      getLowercaseGeneratedColumnName:
+        this.getLowercaseGeneratedColumnName.bind(this),
       jsonColumnName: JSON_DOCUMENT_COLUMN_NAME,
       sanitizeKey: sanitizeJsonPathKey,
       convertValue: convertValue,
