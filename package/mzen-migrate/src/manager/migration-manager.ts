@@ -352,7 +352,11 @@ export class MigrationManager {
     // Try static datasource lookup first
     try {
       const staticDataSource = modelManager.getDataSource(dataSourceName);
-      if (staticDataSource) {
+      const isDynamic =
+        staticDataSource &&
+        typeof (staticDataSource as any).isDynamic === "function" &&
+        (staticDataSource as any).isDynamic();
+      if (staticDataSource && !isDynamic) {
         this.logger.verboseLog(`Resolved static datasource: ${dataSourceName}`);
         return staticDataSource;
       }
