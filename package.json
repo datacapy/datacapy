@@ -9,6 +9,7 @@
     "clean": "pnpm -r --stream clean",
     "format": "pnpm -r --stream format",
     "typecheck": "pnpm -r --stream typecheck",
+    "compile": "pnpm format && pnpm build && pnpm typecheck && pnpm test",
     "build:mzen-id": "pnpm --filter mzen-id build",
     "build:mzen-schema": "pnpm --filter mzen-schema build",
     "build:mzen-om": "pnpm --filter mzen-om build",
