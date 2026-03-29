@@ -4,4 +4,4 @@
 # (replaces husky pre-commit hooks in mzen-om and mzen-server)
 #
 
-npx lint-staged
+pnpm exec lint-staged
