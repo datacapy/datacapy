@@ -1,0 +1,5 @@
+mzen
+bcryptjs
+typecheck
+commitizen
+prepublishOnly

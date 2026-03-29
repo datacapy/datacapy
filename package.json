@@ -24,7 +24,17 @@
     "typecheck:mzen-id": "pnpm --filter mzen-id typecheck",
     "typecheck:mzen-schema": "pnpm --filter mzen-schema typecheck",
     "typecheck:mzen-om": "pnpm --filter mzen-om typecheck",
-    "typecheck:mzen-server": "pnpm --filter mzen-server typecheck"
+    "typecheck:mzen-server": "pnpm --filter mzen-server typecheck",
+    "commit": "cz",
+    "prepare": "git config core.hooksPath .githooks && git config commit.template .git-commit-template.txt"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-customizable"
+    }
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
   },
   "keywords": [
     "monorepo",
@@ -39,6 +49,13 @@
     }
   },
   "devDependencies": {
+    "@cspell/dict-node": "^5.0.9",
+    "@cspell/dict-npm": "^5.2.38",
+    "@cspell/dict-typescript": "^3.2.3",
+    "commitizen": "^4.3.1",
+    "cspell": "^9.7.0",
+    "cz-customizable": "^7.5.4",
+    "lint-staged": "^15.5.2",
     "prettier": "^3.8.1"
   },
   "engines": {
