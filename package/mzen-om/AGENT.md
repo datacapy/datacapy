@@ -4,16 +4,23 @@ This document provides context for AI agents working on the mzen-om project.
 
 ## Purpose
 
-This file contains high-level guidance and implementation patterns specifically for AI agents. For detailed technical documentation, refer to the comprehensive docs in the `docs/` directory and [README.md](README.md).
+This file contains high-level guidance and implementation patterns specifically
+for AI agents. For detailed technical documentation, refer to the comprehensive
+docs in the `docs/` directory and [README.md](README.md).
 
 ## Quick Reference
 
 ### Main Documentation
+
 - **[README.md](README.md)** - User-facing overview and quick start
-- **[docs/architecture.md](docs/architecture.md)** - Core concepts and system design
-- **[docs/relations.md](docs/relations.md)** - Relation system overview and usage
-- **[docs/composite-keys.md](docs/composite-keys.md)** - Composite key implementation details
-- **[docs/dynamic-datasource.md](docs/dynamic-datasource.md)** - Multi-datasource system
+- **[docs/architecture.md](docs/architecture.md)** - Core concepts and system
+  design
+- **[docs/relations.md](docs/relations.md)** - Relation system overview and
+  usage
+- **[docs/composite-keys.md](docs/composite-keys.md)** - Composite key
+  implementation details
+- **[docs/dynamic-datasource.md](docs/dynamic-datasource.md)** -
+  Multi-datasource system
 - **[docs/validation.md](docs/validation.md)** - Validation and type-casting
 - **[docs/testing.md](docs/testing.md)** - Testing patterns and MockDataSource
 - **[docs/performance.md](docs/performance.md)** - Optimization strategies
@@ -22,23 +29,34 @@ This file contains high-level guidance and implementation patterns specifically 
 ### Core Files
 
 #### Relation System
-- **[src/repo-populator.ts](src/repo-populator.ts)** - Main orchestrator for populating relations
-- **[src/repo-populator/relation/abstract.ts](src/repo-populator/relation/abstract.ts)** - Base class with shared logic
-- **[src/repo-populator/relation/has-abstract.ts](src/repo-populator/relation/has-abstract.ts)** - Base for `hasOne`, `hasMany` relations
-- **[src/repo-populator/relation/belongs-to-abstract.ts](src/repo-populator/relation/belongs-to-abstract.ts)** - Base for `belongsToOne`, `belongsToMany` relations
+
+- **[src/repo-populator.ts](src/repo-populator.ts)** - Main orchestrator for
+  populating relations
+- **[src/repo-populator/relation/abstract.ts](src/repo-populator/relation/abstract.ts)** -
+  Base class with shared logic
+- **[src/repo-populator/relation/has-abstract.ts](src/repo-populator/relation/has-abstract.ts)** -
+  Base for `hasOne`, `hasMany` relations
+- **[src/repo-populator/relation/belongs-to-abstract.ts](src/repo-populator/relation/belongs-to-abstract.ts)** -
+  Base for `belongsToOne`, `belongsToMany` relations
 
 #### DataSource System
-- **[src/data-source/context.ts](src/data-source/context.ts)** - DataSourceContext implementation
-- **[src/data-source-manager.ts](src/data-source-manager.ts)** - Lookup registration and resolution
+
+- **[src/data-source/context.ts](src/data-source/context.ts)** -
+  DataSourceContext implementation
+- **[src/data-source-manager.ts](src/data-source-manager.ts)** - Lookup
+  registration and resolution
 - **[src/model-manager.ts](src/model-manager.ts)** - Public API delegation
-- **[src/data-source/registry.ts](src/data-source/registry.ts)** - Connection pool management
-- **[src/data-source/index.ts](src/data-source/index.ts)** - DataSourceLookup interface
+- **[src/data-source/registry.ts](src/data-source/registry.ts)** - Connection
+  pool management
+- **[src/data-source/index.ts](src/data-source/index.ts)** - DataSourceLookup
+  interface
 
 ## Key Implementation Details for Agents
 
 ### Relation System Architecture
 
-The relation system uses a class hierarchy with shared logic in abstract base classes:
+The relation system uses a class hierarchy with shared logic in abstract base
+classes:
 
 ```
 RelationAbstract (base)
@@ -51,21 +69,26 @@ RelationAbstract (base)
       └── RelationBelongsToMany
 ```
 
-**Key design principle:** Unified implementation treats all joins as composite key operations. Single-key joins are composite keys with one field.
+**Key design principle:** Unified implementation treats all joins as composite
+key operations. Single-key joins are composite keys with one field.
 
 ### Common Patterns
 
 #### When to Use Composite Keys
 
 Use composite keys when:
-- Multi-tenant applications need to scope relations by tenant/project/organization
+
+- Multi-tenant applications need to scope relations by
+  tenant/project/organization
 - Sharded data requires matching on multiple dimensions
 - Natural keys involve multiple fields
-- Business rules require matching on multiple fields (e.g., same survey, same project)
+- Business rules require matching on multiple fields (e.g., same survey, same
+  project)
 
 #### When NOT to Use Composite Keys
 
 Stick with single keys when:
+
 - Simple ID-based lookups are sufficient
 - Data is not multi-tenant
 - Performance is critical (single-key `$in` queries are faster)
@@ -93,16 +116,16 @@ const mockLookup: DataSourceLookup = {
   async lookup(dataSourceName, lookupKey) {
     return {
       type: 'mysql',
-      config: { database: `test_${lookupKey}` }
+      config: { database: `test_${lookupKey}` },
     }
-  }
+  },
 }
 
 modelManager.setDataSourceLookup('project', mockLookup)
 
 // Create context and test
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: 'proj123' }
+  project: { lookupKey: 'proj123' },
 })
 
 await repo.find({}, { context })
@@ -115,18 +138,22 @@ await repo.find({}, { context })
 **Decision:** All joins are treated as composite key operations internally.
 
 **Rationale:**
+
 - Simpler maintenance (no separate code paths)
-- Consistent behavior
+- Consistent behaviour
 - Easier testing
 - Backward compatible (single keys still work)
 
-**Impact:** When modifying relation logic, ensure it works for both single and multi-key scenarios.
+**Impact:** When modifying relation logic, ensure it works for both single and
+multi-key scenarios.
 
 ### 2. Explicit Datasource Names
 
-**Decision:** All DataSourceContext instances require explicit datasource names (no wildcard fallback).
+**Decision:** All DataSourceContext instances require explicit datasource names
+(no wildcard fallback).
 
 **Rationale:**
+
 - Clear intent
 - Easier debugging
 - Prevents accidental misrouting
@@ -135,25 +162,31 @@ await repo.find({}, { context })
 
 ### 3. Query Optimization
 
-**Decision:** Automatically optimize composite key queries by detecting constant vs variant fields.
+**Decision:** Automatically optimize composite key queries by detecting constant
+vs variant fields.
 
 **Rationale:**
+
 - Significantly reduces `$or` clause count
 - Better database performance
 - Transparent to users
 
-**Impact:** See [docs/composite-keys.md](docs/composite-keys.md) for optimization algorithm details.
+**Impact:** See [docs/composite-keys.md](docs/composite-keys.md) for
+optimization algorithm details.
 
 ### 4. Per-Datasource Lookup Registration
 
-**Decision:** Each datasource has its own lookup implementation registered separately.
+**Decision:** Each datasource has its own lookup implementation registered
+separately.
 
 **Rationale:**
+
 - Supports multiple dynamic datasources (e.g., project + tenant)
 - Clear separation of concerns
 - Easy to extend
 
-**Impact:** Use `Map<string, DataSourceLookup>` for storage, not a single global lookup.
+**Impact:** Use `Map<string, DataSourceLookup>` for storage, not a single global
+lookup.
 
 ## Important Edge Cases
 
@@ -166,7 +199,8 @@ Source documents can have array fields for `belongsToMany` relations:
 // Should match: { _id: '1' } and { _id: '5' }
 ```
 
-Handle in `getCompositeRelationIds` by expanding arrays into multiple composite IDs.
+Handle in `getCompositeRelationIds` by expanding arrays into multiple composite
+IDs.
 
 ### 2. Missing Fields
 
@@ -180,6 +214,7 @@ When composite key fields are missing from source documents:
 ### 3. Empty Results
 
 Different relation types handle empty results differently:
+
 - `belongsToOne`, `hasOne` → `undefined`
 - `belongsToMany`, `hasMany` → `[]` (empty array)
 - `hasManyCount` → `0`
@@ -188,7 +223,8 @@ Different relation types handle empty results differently:
 
 When modifying relation or datasource code:
 
-1. ✓ **Existing single-key relations still work** - Test with legacy `key`/`pkey` config
+1. ✓ **Existing single-key relations still work** - Test with legacy
+   `key`/`pkey` config
 2. ✓ **Default values preserved** - `pkey` defaults to `'_id'`
 3. ✓ **Query format unchanged** - Single-key queries still use `$in`
 4. ✓ **API signatures unchanged** - No breaking changes to public methods
@@ -198,7 +234,8 @@ When modifying relation or datasource code:
 
 When adding new features:
 
-1. **Add tests for both single and composite keys** - Verify unified implementation
+1. **Add tests for both single and composite keys** - Verify unified
+   implementation
 2. **Test edge cases** - Empty results, missing fields, arrays
 3. **Test backward compatibility** - Ensure legacy configs still work
 4. **Update MockDataSource if needed** - Support new query patterns
@@ -214,7 +251,8 @@ When making changes:
 2. **Use proper indexes** - Document required compound indexes
 3. **Optimize queries** - Leverage constant field detection for composite keys
 4. **Cache lookups** - Implement caching in DataSourceLookup implementations
-5. **Connection pooling** - Configure registry and datasource pools appropriately
+5. **Connection pooling** - Configure registry and datasource pools
+   appropriately
 
 See [docs/performance.md](docs/performance.md) for optimization strategies.
 
@@ -234,6 +272,7 @@ When implementing new features or fixing bugs:
 ## Test Coverage
 
 This system has comprehensive test coverage (30+ tests):
+
 - All relation types (belongsTo, has, embedded)
 - Composite key scenarios
 - Query optimization
@@ -245,14 +284,18 @@ Test files are in `src/repo-populator/relation/_tests/`.
 ## Related Documentation
 
 For detailed technical information, always refer to:
-- [docs/composite-keys.md](docs/composite-keys.md) - Complete composite key implementation
-- [docs/dynamic-datasource.md](docs/dynamic-datasource.md) - DataSourceContext system details
+
+- [docs/composite-keys.md](docs/composite-keys.md) - Complete composite key
+  implementation
+- [docs/dynamic-datasource.md](docs/dynamic-datasource.md) - DataSourceContext
+  system details
 - [docs/relations.md](docs/relations.md) - Relation configuration and usage
 - [docs/debugging.md](docs/debugging.md) - Troubleshooting guide
 
 ## Summary
 
 This is a mature, battle-tested system with:
+
 - Unified composite key implementation
 - Multi-datasource support with explicit naming
 - Automatic query optimization
@@ -260,6 +303,7 @@ This is a mature, battle-tested system with:
 - Strong backward compatibility
 
 When making changes, prioritize:
+
 1. Maintaining backward compatibility
 2. Clear error messages
 3. Comprehensive tests

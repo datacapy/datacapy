@@ -141,8 +141,8 @@ export class SchemaFieldTypeCaster implements SchemaFieldTypeCasterInterface {
   ): any {
     var meta = meta ? meta : { errors: {} }
     // If the spec specifies the value should be an object and the value is already an object, we do not need to typecast
-    // When we specify a type as Object we only care that it is an Object we dont care about its
-    // specific constuctor type, we dont care if it is MyObject or YourObject
+    // When we specify a type as Object we only care that it is an Object we don't care about its
+    // specific constructor type, we don't care if it is MyObject or YourObject
     var skip =
       (requiredType === Object &&
         Array.isArray(value) == false &&

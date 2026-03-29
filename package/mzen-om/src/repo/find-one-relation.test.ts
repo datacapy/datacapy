@@ -329,7 +329,7 @@ describe('relation', function () {
           key: 'countryId',
           alias: 'country',
           recursion: 1,
-          autoPopulate: false, // important - initialy the relation is configured not to populate
+          autoPopulate: false, // important - initially the relation is configured not to populate
         },
       },
     }) as Repo<Timezone>
@@ -401,7 +401,7 @@ describe('relation', function () {
           key: 'countryId',
           alias: 'country',
           recursion: 1,
-          autoPopulate: true, // important - initialy the relation is configured not to populate
+          autoPopulate: true, // important - initially the relation is configured not to populate
         },
       },
     }) as Repo<Timezone>

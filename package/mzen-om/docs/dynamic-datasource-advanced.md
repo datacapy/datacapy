@@ -2,16 +2,21 @@
 
 ## Overview
 
-This guide covers advanced features for dynamic datasource management in mzen-om. For basic usage of DataSourceContext and DataSourceLookup, see [Dynamic DataSource](dynamic-datasource.md).
+This guide covers advanced features for dynamic datasource management in
+mzen-om. For basic usage of DataSourceContext and DataSourceLookup, see
+[Dynamic DataSource](dynamic-datasource.md).
 
 **Topics covered:**
+
 - BaseDataSourceLookup - Abstract class with built-in caching
 - DataSourceRegistry - Connection pool lifecycle management
 - Advanced patterns - Cache invalidation, monitoring, graceful shutdown
 
 ## BaseDataSourceLookup
 
-`BaseDataSourceLookup` is an abstract base class that provides automatic caching for DataSourceLookup implementations. Use this when you want built-in TTL-based caching without implementing it yourself.
+`BaseDataSourceLookup` is an abstract base class that provides automatic caching
+for DataSourceLookup implementations. Use this when you want built-in TTL-based
+caching without implementing it yourself.
 
 ### Constructor
 
@@ -20,6 +25,7 @@ constructor(cacheTTL: number = 10 * 60 * 1000)
 ```
 
 **Parameters:**
+
 - `cacheTTL` - Cache time-to-live in milliseconds (default: 10 minutes)
 
 ### Implementation
@@ -57,9 +63,10 @@ class DatabaseLookup extends BaseDataSourceLookup {
 }
 ```
 
-### Caching Behavior
+### Caching Behaviour
 
-- Automatic TTL-based caching (lookup results cached for `cacheTTL` milliseconds)
+- Automatic TTL-based caching (lookup results cached for `cacheTTL`
+  milliseconds)
 - Cache key format: `${dataSourceName}:${key}`
 - Both successful lookups and null results are cached
 - Cache is checked before calling `performLookup()`
@@ -111,15 +118,14 @@ class RedisLookup extends BaseDataSourceLookup {
 
 ### Utility Methods
 
-**`clearCache(): void`**
-Clear all cached entries from memory:
+**`clearCache(): void`** Clear all cached entries from memory:
 
 ```typescript
 lookup.clearCache()
 ```
 
-**`getCacheStats(): { size: number; keys: string[] }`**
-Get cache statistics for monitoring:
+**`getCacheStats(): { size: number; keys: string[] }`** Get cache statistics for
+monitoring:
 
 ```typescript
 const stats = lookup.getCacheStats()
@@ -129,13 +135,15 @@ console.log(`Cached keys: ${stats.keys.join(', ')}`)
 
 ## DataSourceRegistry
 
-The `DataSourceRegistry` manages a pool of dynamically-created datasource instances with automatic lifecycle management.
+The `DataSourceRegistry` manages a pool of dynamically-created datasource
+instances with automatic lifecycle management.
 
 ### Features
 
 - **Lazy creation** - Create datasources on-demand when first accessed
 - **Connection reuse** - Pool and reuse existing datasource connections
-- **LRU eviction** - Automatically close least-recently-used datasources when pool reaches limit
+- **LRU eviction** - Automatically close least-recently-used datasources when
+  pool reaches limit
 - **Reference counting** - Prevent closing datasources during active queries
 - **Idle timeout** - Close datasources after period of inactivity
 - **Health checks** - Periodic connection validation
@@ -177,11 +185,14 @@ interface DataSourceRegistryConfig {
 
 When the registry size exceeds `maxSize`:
 
-1. Registry searches for the least-recently-used datasource with **zero active references**
+1. Registry searches for the least-recently-used datasource with **zero active
+   references**
 2. If found, that datasource is removed and closed
-3. If all datasources have active references, a warning is logged and no eviction occurs
+3. If all datasources have active references, a warning is logged and no
+   eviction occurs
 
-**Important:** LRU only evicts datasources with `refCount === 0` to prevent closing during active queries.
+**Important:** LRU only evicts datasources with `refCount === 0` to prevent
+closing during active queries.
 
 ### Reference Counting
 
@@ -190,17 +201,20 @@ The registry tracks how many active operations are using each datasource:
 - `getOrCreate()` increments `refCount`
 - `release()` decrements `refCount`
 - Datasources with `refCount > 0` cannot be evicted or closed by idle timeout
-- During `remove()`, the registry waits up to 30 seconds for `refCount` to reach zero
+- During `remove()`, the registry waits up to 30 seconds for `refCount` to reach
+  zero
 
 ### Background Tasks
 
 The registry runs two background tasks:
 
 **Idle Timeout Check** (runs every `idleTimeout / 2`, max 1 minute)
+
 - Finds datasources with `refCount === 0` and `idleTime > idleTimeout`
 - Closes and removes idle datasources
 
 **Health Check** (runs every `healthCheckInterval`)
+
 - Validates datasource connections
 - Removes datasources that fail health checks
 
@@ -274,7 +288,7 @@ const stats = registry.getStats()
 
 console.log(`Active datasources: ${stats.size}/${stats.maxSize}`)
 
-stats.entries.forEach(entry => {
+stats.entries.forEach((entry) => {
   console.log(`  ${entry.key}:`)
   console.log(`    Active refs: ${entry.refCount}`)
   console.log(`    Idle time: ${entry.idleTime}ms`)
@@ -283,16 +297,17 @@ stats.entries.forEach(entry => {
 ```
 
 Returns:
+
 ```typescript
 {
-  size: number          // Current number of datasources
-  maxSize: number       // Maximum allowed datasources
+  size: number // Current number of datasources
+  maxSize: number // Maximum allowed datasources
   entries: Array<{
-    key: string         // Datasource key
+    key: string // Datasource key
     lastAccessed: number // Timestamp of last access
-    refCount: number    // Active reference count
-    idleTime: number    // Milliseconds since last access
-    age: number         // Milliseconds since creation
+    refCount: number // Active reference count
+    idleTime: number // Milliseconds since last access
+    age: number // Milliseconds since creation
   }>
 }
 ```
@@ -312,7 +327,7 @@ const dataSource = await registry.createDataSourceFromDetails({
   options: {
     replicaSet: 'rs0',
     ssl: true,
-  }
+  },
 })
 ```
 
@@ -346,7 +361,8 @@ class ProjectLookup extends BaseDataSourceLookup {
 }
 ```
 
-When configuration changes, call `invalidate()` to clear cached entry and trigger `performInvalidate()`.
+When configuration changes, call `invalidate()` to clear cached entry and
+trigger `performInvalidate()`.
 
 ### Monitoring Registry Health
 
@@ -363,7 +379,7 @@ setInterval(() => {
   }
 
   // Alert on datasources with high ref counts
-  stats.entries.forEach(entry => {
+  stats.entries.forEach((entry) => {
     if (entry.refCount > 10) {
       logger.warn(`Datasource ${entry.key} has ${entry.refCount} active refs`)
     }
@@ -395,7 +411,8 @@ process.on('SIGINT', shutdown)
 
 ### Custom Cache Layers
 
-For distributed caching (e.g., Redis), combine `BaseDataSourceLookup` with external cache:
+For distributed caching (e.g., Redis), combine `BaseDataSourceLookup` with
+external cache:
 
 ```typescript
 class DistributedLookup extends BaseDataSourceLookup {
@@ -441,15 +458,19 @@ class DistributedLookup extends BaseDataSourceLookup {
 ```
 
 **Caching layers:**
+
 1. Memory cache (BaseDataSourceLookup) - 1 minute, per-instance
 2. Redis cache - 10 minutes, shared across instances
 3. Database - source of truth
 
 ## Related Files
 
-- **[src/data-source/lookup/interface.ts](../src/data-source/lookup/interface.ts)** - BaseDataSourceLookup implementation
-- **[src/data-source/registry.ts](../src/data-source/registry.ts)** - DataSourceRegistry implementation
-- **[src/data-source-manager.ts](../src/data-source-manager.ts)** - Integration layer
+- **[src/data-source/lookup/interface.ts](../src/data-source/lookup/interface.ts)** -
+  BaseDataSourceLookup implementation
+- **[src/data-source/registry.ts](../src/data-source/registry.ts)** -
+  DataSourceRegistry implementation
+- **[src/data-source-manager.ts](../src/data-source-manager.ts)** - Integration
+  layer
 
 ## See Also
 

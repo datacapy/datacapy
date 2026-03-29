@@ -21,7 +21,7 @@ export class Filter {
       const specialFilterNames = ['private', 'privateValue']
       if (specialFilterNames.indexOf(filterName) !== -1) continue
 
-      if (!filter) throw new Error('Uknown filter "' + filterName + '"')
+      if (!filter) throw new Error('Unknown filter "' + filterName + '"')
 
       let filterSpec = filtersSpec[filterName]
       // If filtersSpec is an array we run the validator multiple times

@@ -93,7 +93,7 @@ export abstract class RelationAbstract {
     return compositeIds
   }
 
-  // Analyze composite IDs to identify constant vs variant fields
+  // Analyse composite IDs to identify constant vs variant fields
   // Returns: { constantFields: {field: value}, variantFields: {field: [values]} }
   protected analyzeCompositeFields(
     compositeIds: Array<{ [field: string]: any }>,
@@ -162,7 +162,7 @@ export abstract class RelationAbstract {
     const sourceFields = Object.keys(keys)
     const targetFields = Object.values(keys)
 
-    // Analyze which fields are constant vs variant
+    // Analyse which fields are constant vs variant
     const { constantFields, variantFields } = this.analyzeCompositeFields(
       compositeIds,
       sourceFields
@@ -394,7 +394,7 @@ export abstract class RelationAbstract {
     let config: RelationConfig = clone(relationConfig)
     // pkey is the primary key name to use when looking up relations
     // - the primary key is the key of the source document on has* type relations
-    // - the primary key is the key of the related document on blongsTo* type relations
+    // - the primary key is the key of the related document on belongsTo* type relations
     config.pkey = config.pkey ? config.pkey : '_id'
     // Key is the field where the relation id is stored in the related document
     // - for all except belongsTo type relations where the key is on the source document

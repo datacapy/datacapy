@@ -273,8 +273,8 @@ export class ModelManager {
 
   addRepos(repos: Array<Repo<any>> | { [key: string]: Repo<any> }) {
     // could be an array of repo objects or a object map
-    var reopsArray = Array.isArray(repos) ? repos : Object.values(repos)
-    reopsArray.forEach((repo) => this.addRepo(repo))
+    var reposArray = Array.isArray(repos) ? repos : Object.values(repos)
+    reposArray.forEach((repo) => this.addRepo(repo))
   }
 
   addService(service: Service) {

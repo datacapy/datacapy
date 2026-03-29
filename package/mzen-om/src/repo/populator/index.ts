@@ -76,7 +76,7 @@ export class RepoPopulator {
   async populateAll(repo: Repo<any>, docs: any, options?: RepoQueryOptions) {
     options = options ? options : {}
     const flattenedRelations = this.getFlattenedRelations(repo, options)
-    options.populate = false // Dont populate recursively - we already flattened the relations
+    options.populate = false // Don't populate recursively - we already flattened the relations
 
     for (let depth in flattenedRelations) {
       if (!flattenedRelations[depth]) continue
@@ -106,26 +106,26 @@ export class RepoPopulator {
     const relationConfig: RepoRelationConfig =
       typeof relation == 'string' ? relations[relation] : relation
 
-    // Clone the options because we dont want changes to the options doc to change the original doc
+    // Clone the options because we don't want changes to the options doc to change the original doc
     var relationPopulateConfig = options
       ? { ...relationConfig, ...options }
       : relationConfig
-    var realtionHandler = this.getRelationHandler(relationConfig.type)
+    var relationHandler = this.getRelationHandler(relationConfig.type)
     var relationRepo = repo.getRepo(relationConfig.repo)
 
     if (Array.isArray(docs) && relationConfig.limit) {
       // This relation is using the limit option so we can not populate a collection of docs in a single query
       // - as it would produce in unexpected results.
-      // We must populate each document individually with a seperate query
+      // We must populate each document individually with a separate query
       for (var x in docs) {
-        await realtionHandler.populate(
+        await relationHandler.populate(
           relationRepo,
           relationPopulateConfig,
           docs[x]
         )
       }
     } else {
-      await realtionHandler.populate(relationRepo, relationPopulateConfig, docs)
+      await relationHandler.populate(relationRepo, relationPopulateConfig, docs)
     }
 
     return docs
@@ -168,7 +168,7 @@ export class RepoPopulator {
     var basePathParts = basePath ? basePath.split('.') : []
 
     for (let x in repo.config.relations) {
-      let relation = clone(repo.config.relations[x]) // copy the relation we dont want to modify the original
+      let relation = clone(repo.config.relations[x]) // copy the relation we don't want to modify the original
       let depth = basePathParts.length
       let recursion = relation.recursion ? relation.recursion : 0
       let autoPopulate =
@@ -200,9 +200,9 @@ export class RepoPopulator {
         : relation.alias
 
       if (
-        !queryPopulate || // query said dont populate any relations
-        (queryPopulate[fullPath] !== undefined && !queryPopulate[fullPath]) || // query said dont populate this path
-        (queryPopulate[fullPath] === undefined && !autoPopulate) // query didnt specificaly enable population and relation auto population is disabled
+        !queryPopulate || // query said don't populate any relations
+        (queryPopulate[fullPath] !== undefined && !queryPopulate[fullPath]) || // query said don't populate this path
+        (queryPopulate[fullPath] === undefined && !autoPopulate) // query didn't specifically enable population and relation auto population is disabled
       ) {
         // relation should not populate - continue to next relation
         continue
@@ -217,16 +217,16 @@ export class RepoPopulator {
       }
 
       // How many parents of this relation are the same relation?
-      let realtionDepths: boolean[] = []
+      let relationDepths: boolean[] = []
       flatRelations.forEach((existingFlatRelation) => {
         if (
           existingFlatRelation.id == flatRelation.id &&
           existingFlatRelation.depth < depth
         ) {
-          realtionDepths[existingFlatRelation.depth] = true
+          relationDepths[existingFlatRelation.depth] = true
         }
       })
-      flatRelation.recursionCount = realtionDepths.length
+      flatRelation.recursionCount = relationDepths.length
 
       // If we have reached the recursion count skip this relation
       if (flatRelation.recursionCount > recursion) continue

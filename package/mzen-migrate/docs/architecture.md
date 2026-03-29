@@ -57,10 +57,10 @@ This document explains the technical implementation of the `mzen-migrate` databa
 
 ```typescript
 interface DatabasePatchInterface {
-  version: string           // Unique identifier (e.g., "2024-02-05_1000")
-  description: string       // Human-readable description
-  dataSourceName: string    // Target datasource ('db', 'project', etc.)
-  update(modelManager: ModelManager): Promise<void>  // Migration logic
+  version: string; // Unique identifier (e.g., "2024-02-05_1000")
+  description: string; // Human-readable description
+  dataSourceName: string; // Target datasource ('db', 'project', etc.)
+  update(modelManager: ModelManager): Promise<void>; // Migration logic
 }
 ```
 
@@ -75,6 +75,7 @@ migrate/
 ```
 
 **Naming Convention:**
+
 - Format: `YYYY-MM-DD_HHMM_description.ts`
 - Version in filename MUST match `version` property
 - Chronological ordering by timestamp
@@ -96,10 +97,10 @@ migrate/
 
 **Example Data:**
 
-| version | description | appliedAt | duration |
-|---------|-------------|-----------|----------|
-| 2024-02-05_1000 | Initialize database indexes | 2024-02-05 10:30:00 | 1245 |
-| 2024-02-05_1001 | Seed subscription tiers | 2024-02-05 10:30:02 | 523 |
+| version         | description                 | appliedAt           | duration |
+| --------------- | --------------------------- | ------------------- | -------- |
+| 2024-02-05_1000 | Initialize database indexes | 2024-02-05 10:30:00 | 1245     |
+| 2024-02-05_1001 | Seed subscription tiers     | 2024-02-05 10:30:02 | 523      |
 
 ## Execution Flow
 
@@ -203,8 +204,8 @@ Versions are compared as strings (lexicographic order):
 
 ```typescript
 // Chronological order
-'2024-02-05_0900' < '2024-02-05_1000' < '2024-02-05_1430'
-'2024-02-05_1430' < '2024-02-06_0900'
+"2024-02-05_0900" < "2024-02-05_1000" < "2024-02-05_1430";
+"2024-02-05_1430" < "2024-02-06_0900";
 ```
 
 ### Determining Patches to Apply
@@ -213,17 +214,17 @@ Versions are compared as strings (lexicographic order):
 function getVersionsToApply(
   allVersions: string[],
   currentVersion: string | null,
-  targetVersion: string
+  targetVersion: string,
 ): string[] {
   // Sort all versions chronologically
-  const sorted = allVersions.sort()
+  const sorted = allVersions.sort();
 
   // Filter: > currentVersion AND <= targetVersion
-  return sorted.filter(v => {
-    const afterCurrent = !currentVersion || v > currentVersion
-    const beforeTarget = v <= targetVersion
-    return afterCurrent && beforeTarget
-  })
+  return sorted.filter((v) => {
+    const afterCurrent = !currentVersion || v > currentVersion;
+    const beforeTarget = v <= targetVersion;
+    return afterCurrent && beforeTarget;
+  });
 }
 ```
 
@@ -251,15 +252,15 @@ For regular datasources (like 'db'):
 const modelManager = new ModelManager({
   dataSources: [
     {
-      name: 'db',
-      type: 'mysql',
-      config: { host, user, password, database }
-    }
-  ]
-})
+      name: "db",
+      type: "mysql",
+      config: { host, user, password, database },
+    },
+  ],
+});
 
 // Resolved directly
-const dataSource = modelManager.getDataSource('db')
+const dataSource = modelManager.getDataSource("db");
 ```
 
 ### Dynamic Datasources
@@ -269,14 +270,14 @@ For context-specific databases (like project databases):
 ```typescript
 // Requires context
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: 'project123' }
-})
+  project: { lookupKey: "project123" },
+});
 
 // Resolved dynamically
 const dataSource = await modelManager.getDataSourceDynamic(
-  'project',
-  context.getForDataSource('project')
-)
+  "project",
+  context.getForDataSource("project"),
+);
 ```
 
 **Use Case:** Migrate individual project databases
@@ -296,19 +297,19 @@ Each patch runs in a transaction with automatic rollback on failure:
 ```typescript
 // All operations in this patch are in a transaction
 export default class SafeMigration implements DatabasePatchInterface {
-  version = '2024-02-09_1000'
-  description = 'Safe migration with automatic rollback'
-  dataSourceName = 'db'
+  version = "2024-02-09_1000";
+  description = "Safe migration with automatic rollback";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const db = modelManager.getDataSource('db')
+    const db = modelManager.getDataSource("db");
 
     // All these operations are in a transaction
-    await db.insertOne('users', { email: 'user1@example.com' })
-    await db.insertOne('users', { email: 'user2@example.com' })
+    await db.insertOne("users", { email: "user1@example.com" });
+    await db.insertOne("users", { email: "user2@example.com" });
 
     // If this fails, both inserts are rolled back
-    await db.createIndex('users', { email: 1 }, { unique: true })
+    await db.createIndex("users", { email: 1 }, { unique: true });
   }
 }
 ```
@@ -396,29 +397,31 @@ For migrations affecting many records:
 
 ```typescript
 // ❌ Bad: Load all records into memory
-const allUsers = await repo.findAll({})
+const allUsers = await repo.findAll({});
 for (const user of allUsers) {
-  await repo.updateOne({ /* ... */ }, { _id: user._id })
+  await repo.updateOne(
+    {
+      /* ... */
+    },
+    { _id: user._id },
+  );
 }
 
 // ✅ Good: Batch updates
-await repo.updateMany(
-  { newField: 'value' },
-  { newField: { $exists: false } }
-)
+await repo.updateMany({ newField: "value" }, { newField: { $exists: false } });
 
 // ✅ Good: Paginated processing
-let skip = 0
-const limit = 1000
+let skip = 0;
+const limit = 1000;
 while (true) {
-  const batch = await repo.find({}, { skip, limit })
-  if (batch.length === 0) break
+  const batch = await repo.find({}, { skip, limit });
+  if (batch.length === 0) break;
 
   for (const record of batch) {
-    await processRecord(record)
+    await processRecord(record);
   }
 
-  skip += limit
+  skip += limit;
 }
 ```
 
@@ -426,15 +429,15 @@ while (true) {
 
 ```typescript
 // Index creation can be slow on large tables
-console.log('Creating indexes (this may take a while)...')
-await repo.createIndexes()
+console.log("Creating indexes (this may take a while)...");
+await repo.createIndexes();
 ```
 
 **Tip:** Schedule migrations during maintenance windows for production.
 
 ## Error Handling
 
-### Migration Failure Behavior
+### Migration Failure Behaviour
 
 **When a migration fails:**
 
@@ -457,22 +460,22 @@ mzen-migrate --config ./migrate.config.js --datasource db
 
 ```typescript
 export default class CustomErrorHandling implements DatabasePatchInterface {
-  version = '2024-02-10_1000'
-  description = 'Migration with custom error handling'
-  dataSourceName = 'db'
+  version = "2024-02-10_1000";
+  description = "Migration with custom error handling";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('user')
+    const repo = modelManager.getRepo("user");
 
     try {
-      await repo.createIndexes()
+      await repo.createIndexes();
     } catch (error) {
       // Handle specific error gracefully
-      if (error.message.includes('already exists')) {
-        console.log('⚠ Indexes already exist, continuing...')
+      if (error.message.includes("already exists")) {
+        console.log("⚠ Indexes already exist, continuing...");
       } else {
         // Re-throw to trigger rollback
-        throw error
+        throw error;
       }
     }
   }
@@ -486,27 +489,27 @@ export default class CustomErrorHandling implements DatabasePatchInterface {
 ```typescript
 // ❌ Bad
 await repo.create({
-  email: 'admin@example.com',
-  password: 'hardcodedpassword123'  // ❌ Never hardcode
-})
+  email: "admin@example.com",
+  password: "hardcodedpassword123", // ❌ Never hardcode
+});
 
 // ✅ Good
 await repo.create({
-  email: 'admin@example.com',
-  password: await hashPassword(process.env.ADMIN_PASSWORD)
-})
+  email: "admin@example.com",
+  password: await hashPassword(process.env.ADMIN_PASSWORD),
+});
 ```
 
 ### 2. Validate Input Data
 
 ```typescript
 // Validate before inserting
-const seedData = INITIAL_DATA
+const seedData = INITIAL_DATA;
 for (const data of seedData) {
   if (!data.code || !data.name) {
-    throw new Error('Invalid data')
+    throw new Error("Invalid data");
   }
-  await repo.create(data)
+  await repo.create(data);
 }
 ```
 

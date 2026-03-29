@@ -349,7 +349,7 @@ describe('Repo', () => {
     })
   })
   describe('insert()', () => {
-    // Since we seperated schema defination from Repos the 'strict' option can no longer be passed in repo options
+    // Since we separated schema definition from Repos the 'strict' option can no longer be passed in repo options
     // - we need to add the ability to specify the $strict option within the schema spec itself
     /*
     it('should fail validation in strict mode if contains unspecified properties', async () => {

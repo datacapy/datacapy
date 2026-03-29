@@ -44,7 +44,7 @@ export class Validator {
 
       for (let y = 0; y < validatorConfig.length; y++) {
         let config = Object.assign({}, options, validatorConfig[y])
-        // We only validate if we dont already have an error
+        // We only validate if we don't already have an error
         if (results === true) {
           // Validate function can return a promise but it may also return boolean, string or array
           // - we must first resolve the return value to ensure we have promise

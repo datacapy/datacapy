@@ -254,7 +254,7 @@ export class Schema {
       },
       {
         // If the spec is for related data we do not validate
-        // - this data will be stripped before any insertion or updating to persistance
+        // - this data will be stripped before any insertion or updating to persistence
         skipTransients: true,
       }
     )
@@ -313,7 +313,7 @@ export class Schema {
       },
       {
         // If the spec is for related data we do not validate
-        // - this data will be stripped before any insertion or updating to persistance
+        // - this data will be stripped before any insertion or updating to persistence
         skipTransients: true,
       }
     )
@@ -333,7 +333,7 @@ export class Schema {
     var meta = meta ? meta : { errors: {} }
     config = config ? config : {}
     // This is a query - we are expecting fields which are not defined
-    // - We dont want those to trigger an error so disabled strict validation
+    // - We don't want those to trigger an error so disabled strict validation
     config.strict = false
 
     var promises = []

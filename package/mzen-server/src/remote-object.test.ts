@@ -916,7 +916,7 @@ describe('ServerRemoteObject', function () {
       await middlewareConfigs[0].callback(req, res)
       expect(res.mockData).toEqual('success')
     })
-    it('injects aclContext into callack method', async () => {
+    it('injects aclContext into callback method', async () => {
       const targetObject = {
         // aclContext and aclConditions are always appended as arguments - they are no configurable as with requestArgs
         getAll: function ({ aclContext }) {
@@ -959,7 +959,7 @@ describe('ServerRemoteObject', function () {
       await middlewareConfigs[0].callback(req, res)
       expect(res.mockData.user.id).toEqual('123')
     })
-    it('injects aclConditions into callack method', async () => {
+    it('injects aclConditions into callback method', async () => {
       const targetObject = {
         // aclContext and aclConditions are always appended as arguments - they are no configurable as with requestArgs
         getAll: function ({ aclConditions }) {

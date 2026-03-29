@@ -1,6 +1,6 @@
 import { FilterAbstract } from './filter-abstract'
 
-// UK postcode has two parts seperated by a space
+// UK postcode has two parts separated by a space
 // UK FORMAT EXAMPLE
 //    AN NAA    M1 1AA
 //    ANN NAA   M60 1NW
@@ -20,7 +20,7 @@ export class FilterPostcode extends FilterAbstract {
     // Ensure there are no repeated spaces
     value = value.replace(/\s\s+/g, ' ')
     if (
-      value.indexOf(' ') == -1 && // Doesnt have a space
+      value.indexOf(' ') == -1 && // Doesn't have a space
       value.length >= 5 &&
       value.length <= 7
     ) {

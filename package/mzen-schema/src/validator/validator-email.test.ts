@@ -25,7 +25,7 @@ describe('validator - email', () => {
   })
 
   it('should not allow multiple @ characters', () => {
-    const value = 'test@@gmai.com'
+    const value = 'test@@gmail.com'
     const result = new ValidatorEmail().validate(value)
 
     expect(typeof result).toBe('string')

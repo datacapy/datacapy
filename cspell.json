@@ -11,5 +11,6 @@
   "dictionaryDefinitions": [
     { "name": "project-words", "path": "./.cspell-words.txt", "addWords": true }
   ],
-  "minWordLength": 4
+  "minWordLength": 4,
+  "ignorePaths": ["**/dist/**"]
 }

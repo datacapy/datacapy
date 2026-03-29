@@ -14,11 +14,13 @@ relations: {
 }
 ```
 
-This was insufficient for multi-tenant scenarios where you need to match on multiple fields (e.g., `participantId` + `surveyId` + `projectId`).
+This was insufficient for multi-tenant scenarios where you need to match on
+multiple fields (e.g., `participantId` + `surveyId` + `projectId`).
 
 ## Solution: Unified Composite Keys
 
-We implemented a **unified approach** where all joins are treated as composite key operations. Single-key joins are just composite keys with one field.
+We implemented a **unified approach** where all joins are treated as composite
+key operations. Single-key joins are just composite keys with one field.
 
 ## Configuration
 
@@ -38,7 +40,8 @@ relations: {
 }
 ```
 
-The `key` property is automatically merged with `keys` for backward compatibility.
+The `key` property is automatically merged with `keys` for backward
+compatibility.
 
 ### Multiple Composite Keys
 
@@ -60,7 +63,8 @@ relations: {
 
 ### 1. Key Normalization
 
-The `getNormalizedKeys` method converts legacy `key`/`pkey` and new `keys` into a unified format:
+The `getNormalizedKeys` method converts legacy `key`/`pkey` and new `keys` into
+a unified format:
 
 ```typescript
 // Input: { key: 'participantId', keys: { surveyId: 'surveyId' } }
@@ -68,12 +72,14 @@ The `getNormalizedKeys` method converts legacy `key`/`pkey` and new `keys` into 
 ```
 
 **Field direction:**
+
 - For `belongsTo` relations: `key` is source field → `pkey` is target field
 - For `has` relations: `pkey` is source field → `key` is target field
 
 ### 2. Composite ID Extraction
 
-The `getCompositeRelationIds` method extracts field values from source documents:
+The `getCompositeRelationIds` method extracts field values from source
+documents:
 
 ```typescript
 // Source docs: [{ participantId: 'p1', surveyId: 's1', projectId: 'proj1' }]
@@ -81,6 +87,7 @@ The `getCompositeRelationIds` method extracts field values from source documents
 ```
 
 **Special cases:**
+
 - Arrays for `belongsToMany` (e.g., `favouriteColorIds: ['1', '5']`)
 - Missing fields (skipped from output)
 
@@ -133,14 +140,15 @@ The `populateValues` method:
 
 ## Query Optimization
 
-The system automatically optimizes queries by detecting which fields are constant vs variant across documents.
+The system automatically optimizes queries by detecting which fields are
+constant vs variant across documents.
 
 ### Scenario 1: All but one field is constant
 
 **Input documents:**
 
 ```javascript
-[
+;[
   { participantId: 'p1', surveyId: 's1', projectId: 'proj1' },
   { participantId: 'p2', surveyId: 's1', projectId: 'proj1' },
   { participantId: 'p3', surveyId: 's1', projectId: 'proj1' },
@@ -176,7 +184,7 @@ The system automatically optimizes queries by detecting which fields are constan
 **Input documents:**
 
 ```javascript
-[
+;[
   // Group 1: regionId='r1'
   { userId: 'u1', accountId: 'a1', regionId: 'r1' },
   { userId: 'u2', accountId: 'a2', regionId: 'r1' },
@@ -204,21 +212,26 @@ The system automatically optimizes queries by detecting which fields are constan
 }
 ```
 
-**Benefit:** 2 $or clauses instead of 3, with $in for variants within each group.
+**Benefit:** 2 $or clauses instead of 3, with $in for variants within each
+group.
 
 ### How Optimization Works
 
-The optimization is handled by `buildOptimizedCompositeQuery()` in [abstract.ts](../src/repo-populator/relation/abstract.ts):
+The optimization is handled by `buildOptimizedCompositeQuery()` in
+[abstract.ts](../src/repo-populator/relation/abstract.ts):
 
-1. **Analyze fields** (`analyzeCompositeFields`):
+1. **Analyse fields** (`analyzeCompositeFields`):
+
    - Detect which fields have the same value across all documents (constant)
    - Detect which fields have varying values (variant)
    - Skip array values (always treat as variant)
 
 2. **Build optimized query**:
+
    - Add constant fields as simple equality: `{ field: value }`
    - If only one variant field, use `$in`: `{ field: { $in: [values] } }`
-   - If multiple variant fields, group by constants and use `$or` with `$in` within groups
+   - If multiple variant fields, group by constants and use `$or` with `$in`
+     within groups
 
 3. **Fallback for worst case**:
    - When all fields vary, falls back to full `$or` with individual conditions
@@ -270,10 +283,12 @@ relations: {
 
 Use composite keys when:
 
-- Multi-tenant applications need to scope relations by tenant/project/organization
+- Multi-tenant applications need to scope relations by
+  tenant/project/organization
 - Sharded data requires matching on multiple dimensions
 - Natural keys involve multiple fields
-- You need to ensure relations match on business rules (e.g., same survey, same project)
+- You need to ensure relations match on business rules (e.g., same survey, same
+  project)
 
 ## When NOT to Use Composite Keys
 
@@ -285,19 +300,25 @@ Stick with single keys when:
 
 ## Design Decisions
 
-1. **Unified Implementation**: No separate code paths for single vs composite keys
+1. **Unified Implementation**: No separate code paths for single vs composite
+   keys
+
    - Simpler maintenance
-   - Consistent behavior
+   - Consistent behaviour
    - Easier testing
 
 2. **Backward Compatibility**: All existing single-key relations work unchanged
+
    - `key` property still supported
    - Automatically converted to `keys` format internally
 
 3. **Query Optimization**:
+
    - **Single-key queries** use `$in` (faster)
-   - **Constant field detection**: Analyzes composite IDs to identify fields with constant values
-   - **Optimized multi-key queries**: Minimizes `$or` clauses by using `$in` for variant fields
+   - **Constant field detection**: Analyses composite IDs to identify fields
+     with constant values
+   - **Optimized multi-key queries**: Minimizes `$or` clauses by using `$in` for
+     variant fields
 
 4. **Field Direction Mapping**:
    - Keys map `sourceField: targetField`

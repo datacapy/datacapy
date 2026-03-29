@@ -93,7 +93,7 @@ export class ServerAcl {
         const role = rule.role
         return this.hasRole(role, context).then(
           (userHasRole: PermittedResultType) => {
-            // If the user does not have the role then we dont modify the permitted value
+            // If the user does not have the role then we don't modify the permitted value
             // - we would return the initResult, so we can default to that value
             let result = initResult
             if (userHasRole) {

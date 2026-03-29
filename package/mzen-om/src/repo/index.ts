@@ -271,8 +271,8 @@ export class Repo<T> {
 
   addRepos<T extends Object>(repos: Array<Repo<T>> | Record<string, Repo<T>>) {
     // could be an array of repo docs or a object map
-    var reopsArray = Array.isArray(repos) ? repos : Object.values(repos)
-    reopsArray.forEach((repo) => this.addRepo(repo))
+    var reposArray = Array.isArray(repos) ? repos : Object.values(repos)
+    reposArray.forEach((repo) => this.addRepo(repo))
   }
 
   addService(service: Service) {
@@ -611,7 +611,7 @@ export class Repo<T> {
   }
 
   private getPropagateOptions(options) {
-    // Get find options that should propgate (with query options removed)
+    // Get find options that should propagate (with query options removed)
     options = options ? options : {}
     return {
       filterPrivate: options.filterPrivate,

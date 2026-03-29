@@ -47,7 +47,7 @@ export class Service {
   }
 
   getName(): string {
-    // If service name == 'Service' then we are most likely using the name of the default service constrcutor.
+    // If service name == 'Service' then we are most likely using the name of the default service constructor.
     // This can cause problems because services are referred to by name in the model and if we have multiple
     // services named 'Service' we could not be sure which one we are working with
     // For this reason we do not permit a service to be named 'Service'
@@ -68,8 +68,8 @@ export class Service {
 
   addRepos(repos: Array<Repo<any>> | { [key: string]: Repo<any> }) {
     // could be an array of repo objects or a object map
-    var reopsArray = Array.isArray(repos) ? repos : Object.values(repos)
-    reopsArray.forEach((repo) => this.addRepo(repo))
+    var reposArray = Array.isArray(repos) ? repos : Object.values(repos)
+    reposArray.forEach((repo) => this.addRepo(repo))
   }
 
   addService<T extends Service>(service: T) {

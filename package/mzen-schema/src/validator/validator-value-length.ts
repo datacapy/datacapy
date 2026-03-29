@@ -19,7 +19,7 @@ export class ValidatorValueLength {
     const resultMin =
       !min ||
       (value != null &&
-        // In Javascript [[]] evaluates to false - we dont want this
+        // In Javascript [[]] evaluates to false - we don't want this
         // - an array is only considered empty if it has zero elements
         ((valueType != Array && valueType != String) || value.length >= min) &&
         (valueType != Number || (isNaN(value) && value >= min)) &&
@@ -28,7 +28,7 @@ export class ValidatorValueLength {
     const resultMax =
       !max ||
       value == null ||
-      // In Javascript [[]] evaluates to false - we dont want this
+      // In Javascript [[]] evaluates to false - we don't want this
       // - an array is only considered empty if it has zero elements
       (((valueType != Array && valueType != String) || value.length <= max) &&
         (valueType != Number || (isNaN(value) && value <= max)) &&

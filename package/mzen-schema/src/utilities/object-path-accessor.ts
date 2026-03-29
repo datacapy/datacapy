@@ -17,7 +17,7 @@ export class ObjectPathAccessor {
    * Returns all elements matching 'path' in 'subject'.
    */
   static getPath(path: string | number, subject: any) {
-    return ObjectPathAccessor.searchRescursive(path, subject)
+    return ObjectPathAccessor.searchRecursive(path, subject)
   }
   /*
    * Set path
@@ -26,7 +26,7 @@ export class ObjectPathAccessor {
    * Returns all matching elements with updated values.
    */
   static setPath(path: string | number, value: any, subject: any) {
-    return ObjectPathAccessor.searchRescursive(path, subject, function () {
+    return ObjectPathAccessor.searchRecursive(path, subject, function () {
       return value
     })
   }
@@ -36,7 +36,7 @@ export class ObjectPathAccessor {
    * Unsets all elements matching 'path' in the given 'subject'.
    */
   static unsetPath(path: string | number, subject: any) {
-    return ObjectPathAccessor.searchRescursive(path, subject, function () {
+    return ObjectPathAccessor.searchRecursive(path, subject, function () {
       return undefined // changing value to undefined causes the prop to be unset
     })
   }
@@ -51,23 +51,23 @@ export class ObjectPathAccessor {
     subject: any,
     mutator: (value: any) => any
   ) {
-    return ObjectPathAccessor.searchRescursive(path, subject, mutator)
+    return ObjectPathAccessor.searchRecursive(path, subject, mutator)
   }
   /**
    * Search Recursive
    *
    * Search 'subject' for elements matching 'pattern'.
-   * Matched values may be modifed using optional mutatorFunc.
+   * Matched values may be modified using optional mutatorFunc.
    * Returns matched value(s).
    */
-  static searchRescursive(
+  static searchRecursive(
     pattern: string | number,
     subject: any,
     mutatorFunc?: (value: any, subject: any, prop: string | number) => any,
     meta?: {
       currentPath?: string
       currentDepth?: number
-      wilcardPath?: boolean
+      wildcardPath?: boolean
       matches?: Array<any>
     }
   ) {
@@ -101,7 +101,7 @@ export class ObjectPathAccessor {
         !ObjectPathAccessor.isNumber(currentNode)
       ) {
         // Subject node is an array but pattern node is not an array operator
-        // Expand pattern adding wildcard to rescurse
+        // Expand pattern adding wildcard to recurse
         nextNode = currentNode
         currentNode = '*'
         currentParts.pop() // remove current node
@@ -110,9 +110,9 @@ export class ObjectPathAccessor {
           .concat([nextNode])
           .concat(patternParts.slice(currentDepth))
         pattern = patternParts.join('.')
-        meta.wilcardPath = true
+        meta.wildcardPath = true
 
-        ObjectPathAccessor.searchRescursive(pattern, subject, mutatorFunc, meta)
+        ObjectPathAccessor.searchRecursive(pattern, subject, mutatorFunc, meta)
       } else {
         processElement(currentNode)
       }
@@ -151,7 +151,7 @@ export class ObjectPathAccessor {
         meta.currentPath = elementPath
         meta.currentDepth = depth
         meta.matches = matches
-        ObjectPathAccessor.searchRescursive(
+        ObjectPathAccessor.searchRecursive(
           pattern,
           subject[prop],
           mutatorFunc,
@@ -162,7 +162,7 @@ export class ObjectPathAccessor {
 
     // If the pattern contains a wildcard the result should be an array.
     // - Otherwise it should be a single value
-    return patternParts.indexOf('*') !== -1 || meta.wilcardPath
+    return patternParts.indexOf('*') !== -1 || meta.wildcardPath
       ? matches
       : matches[0]
   }

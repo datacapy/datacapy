@@ -2,17 +2,21 @@
 
 ## Overview
 
-The dynamic datasource system supports using multiple datasources simultaneously, each with its own context and isolation boundaries. This is essential for multi-tenant applications, cross-boundary relations, and complex data isolation scenarios.
+The dynamic datasource system supports using multiple datasources
+simultaneously, each with its own context and isolation boundaries. This is
+essential for multi-tenant applications, cross-boundary relations, and complex
+data isolation scenarios.
 
 ## When to Use Multiple DataSources
 
 ### Single DataSource (Common Case)
+
 When all entities share the same isolation boundary:
 
 ```typescript
 // All repos use the same 'project' datasource
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }
+  project: { lookupKey: projectId },
 })
 
 // Works for all repos configured with dataSource: 'project'
@@ -21,9 +25,12 @@ await repoQuestion.find(query, { context })
 ```
 
 ### Multiple DataSources (Advanced)
-When entities have different isolation boundaries or span multiple tenancy levels:
+
+When entities have different isolation boundaries or span multiple tenancy
+levels:
 
 **Example**: Multi-level tenant isolation
+
 - `survey` uses datasource 'project' (isolated by projectId)
 - `organization` uses datasource 'tenant' (isolated by tenantId)
 - `survey` has a relation to `organization`
@@ -55,9 +62,9 @@ await repoSurvey.findOne(
 ```typescript
 // Context options for a specific datasource
 interface DataSourceContextEntry {
-  lookupKey?: string      // Key for dynamic datasource lookup
-  dataSourceKey?: string  // Direct datasource connection key
-  useDefault?: boolean    // Use default datasource
+  lookupKey?: string // Key for dynamic datasource lookup
+  dataSourceKey?: string // Direct datasource connection key
+  useDefault?: boolean // Use default datasource
 }
 
 // Map of datasource names to their context options
@@ -114,7 +121,8 @@ context.getForDataSource('unknown')
 
 ### Context Resolution
 
-When a repository needs a datasource, the context resolves the appropriate entry:
+When a repository needs a datasource, the context resolves the appropriate
+entry:
 
 1. Repository calls `context.getForDataSource('dataSourceName')`
 2. Context looks up the datasource by exact name match
@@ -137,19 +145,22 @@ await repoSurvey.findOne(
     context,
     populate: {
       questions: true, // Same datasource ('project')
-      account: true,   // Different datasource ('account')
-    }
+      account: true, // Different datasource ('account')
+    },
   }
 )
 ```
 
 **Resolution steps:**
+
 1. `repoSurvey.getDataSource(context)`:
+
    - Calls `context.getForDataSource('project')`
    - Gets `{ lookupKey: projectId }`
    - Lookup resolves to actual connection
 
 2. When populating `questions` relation:
+
    - `repoQuestion.getDataSource(context)`
    - Calls `context.getForDataSource('project')`
    - Uses same context (same datasource)
@@ -160,7 +171,7 @@ await repoSurvey.findOne(
    - Gets `{ lookupKey: accountId }`
    - Lookup resolves to different connection
 
-### Internal Behavior
+### Internal Behaviour
 
 - Context stores datasource entries in an internal Map
 - `getForDataSource(name)` performs exact string match lookup
@@ -191,7 +202,8 @@ export class RepoOrganization extends Repo<Organization> {
 }
 ```
 
-The `dataSource` property determines which entry in the context the repository uses.
+The `dataSource` property determines which entry in the context the repository
+uses.
 
 ## Multi-Tenant Patterns
 
@@ -201,13 +213,13 @@ Organizations > Projects > Data
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  org: { lookupKey: orgId },       // Organization-level data
+  org: { lookupKey: orgId }, // Organization-level data
   project: { lookupKey: projectId }, // Project-level data
 })
 
 // Repos automatically use appropriate datasource
 await repoOrganization.find({}, { context }) // Uses 'org'
-await repoSurvey.find({}, { context })        // Uses 'project'
+await repoSurvey.find({}, { context }) // Uses 'project'
 ```
 
 ### Pattern 2: Cross-Tenant Relations
@@ -227,7 +239,7 @@ await repoDocument.findOne(
     context,
     populate: {
       author: true, // Uses 'global' datasource
-    }
+    },
   }
 )
 ```
@@ -238,7 +250,7 @@ Shared data (e.g., categories) plus isolated data:
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  shared: { useDefault: true },     // Shared reference data
+  shared: { useDefault: true }, // Shared reference data
   customer: { lookupKey: customerId }, // Customer-isolated data
 })
 
@@ -248,7 +260,7 @@ await repoProduct.findOne(
     context,
     populate: {
       category: true, // Uses 'shared' datasource
-    }
+    },
   }
 )
 ```
@@ -267,7 +279,7 @@ class Survey {
 
 @Entity('organizations', { dataSource: 'tenant' })
 class Organization {
-  @OneToMany(() => Survey, survey => survey.organization)
+  @OneToMany(() => Survey, (survey) => survey.organization)
   surveys: Ref<Survey>[]
 }
 
@@ -282,7 +294,7 @@ const survey = await repoSurvey.findOne(
   { _id: surveyId },
   {
     context,
-    populate: { organization: true }
+    populate: { organization: true },
   }
 )
 ```
@@ -295,7 +307,7 @@ The framework automatically routes each entity to its configured datasource.
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }
+  project: { lookupKey: projectId },
 })
 
 await repoSurvey.find(query, { context })
@@ -316,13 +328,15 @@ const context = DataSourceContext.fromDataSources({
 await repoSurvey.find(query, { context })
 ```
 
-All repositories continue working with the same API—they automatically use the datasource entry matching their configured `dataSource` name.
+All repositories continue working with the same API—they automatically use the
+datasource entry matching their configured `dataSource` name.
 
 ## Error Handling
 
 ### Missing DataSource Context
 
 **Error:**
+
 ```
 Error: No datasource context provided for dynamic repo: survey.
 Provide context with lookupKey or dataSourceKey in query options.
@@ -331,6 +345,7 @@ Provide context with lookupKey or dataSourceKey in query options.
 **Cause:** Context doesn't include entry for repository's datasource
 
 **Solution:** Add datasource to context:
+
 ```typescript
 const context = DataSourceContext.fromDataSources({
   project: { lookupKey: projectId }, // Add this
@@ -340,6 +355,7 @@ const context = DataSourceContext.fromDataSources({
 ### DataSourceLookup Not Configured
 
 **Error:**
+
 ```
 Error: No DataSourceLookup configured for datasource "project".
 Available datasources: tenant, customer
@@ -348,6 +364,7 @@ Available datasources: tenant, customer
 **Cause:** ModelManager doesn't have lookup registered for datasource
 
 **Solution:** Register the lookup:
+
 ```typescript
 modelManager.setDataSourceLookup('project', projectLookup)
 ```
@@ -355,6 +372,7 @@ modelManager.setDataSourceLookup('project', projectLookup)
 ### Undefined Lookup Key
 
 **Error:**
+
 ```
 Error: DataSourceLookup for "project" returned undefined for key: undefined
 ```
@@ -362,11 +380,12 @@ Error: DataSourceLookup for "project" returned undefined for key: undefined
 **Cause:** Context has `lookupKey: undefined`
 
 **Solution:** Ensure valid lookup key:
+
 ```typescript
 if (!projectId) throw new Error('Project ID required')
 
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }
+  project: { lookupKey: projectId },
 })
 ```
 
@@ -477,11 +496,14 @@ class CachedProjectLookup extends BaseDataSourceLookup {
 }
 ```
 
-See [dynamic-datasource-advanced.md](./dynamic-datasource-advanced.md) for advanced caching patterns.
+See [dynamic-datasource-advanced.md](./dynamic-datasource-advanced.md) for
+advanced caching patterns.
 
 ## See Also
 
-- [Dynamic DataSource Basics](./dynamic-datasource.md) - Core concepts and single datasource usage
-- [Advanced Infrastructure](./dynamic-datasource-advanced.md) - BaseDataSourceLookup, DataSourceRegistry, caching
+- [Dynamic DataSource Basics](./dynamic-datasource.md) - Core concepts and
+  single datasource usage
+- [Advanced Infrastructure](./dynamic-datasource-advanced.md) -
+  BaseDataSourceLookup, DataSourceRegistry, caching
 - [Relations](./relations.md) - Relationship mapping and population
 - [Testing](./testing.md) - Testing strategies for multi-datasource scenarios

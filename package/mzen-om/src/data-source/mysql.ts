@@ -364,9 +364,9 @@ export class DataSourceMysql implements DataSourceInterface {
       }
     }
     const columnsSql = Object.keys(columns)
-      .map((specColum) => {
-        const order = columns[specColum] === -1 ? 'DESC' : 'ASC'
-        return `${specColum} ${order}`
+      .map((specColumn) => {
+        const order = columns[specColumn] === -1 ? 'DESC' : 'ASC'
+        return `${specColumn} ${order}`
       })
       .join(', ')
 

@@ -125,21 +125,21 @@ export class DataSourceMongodb implements DataSourceInterface {
       {_id: {width: 3, height: 5}, count: 2}
     ];
     */
-    let pipline: QueryPipeline[] = []
-    if (query) pipline.push({ $match: query })
+    let pipeline: QueryPipeline[] = []
+    if (query) pipeline.push({ $match: query })
     let aggregateId = {}
     groupFields.forEach((field) => {
       aggregateId[field] = '$' + field
     })
-    pipline.push({
+    pipeline.push({
       $group: {
         _id: aggregateId,
         count: { $sum: 1 },
       },
     })
-    pipline.push({ $project: { count: 1 } })
+    pipeline.push({ $project: { count: 1 } })
 
-    return await collection.aggregate(pipline).toArray()
+    return await collection.aggregate(pipeline).toArray()
   }
 
   async findGroup<Type>(
@@ -165,23 +165,23 @@ export class DataSourceMongodb implements DataSourceInterface {
     ];
     */
 
-    var pipline: QueryPipeline[] = []
-    if (query) pipline.push({ $match: query })
+    var pipeline: QueryPipeline[] = []
+    if (query) pipeline.push({ $match: query })
     var aggregateId = {}
     groupFields.forEach((field) => {
       aggregateId[field] = '$' + field
     })
-    pipline.push({
+    pipeline.push({
       $group: {
         _id: aggregateId,
         data: { $first: '$$ROOT' },
       },
     })
-    pipline.push({
+    pipeline.push({
       $replaceRoot: { newRoot: '$data' },
     })
 
-    return await collection.aggregate(pipline).toArray()
+    return await collection.aggregate(pipeline).toArray()
   }
 
   async insertMany<Type>(

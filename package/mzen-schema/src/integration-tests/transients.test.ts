@@ -138,7 +138,7 @@ describe('applyTransients', () => {
     expect(object.userLeastPopular.getName()).toBe('Tom Jones')
   })
 
-  it('should apply $construct function to the root object as referenced by constrcutor name', () => {
+  it('should apply $construct function to the root object as referenced by constructor name', () => {
     let object = { nameFirst: 'John', nameLast: 'Smith' } as ConstructorTestUser
 
     const schema = new Schema(
@@ -157,7 +157,7 @@ describe('applyTransients', () => {
     expect(object.getName()).toBe('John Smith')
   })
 
-  it('should apply $construct function to the embedded objects as referenced by constrcutor name', () => {
+  it('should apply $construct function to the embedded objects as referenced by constructor name', () => {
     let object = {
       userMostPopular: {
         nameFirst: 'John',
@@ -505,7 +505,7 @@ describe('stripTransients', () => {
     expect(user.a.b.c).toBeUndefined()
   })
 
-  it('should strip tranients from paths using iteratePaths', () => {
+  it('should strip transients from paths using iteratePaths', () => {
     let user = {
       a: {
         b: {

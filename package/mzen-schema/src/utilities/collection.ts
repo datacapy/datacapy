@@ -11,7 +11,7 @@ interface UpdateQuery {
   $unset?: { [path: string]: boolean }
 }
 
-// Extending Array doesnt really work in as you might expect
+// Extending Array doesn't really work in as you might expect
 // - because JavaScript uses prototypal inheritance
 // - the Array returned by mutator methods is always has constructor Array
 // - rather than the extended constructor.

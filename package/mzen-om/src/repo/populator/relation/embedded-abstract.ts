@@ -2,7 +2,7 @@ import { RelationAbstract } from './abstract'
 import { ObjectPathAccessor } from 'mzen-schema'
 
 export abstract class RelationEmbeddedAbstract extends RelationAbstract {
-  protected getEmebedRelations(path, docs) {
+  protected getEmbedRelations(path, docs) {
     // We may be passed an array of docs or a single doc
     // - we want to deal with both situations uniformly
     // - if we are passed a single object we make it an array
