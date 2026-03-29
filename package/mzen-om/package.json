@@ -48,10 +48,14 @@
     "mzen-schema": "workspace:*"
   },
   "peerDependencies": {
+    "ioredis": "^5.0.0",
     "mongodb": "^6.16.0",
     "mysql2": "^3.14.1"
   },
   "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    },
     "mongodb": {
       "optional": true
     }

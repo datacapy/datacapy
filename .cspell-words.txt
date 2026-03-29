@@ -19,6 +19,9 @@ FULLTEXT
 VARCHAR
 typecasts
 setex
+sadd
+srem
+smembers
 millis
 dsphere
 testdb
@@ -60,3 +63,5 @@ Jovan
 kfoster
 kevins
 Chun
+deserialised
+ioredis

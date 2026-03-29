@@ -4,6 +4,7 @@ import {
   DataSourceInterface,
   DataSourceMysql,
   DataSourceDynamic,
+  DataSourceRedis,
   DataSourceRegistry,
   DataSourceRegistryConfig,
   DataSourceLookup,
@@ -74,6 +75,12 @@ export class DataSourceManager {
         return await this.initDataSource(
           options.name,
           new DataSourceMock((options as any).data ? (options as any).data : {})
+        )
+        break
+      case 'redis':
+        return await this.initDataSource(
+          options.name,
+          new DataSourceRedis(options.config as any)
         )
         break
       case 'dynamic':
