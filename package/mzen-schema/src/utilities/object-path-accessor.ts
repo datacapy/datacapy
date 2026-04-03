@@ -119,6 +119,7 @@ export class ObjectPathAccessor {
     }
 
     function processElement(prop: string | number) {
+      if (subject == null) return
       // Element path is the full path to the current element
       let elementPath = currentPath ? currentPath + '.' + prop : String(prop)
 

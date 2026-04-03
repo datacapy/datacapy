@@ -74,6 +74,7 @@ export class RepoPopulator {
   }
 
   async populateAll(repo: Repo<any>, docs: any, options?: RepoQueryOptions) {
+    if (docs == null) return docs
     options = options ? options : {}
     const flattenedRelations = this.getFlattenedRelations(repo, options)
     options.populate = false // Don't populate recursively - we already flattened the relations
