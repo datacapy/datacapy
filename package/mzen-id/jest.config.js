@@ -1,8 +1,18 @@
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/*.test.ts'],
-  moduleDirectories: ['node_modules', 'src'],
-  fakeTimers: {enableGlobally: true}
-}
+  preset: "ts-jest",
+  testEnvironment: "node",
+  roots: ["<rootDir>/src"],
+  testMatch: ["**/*.test.ts"],
+  moduleDirectories: ["node_modules", "src"],
+  fakeTimers: { enableGlobally: true },
+  transform: {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        tsconfig: {
+          types: ["node", "jest"],
+        },
+      },
+    ],
+  },
+};

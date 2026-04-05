@@ -5,6 +5,7 @@
     "outDir": "dist",
     "rootDir": "./src",
     "baseUrl": "./src",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "*": ["*"]
     },
@@ -17,7 +18,7 @@
     "strictNullChecks": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": true,
+    "noImplicitReturns": true
   },
   "include": ["src/*", "_tests"],
   "exclude": ["node_modules", "**/*.test.ts", "**/*.spec.ts"]

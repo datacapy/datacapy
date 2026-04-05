@@ -9,7 +9,9 @@ export const SchemaTypes = {
   Array: Array,
   Object: Object,
   Date: Date,
-  ObjectID: ObjectID,
+  // cspell:ignore bson
+  // bson-objectid v2 does not export its constructor type so cast to avoid TS4023
+  ObjectID: ObjectID as any,
   Mixed: Mixed,
 }
 
