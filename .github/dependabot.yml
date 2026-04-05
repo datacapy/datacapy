@@ -1,0 +1,43 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /package/mzen-id
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /package/mzen-migrate
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /package/mzen-om
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /package/mzen-schema
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /package/mzen-server
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
