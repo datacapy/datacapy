@@ -29,10 +29,10 @@
     "query": "github:kevin-foster-uk/query#mzen-query"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.19.37",
     "eslint": "^9.39.3",
-    "jest": "^30.2.0",
+    "jest": "^30.3.0",
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
