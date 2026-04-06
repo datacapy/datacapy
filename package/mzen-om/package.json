@@ -44,7 +44,7 @@
     "typescript-eslint": "^8.58.0"
   },
   "dependencies": {
-    "clone": "^1.0.4",
+    "clone": "^2.1.2",
     "mzen-schema": "workspace:*"
   },
   "peerDependencies": {
