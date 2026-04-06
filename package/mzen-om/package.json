@@ -25,7 +25,7 @@
     "url": "https://github.com/kevin-foster-uk/mzen.git"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.3",
+    "@eslint/js": "^10.0.1",
     "@types/bcrypt": "^3.0.1",
     "@types/express": "^4.17.25",
     "@types/jest": "^29.5.14",
