@@ -90,7 +90,7 @@ DataSourceContext.fromDataSources({
 ```typescript
 // Alternative: direct constructor usage
 new DataSourceContext({
-  project: { lookupKey: 'project123' },
+  project: { lookupKey: 'project-123' },
   tenant: { lookupKey: 'tenant456' },
 })
 ```
@@ -154,13 +154,11 @@ await repoSurvey.findOne(
 **Resolution steps:**
 
 1. `repoSurvey.getDataSource(context)`:
-
    - Calls `context.getForDataSource('project')`
    - Gets `{ lookupKey: projectId }`
    - Lookup resolves to actual connection
 
 2. When populating `questions` relation:
-
    - `repoQuestion.getDataSource(context)`
    - Calls `context.getForDataSource('project')`
    - Uses same context (same datasource)

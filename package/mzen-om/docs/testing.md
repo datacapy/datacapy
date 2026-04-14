@@ -25,7 +25,8 @@ Located in `src/repo-populator/relation/_tests/`:
 When testing code that uses dynamic datasources:
 
 1. **Mock the lookup** by implementing DataSourceLookup interface
-2. **Register the mock** with `modelManager.setDataSourceLookup(name, mockLookup)`
+2. **Register the mock** with
+   `modelManager.setDataSourceLookup(name, mockLookup)`
 3. **Create context** with test lookup keys
 4. **Verify queries** execute on correct datasource
 
@@ -42,9 +43,9 @@ describe('Dynamic datasource tests', () => {
       async lookup(dataSourceName, lookupKey) {
         return {
           type: 'mysql',
-          config: { database: `test_${lookupKey}` }
+          config: { database: `test_${lookupKey}` },
         }
-      }
+      },
     }
 
     modelManager.setDataSourceLookup('project', mockLookup)
@@ -52,7 +53,7 @@ describe('Dynamic datasource tests', () => {
 
   it('should query correct datasource', async () => {
     const context = DataSourceContext.fromDataSources({
-      project: { lookupKey: 'proj123' }
+      project: { lookupKey: 'proj123' },
     })
 
     const results = await repo.find({}, { context })
@@ -63,9 +64,11 @@ describe('Dynamic datasource tests', () => {
 
 ## MockDataSource
 
-The mock data source was extended to support `$or` queries, which are required for composite key matching.
+The mock data source was extended to support `$or` queries, which are required
+for composite key matching.
 
-See [src/data-source/mock.ts](../src/data-source/mock.ts) for implementation details.
+See [src/data-source/mock.ts](../src/data-source/mock.ts) for implementation
+details.
 
 ### Using MockDataSource
 
@@ -76,13 +79,13 @@ const mockDataSource = new MockDataSource({
   data: {
     users: [
       { _id: '1', name: 'Alice', projectId: 'p1' },
-      { _id: '2', name: 'Bob', projectId: 'p2' }
+      { _id: '2', name: 'Bob', projectId: 'p2' },
     ],
     posts: [
       { _id: '10', title: 'Post 1', authorId: '1', projectId: 'p1' },
-      { _id: '11', title: 'Post 2', authorId: '2', projectId: 'p2' }
-    ]
-  }
+      { _id: '11', title: 'Post 2', authorId: '2', projectId: 'p2' },
+    ],
+  },
 })
 ```
 
@@ -96,13 +99,9 @@ describe('Relation population', () => {
   beforeEach(() => {
     const mockDataSource = new MockDataSource({
       data: {
-        posts: [
-          { _id: '1', title: 'Hello', authorId: 'user1' }
-        ],
-        users: [
-          { _id: 'user1', name: 'Alice' }
-        ]
-      }
+        posts: [{ _id: '1', title: 'Hello', authorId: 'user1' }],
+        users: [{ _id: 'user1', name: 'Alice' }],
+      },
     })
 
     repoPost = new RepoPost()
@@ -114,9 +113,12 @@ describe('Relation population', () => {
   })
 
   it('should populate belongsToOne relation', async () => {
-    const posts = await repoPost.find({}, {
-      populate: { author: true }
-    })
+    const posts = await repoPost.find(
+      {},
+      {
+        populate: { author: true },
+      }
+    )
 
     expect(posts[0].author).toBeDefined()
     expect(posts[0].author.name).toBe('Alice')
@@ -133,17 +135,20 @@ it('should match on composite keys', async () => {
   const mockDataSource = new MockDataSource({
     data: {
       responses: [
-        { _id: '1', participantId: 'p1', surveyId: 's1', projectId: 'proj1' }
+        { _id: '1', participantId: 'p1', surveyId: 's1', projectId: 'proj1' },
       ],
       participants: [
-        { _id: 'p1', surveyId: 's1', projectId: 'proj1', name: 'Alice' }
-      ]
-    }
+        { _id: 'p1', surveyId: 's1', projectId: 'proj1', name: 'Alice' },
+      ],
+    },
   })
 
-  const responses = await repoResponse.find({}, {
-    populate: { participant: true }
-  })
+  const responses = await repoResponse.find(
+    {},
+    {
+      populate: { participant: true },
+    }
+  )
 
   expect(responses[0].participant.name).toBe('Alice')
 })
@@ -171,7 +176,7 @@ it('should validate email format', async () => {
 describe('Multi-tenant queries', () => {
   it('should route to correct datasource', async () => {
     const context = DataSourceContext.fromDataSources({
-      project: { lookupKey: 'project123' }
+      project: { lookupKey: 'project-123' },
     })
 
     const surveys = await repoSurvey.find({}, { context })
@@ -190,11 +195,14 @@ describe('Multi-tenant queries', () => {
 
 ## Best Practices
 
-1. **Isolate Tests** - Use beforeEach/afterEach to set up and tear down test data
+1. **Isolate Tests** - Use beforeEach/afterEach to set up and tear down test
+   data
 2. **Mock External Dependencies** - Use MockDataSource for database operations
 3. **Test Edge Cases** - Empty results, missing fields, null values
-4. **Test Error Conditions** - Validation failures, missing contexts, lookup failures
-5. **Use Descriptive Names** - Test names should clearly describe what they verify
+4. **Test Error Conditions** - Validation failures, missing contexts, lookup
+   failures
+5. **Use Descriptive Names** - Test names should clearly describe what they
+   verify
 
 ## Running Tests
 

@@ -270,7 +270,7 @@ For context-specific databases (like project databases):
 ```typescript
 // Requires context
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: "project123" },
+  project: { lookupKey: "project-123" },
 });
 
 // Resolved dynamically
