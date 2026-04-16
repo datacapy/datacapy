@@ -40,6 +40,14 @@ export class HttpServerManager implements HttpServerManagerInterface {
         }, 5000)
       })
     })
+
+    process.on('SIGTERM', () => {
+      this.onShutdown().then(() => {
+        setTimeout(function () {
+          process.exit(0)
+        }, 5000)
+      })
+    })
   }
 
   async shutdown(): Promise<any> {
