@@ -491,6 +491,85 @@ export class Schema {
 
     return object
   }
+
+  async applyEncrypt<T>(object: T): Promise<T> {
+    this.init()
+    const promises: Promise<void>[] = []
+    this.schemaIterator.iterate(object, (opts) => {
+      const { spec, fieldName, container } = opts
+      if (!spec?.$filter?.encrypt) return
+      if (!container || container[fieldName] == null) return
+      if (!this.config.encryptionService) {
+        throw new Error(
+          `Encryption required for field "${String(fieldName)}" but no encryptionService configured in schema`
+        )
+      }
+      const service = this.config.encryptionService
+      promises.push(
+        (async () => {
+          container[fieldName] = await service.encrypt(
+            String(container[fieldName])
+          )
+        })()
+      )
+    })
+    await Promise.all(promises)
+    return object
+  }
+
+  async applyEncryptPaths<T extends Record<string, any>>(paths: T): Promise<T> {
+    this.init()
+    const promises: Promise<void>[] = []
+    this.schemaIterator.iteratePaths(
+      paths,
+      (opts) => {
+        const { spec, fieldName, container } = opts
+        if (!spec?.$filter?.encrypt) return
+        if (!container || container[fieldName] == null) return
+        if (!this.config.encryptionService) {
+          throw new Error(
+            `Encryption required for field "${String(fieldName)}" but no encryptionService configured in schema`
+          )
+        }
+        const service = this.config.encryptionService
+        promises.push(
+          (async () => {
+            container[fieldName] = await service.encrypt(
+              String(container[fieldName])
+            )
+          })()
+        )
+      },
+      { skipTransients: true }
+    )
+    await Promise.all(promises)
+    return paths
+  }
+
+  async applyDecrypt<T>(object: T): Promise<T> {
+    this.init()
+    const promises: Promise<void>[] = []
+    this.schemaIterator.iterate(object, (opts) => {
+      const { spec, fieldName, container } = opts
+      if (!spec?.$filter?.encrypt) return
+      if (!container || container[fieldName] == null) return
+      if (!this.config.encryptionService) {
+        throw new Error(
+          `Encryption required for field "${String(fieldName)}" but no encryptionService configured in schema`
+        )
+      }
+      const service = this.config.encryptionService
+      promises.push(
+        (async () => {
+          container[fieldName] = await service.decrypt(
+            String(container[fieldName])
+          )
+        })()
+      )
+    })
+    await Promise.all(promises)
+    return object
+  }
 }
 
 export default Schema

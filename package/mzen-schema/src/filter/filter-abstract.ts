@@ -3,7 +3,7 @@ export interface FilterConfig {
 }
 
 export abstract class FilterAbstract {
-  abstract filter(value: any, options?): boolean | [string]
+  abstract filter(value: any, options?): any | Promise<any>
   abstract getName(): string
 
   getConfig(): FilterConfig {

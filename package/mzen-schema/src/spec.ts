@@ -25,9 +25,10 @@ export interface SchemaSpecFilter {
   uppercase?: boolean
   lowercase?: boolean
   defaultValue?: any
-  callback?: (value: any) => boolean | string
+  callback?: (value: any) => any | Promise<any>
   private?: boolean
   privateValue?: boolean
+  encrypt?: boolean
 }
 
 /**

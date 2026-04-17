@@ -10,7 +10,7 @@ import DataSourceManager from 'data-source-manager'
 import Repo from 'repo'
 import RepoPopulator from 'repo/populator'
 import Service from 'service'
-import Schema from 'mzen-schema'
+import Schema, { SchemaEncryptionService } from 'mzen-schema'
 
 export interface Logger extends Console {}
 
@@ -28,6 +28,7 @@ export interface ModelManagerConfig {
   repos?: { [key: string]: Repo<any> } | Array<Repo<any>>
   services?: { [key: string]: Service } | Array<Service>
   app?: any // adhoc app configuration passed by consumers
+  encryptionService?: SchemaEncryptionService
 
   // Dynamic datasource configuration
   dynamicDataSource?: {
@@ -302,6 +303,9 @@ export class ModelManager {
     Object.values(this.schemas).forEach((schema) => {
       schema.addSchemas(this.schemas)
       schema.addConstructors(this.constructors)
+      if (this.config.encryptionService && !schema.config.encryptionService) {
+        schema.config.encryptionService = this.config.encryptionService
+      }
     })
   }
 

@@ -1,3 +1,5 @@
+<!-- cspell:ignore OAEP -->
+
 # Mzen Agent Documentation
 
 This document provides context for AI agents working on the mzen-om project.
@@ -27,6 +29,17 @@ docs in the `docs/` directory and [README.md](README.md).
 - **[docs/debugging.md](docs/debugging.md)** - Troubleshooting guide
 
 ### Core Files
+
+#### Encryption System
+
+- **[src/encryption/encryption-service-rsa.ts](src/encryption/encryption-service-rsa.ts)**
+  — RSA+AES-256-GCM hybrid implementation (Node.js only)
+- **[src/model-manager.ts](src/model-manager.ts)** —
+  `ModelManagerConfig.encryptionService`, propagation in `initSchemas`
+- **[mzen-schema/src/encryption/encryption-service.ts](../../mzen-schema/src/encryption/encryption-service.ts)**
+  — `SchemaEncryptionService` interface
+- **[mzen-schema/src/schema.ts](../../mzen-schema/src/schema.ts)** —
+  `applyEncrypt`, `applyEncryptPaths`, `applyDecrypt`
 
 #### Relation System
 
@@ -130,6 +143,41 @@ const context = DataSourceContext.fromDataSources({
 
 await repo.find({}, { context })
 ```
+
+## Encryption
+
+See [docs/encryption.md](docs/encryption.md) for usage and configuration.
+
+### Design Decisions
+
+- **RSA+AES hybrid** — Pure RSA has a message size limit (~190 bytes for
+  2048-bit key with SHA-256). AES-256-GCM encrypts the field value; RSA-OAEP
+  encrypts a random AES key. No size limit on field values.
+- **mzen-schema holds the interface; mzen-om holds the implementation** —
+  `mzen-schema` is framework-agnostic and does not depend on Node.js.
+  `SchemaEncryptionServiceRsa` lives in `mzen-om` which already requires
+  Node.js.
+- **`applyEncrypt`/`applyDecrypt` use `schemaIterator.iterate`** — same pattern
+  as `applyFilters`. `applyEncryptPaths` uses `iteratePaths` for partial `$set`
+  updates.
+- **ModelManager propagation is opt-in per schema** — `initSchemas` sets
+  `encryptionService` only on schemas that do not already have one, allowing
+  per-schema overrides.
+
+### Edge Cases
+
+- **Null/undefined fields** — skipped silently (no encryption or decryption
+  attempted).
+- **Encrypted fields in queries** — `validateQuery` still runs but matches
+  against ciphertext; value-based filters on encrypted fields will not return
+  results.
+- **No private key** — encryption works fine (public key only); decryption
+  throws `'Private key not configured'`. Useful for write-only or reporting
+  nodes.
+- **Type preservation** — values are stringified (`String(value)`) before
+  encryption. After decryption the schema's normal type-casting is applied
+  during subsequent `validate` calls, but callers using `find` get strings back
+  if no explicit cast is defined on the field.
 
 ## Critical Design Decisions
 

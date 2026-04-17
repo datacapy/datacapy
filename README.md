@@ -5,14 +5,19 @@ A TypeScript-based ODM/ORM framework with schema validation, REST API generation
 ## Packages
 
 ### mzen-om
+
 Object mapper providing ODM/ORM functionality for TypeScript applications. Supports multiple data sources including MongoDB and MySQL, with features like:
+
 - Model management and repositories
 - Relationship handling (has-one, has-many, belongs-to)
 - Query building and population
+- Field-level at-rest encryption
 - Service layer abstraction
 
 ### mzen-schema
+
 Schema validation, formatting, and filtering library. Provides:
+
 - Type-safe schema definitions
 - Data validation and type casting
 - Field filtering and sanitization
@@ -20,13 +25,16 @@ Schema validation, formatting, and filtering library. Provides:
 - Query validation
 
 ### mzen-server
+
 REST API server framework for exposing models as HTTP endpoints. Features:
+
 - Automatic API generation from models
 - Built-in ACL and role-based access control
 - Express.js integration
 - Configurable endpoints and middleware
 
 ### mzen-id
+
 Utility for generating Base62-encoded UUIDs, designed as a relational database-friendly alternative to MongoDB's ObjectId format.
 
 ## Installation

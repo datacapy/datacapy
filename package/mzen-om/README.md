@@ -1,15 +1,22 @@
 # mzen-om
 
-NodeJS Object Document Mapping (ODM) framework for building robust applications with MongoDB and MySQL support.
+NodeJS Object Document Mapping (ODM) framework for building robust applications
+with MongoDB and MySQL support.
 
 ## Key Features
 
-- **Model Elements** - Define your application with Schemas, Repositories, and Services
-- **Relations** - Comprehensive relation system (hasOne, hasMany, belongsTo, etc.)
+- **Model Elements** - Define your application with Schemas, Repositories, and
+  Services
+- **Relations** - Comprehensive relation system (hasOne, hasMany, belongsTo,
+  etc.)
 - **Validation** - Built-in and custom validators with type-casting
-- **Multi-DataSource Support** - Dynamic datasource routing for multi-tenant architectures
+- **Field-Level Encryption** - Transparent at-rest encryption for sensitive
+  schema fields
+- **Multi-DataSource Support** - Dynamic datasource routing for multi-tenant
+  architectures
 - **Composite Keys** - Advanced multi-field relation matching
-- **Query Optimization** - Automatic query optimization for efficient database operations
+- **Query Optimization** - Automatic query optimization for efficient database
+  operations
 
 ## Quick Start
 
@@ -21,7 +28,7 @@ import { Schema } from 'mzen-om'
 const userSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String, validator: 'email' },
-  age: { type: Number, min: 0 }
+  age: { type: Number, min: 0 },
 })
 ```
 
@@ -40,9 +47,9 @@ export class RepoUser extends Repo<User> {
           type: 'hasMany',
           repo: 'post',
           pkey: '_id',
-          key: 'authorId'
-        }
-      }
+          key: 'authorId',
+        },
+      },
     })
   }
 }
@@ -54,17 +61,20 @@ export class RepoUser extends Repo<User> {
 const repo = new RepoUser()
 
 // Find with relations
-const users = await repo.find({}, {
-  populate: {
-    posts: true
+const users = await repo.find(
+  {},
+  {
+    populate: {
+      posts: true,
+    },
   }
-})
+)
 
 // Insert
 await repo.insert({
   name: 'Alice',
   email: 'alice@example.com',
-  age: 30
+  age: 30,
 })
 ```
 
@@ -79,6 +89,7 @@ await repo.insert({
 ### Relations
 
 Support for common relation types:
+
 - `hasOne` / `hasMany` - Parent has related children
 - `belongsToOne` / `belongsToMany` - Child belongs to parent(s)
 - `hasManyCount` - Count of related documents
@@ -89,6 +100,7 @@ See [Relations Documentation](docs/relations.md) for details.
 ### Validation
 
 Built-in validators:
+
 - `required`, `notNull`, `notEmpty`
 - `length` (min/max for strings and arrays)
 - `regex` pattern matching
@@ -106,7 +118,7 @@ import { DataSourceContext } from 'mzen-om'
 
 // Create context for routing
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }
+  project: { lookupKey: projectId },
 })
 
 // Use context in queries
@@ -118,16 +130,20 @@ See [DataSource Context Documentation](docs/dynamic-datasource.md) for details.
 ## Documentation
 
 ### Core Documentation
+
 - [Architecture](docs/architecture.md) - System design and components
 - [Relations](docs/relations.md) - Relation system overview
 - [Validation](docs/validation.md) - Data validation and type-casting
 
 ### Advanced Features
+
 - [Composite Keys](docs/composite-keys.md) - Multi-field relation matching
 - [DataSource Context](docs/dynamic-datasource.md) - Multi-datasource support
+- [Encryption](docs/encryption.md) - Field-level at-rest encryption
 - [Performance](docs/performance.md) - Optimization strategies
 
 ### Development
+
 - [Testing](docs/testing.md) - Testing guide and patterns
 - [Debugging](docs/debugging.md) - Troubleshooting guide
 
@@ -147,10 +163,10 @@ const projectLookup: DataSourceLookup = {
       type: 'mongodb',
       config: {
         uri: project.databaseUri,
-        database: project.databaseName
-      }
+        database: project.databaseName,
+      },
     }
-  }
+  },
 }
 
 modelManager.setDataSourceLookup('project', projectLookup)
@@ -188,14 +204,14 @@ async getAll({ projectId }) {
 ```typescript
 const context = DataSourceContext.fromDataSources({
   project: { lookupKey: projectId },
-  tenant: { lookupKey: tenantId }
+  tenant: { lookupKey: tenantId },
 })
 
 await repoSurvey.findOne(surveyId, {
   context,
   populate: {
-    tenant: true  // Automatically uses 'tenant' context
-  }
+    tenant: true, // Automatically uses 'tenant' context
+  },
 })
 ```
 

@@ -625,6 +625,9 @@ export class Repo<T> {
       docs = this.schema.filterPrivate(docs, 'read')
     }
     docs = docs && this.schema ? this.schema.applyTransients(docs) : docs
+    if (docs && this.schema) {
+      docs = await this.schema.applyDecrypt(docs)
+    }
     const populateResult =
       options.populate === false ? docs : this.populateAll(docs, options)
     return populateResult
@@ -664,6 +667,8 @@ export class Repo<T> {
     if (options && options.filterPrivate) {
       docs = this.schema.filterPrivate(docs, 'write')
     }
+
+    docs = await this.schema.applyEncrypt(docs)
 
     var validateResult = await this.schema.validate(docs)
     if (!validateResult.isValid) {
@@ -713,6 +718,8 @@ export class Repo<T> {
     if (options && options.filterPrivate) {
       doc = this.schema.filterPrivate(doc, 'write')
     }
+
+    doc = await this.schema.applyEncrypt(doc)
 
     var validateResult = await this.schema.validate(doc)
     if (!validateResult.isValid) {
@@ -773,6 +780,11 @@ export class Repo<T> {
     }
 
     if (this.schema) {
+      if (update && update.$set) {
+        update.$set = await this.schema.applyEncryptPaths(
+          update.$set as Record<string, any>
+        )
+      }
       promises.push(
         this.schema.validateQuery(filter).then((result) => {
           return (validateResultQuery = result)
