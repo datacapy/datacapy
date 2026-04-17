@@ -37,7 +37,7 @@
     "mongodb": "^6.21.0",
     "mysql2": "^3.20.0",
     "prettier": "3.8.1",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "typescript": "^6.0.2",
