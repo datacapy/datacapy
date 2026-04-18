@@ -119,6 +119,15 @@ export abstract class BuilderBase<T = any> {
   }
 
   /**
+   * Encrypt field value at rest using the configured encryptionService
+   */
+  encrypt(mode?: boolean): this {
+    if (!this.spec.$filter) this.spec.$filter = {}
+    ;(this.spec.$filter as any).encrypt = mode === undefined ? true : mode
+    return this
+  }
+
+  /**
    * Apply custom filter function
    */
   filter(fn: (value: any) => boolean | string): this {
