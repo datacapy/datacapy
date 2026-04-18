@@ -25,8 +25,7 @@
   "dependencies": {
     "bson-objectid": "^2.0.4",
     "clone": "^2.1.2",
-    "mzen-id": "workspace:*",
-    "query": "github:kevin-foster-uk/query#mzen-query"
+    "mzen-id": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
