@@ -18,7 +18,7 @@ export class Filter {
       let config = (filter && filter.getConfig()) || {}
 
       // Ignore special filters
-      const specialFilterNames = ['private', 'privateValue']
+      const specialFilterNames = ['private', 'privateValue', 'encrypt']
       if (specialFilterNames.indexOf(filterName) !== -1) continue
 
       if (!filter) throw new Error('Unknown filter "' + filterName + '"')
