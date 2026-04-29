@@ -88,12 +88,19 @@ export function jsonUnquote(sql: string): string {
  * Sanitizes a JSON path key to prevent SQL injection
  * Allows alphanumeric characters, underscores, and dots for nested properties
  * Throws an error if the key contains invalid characters
+ *
+ * MySQL JSON path identifiers that start with a digit are not valid unquoted
+ * ECMAScript identifiers, so each dot-separated segment starting with a digit
+ * is wrapped in double quotes (e.g. `groups.337abc.name` → `groups."337abc".name`).
  */
 export function sanitizeJsonPathKey(key: string): string {
   if (!/^[a-zA-Z0-9_.]+$/.test(key)) {
     throw new Error(`Invalid JSON path key: ${key}`)
   }
   return key
+    .split('.')
+    .map((part) => (/^\d/.test(part) ? `"${part}"` : part))
+    .join('.')
 }
 
 /**

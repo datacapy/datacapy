@@ -223,6 +223,17 @@ describe('MySQL SQL Utils', () => {
         )
       })
 
+      it('should quote path segments that start with a digit', () => {
+        expect(sanitizeJsonPathKey('groups.337abc.name')).toBe(
+          'groups."337abc".name'
+        )
+        expect(
+          sanitizeJsonPathKey('text.groups.337lojJazEbhR8ih51ClE.name')
+        ).toBe('text.groups."337lojJazEbhR8ih51ClE".name')
+        expect(sanitizeJsonPathKey('123key')).toBe('"123key"')
+        expect(sanitizeJsonPathKey('a.1b.c')).toBe('a."1b".c')
+      })
+
       it('should reject keys with SQL injection attempts - quotes', () => {
         expect(() => sanitizeJsonPathKey("name' OR '1'='1")).toThrow(
           'Invalid JSON path key'
