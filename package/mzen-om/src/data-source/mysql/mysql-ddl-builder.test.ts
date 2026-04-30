@@ -99,6 +99,23 @@ describe('MysqlDdlBuilder', () => {
       expect(stripped).toContain('STORED')
     })
 
+    it('should generate a valid create column query for bigintUnsigned type', () => {
+      const result = ddlBuilder.buildCreateColumnQuery(
+        'ip_country_v4',
+        'gen_ip_from',
+        'ip_from',
+        0,
+        '',
+        'bigintUnsigned'
+      )
+      const stripped = stripWhitespace(result)
+      expect(stripped).toContain('ALTER TABLE `ip_country_v4`')
+      expect(stripped).toContain('ADD COLUMN `gen_ip_from`')
+      expect(stripped).toContain('BIGINT UNSIGNED GENERATED ALWAYS')
+      expect(stripped).toContain("JSON_VALUE(jdoc, '$.ip_from')")
+      expect(stripped).toContain('STORED')
+    })
+
     it('should generate a valid create column query for decimal type', () => {
       const result = ddlBuilder.buildCreateColumnQuery(
         'products',

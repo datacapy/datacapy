@@ -365,7 +365,14 @@ export class MysqlSqlBuilder {
     field: string,
     size: number,
     collation: string,
-    typeHint?: 'string' | 'int' | 'decimal' | 'date' | 'datetime' | 'timestamp',
+    typeHint?:
+      | 'string'
+      | 'int'
+      | 'bigintUnsigned'
+      | 'decimal'
+      | 'date'
+      | 'datetime'
+      | 'timestamp',
     lowercase?: boolean
   ): string {
     return this.ddlBuilder.buildCreateColumnQuery(

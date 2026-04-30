@@ -94,7 +94,14 @@ export class MysqlDdlBuilder {
     field: string,
     size: number,
     collation: string,
-    typeHint?: 'string' | 'int' | 'decimal' | 'date' | 'datetime' | 'timestamp',
+    typeHint?:
+      | 'string'
+      | 'int'
+      | 'bigintUnsigned'
+      | 'decimal'
+      | 'date'
+      | 'datetime'
+      | 'timestamp',
     lowercase?: boolean
   ): string {
     let columnType: string
@@ -105,6 +112,10 @@ export class MysqlDdlBuilder {
     switch (typeHint) {
       case 'int':
         columnType = 'INT'
+        extractFunction = jsonValueFunc
+        break
+      case 'bigintUnsigned':
+        columnType = 'BIGINT UNSIGNED'
         extractFunction = jsonValueFunc
         break
       case 'decimal':
