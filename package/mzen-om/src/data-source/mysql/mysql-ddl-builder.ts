@@ -28,7 +28,7 @@ export class MysqlDdlBuilder {
     return stripWhitespace(`
       CREATE TABLE ${sanitizeIdentifier(tableName, true)}
         (
-          ${GENERATED_COLUMN_PREFIX + idProp} VARCHAR(${idSize})
+          ${GENERATED_COLUMN_PREFIX + idProp} CHAR(${idSize})
           CHARACTER SET ascii GENERATED ALWAYS
           AS (${jsonUnquote(
             jsonExtract(JSON_DOCUMENT_COLUMN_NAME, `'$.${idProp}'`)
