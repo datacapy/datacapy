@@ -345,6 +345,7 @@ export class DataSourceMysql implements DataSourceInterface {
       if (!(await this.columnExists(sanitizedTableName, generatedColumnName))) {
         const isIdField = /id$/i.test(field)
         const size = isIdField ? JDOC_ID_SIZE : COLUMN_SIZE_DEFAULT
+        const typeHint = isIdField ? 'char' : options?.typeHint
         const collation = isIdField
           ? 'CHARACTER SET ascii COLLATE ascii_general_ci'
           : ''
@@ -355,9 +356,7 @@ export class DataSourceMysql implements DataSourceInterface {
           field,
           size,
           collation,
-          typeof options?.typeHint === 'object'
-            ? options.typeHint[field]
-            : options?.typeHint,
+          typeof typeHint === 'object' ? typeHint[field] : typeHint,
           options?.lowercase
         )
         await this.query(createColumnText)

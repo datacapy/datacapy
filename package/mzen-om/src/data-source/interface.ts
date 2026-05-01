@@ -64,7 +64,9 @@ export interface IndexSpec {
 
 export type TypeHintValue =
   | 'string'
+  | 'char'
   | 'int'
+  | 'bigint'
   | 'bigintUnsigned'
   | 'decimal'
   | 'date'

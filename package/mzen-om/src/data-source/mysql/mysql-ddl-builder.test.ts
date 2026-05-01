@@ -13,7 +13,7 @@ describe('MysqlDdlBuilder', () => {
       const result = ddlBuilder.buildCreateTableQuery('users', '_id', 36)
       const stripped = stripWhitespace(result)
       expect(stripped).toContain('CREATE TABLE `users`')
-      expect(stripped).toContain('gen__id VARCHAR(36)')
+      expect(stripped).toContain('gen__id CHAR(36) CHARACTER SET ascii')
       expect(stripped).toContain('PRIMARY KEY')
       expect(stripped).toContain('jdoc JSON')
     })
@@ -96,6 +96,23 @@ describe('MysqlDdlBuilder', () => {
       expect(stripped).toContain('ADD COLUMN `gen_age`')
       expect(stripped).toContain('INT GENERATED ALWAYS')
       expect(stripped).toContain("JSON_VALUE(jdoc, '$.age')")
+      expect(stripped).toContain('STORED')
+    })
+
+    it('should generate a valid create column query for bigint type', () => {
+      const result = ddlBuilder.buildCreateColumnQuery(
+        'ip_country_v4',
+        'gen_ip_from',
+        'ip_from',
+        0,
+        '',
+        'bigint'
+      )
+      const stripped = stripWhitespace(result)
+      expect(stripped).toContain('ALTER TABLE `ip_country_v4`')
+      expect(stripped).toContain('ADD COLUMN `gen_ip_from`')
+      expect(stripped).toContain('BIGINT GENERATED ALWAYS')
+      expect(stripped).toContain("JSON_VALUE(jdoc, '$.ip_from')")
       expect(stripped).toContain('STORED')
     })
 

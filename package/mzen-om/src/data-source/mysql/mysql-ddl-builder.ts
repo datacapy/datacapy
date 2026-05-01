@@ -1,3 +1,4 @@
+import { TypeHintValue } from '../interface'
 import {
   JSON_DOCUMENT_COLUMN_NAME,
   GENERATED_COLUMN_PREFIX,
@@ -94,24 +95,21 @@ export class MysqlDdlBuilder {
     field: string,
     size: number,
     collation: string,
-    typeHint?:
-      | 'string'
-      | 'int'
-      | 'bigintUnsigned'
-      | 'decimal'
-      | 'date'
-      | 'datetime'
-      | 'timestamp',
+    typeHint?: TypeHintValue,
     lowercase?: boolean
   ): string {
     let columnType: string
     let extractFunction: string
 
-    let jsonValueFunc = jsonValue(JSON_DOCUMENT_COLUMN_NAME, `'$.${field}'`)
+    const jsonValueFunc = jsonValue(JSON_DOCUMENT_COLUMN_NAME, `'$.${field}'`)
 
     switch (typeHint) {
       case 'int':
         columnType = 'INT'
+        extractFunction = jsonValueFunc
+        break
+      case 'bigint':
+        columnType = 'BIGINT'
         extractFunction = jsonValueFunc
         break
       case 'bigintUnsigned':
@@ -139,6 +137,10 @@ export class MysqlDdlBuilder {
           left(jsonValueFunc, 19),
           '%Y-%m-%dT%H:%i:%s'
         )
+        break
+      case 'char':
+        columnType = `CHAR(${size}) ${collation}`
+        extractFunction = jsonValueFunc
         break
       case 'string':
       default:

@@ -2,6 +2,7 @@ import {
   QuerySelection,
   QuerySelectionOptions,
   QueryUpdate,
+  TypeHintValue,
 } from '../interface'
 
 import { JSON_DOCUMENT_COLUMN_NAME } from './mysql-constants'
@@ -365,14 +366,7 @@ export class MysqlSqlBuilder {
     field: string,
     size: number,
     collation: string,
-    typeHint?:
-      | 'string'
-      | 'int'
-      | 'bigintUnsigned'
-      | 'decimal'
-      | 'date'
-      | 'datetime'
-      | 'timestamp',
+    typeHint?: TypeHintValue,
     lowercase?: boolean
   ): string {
     return this.ddlBuilder.buildCreateColumnQuery(
