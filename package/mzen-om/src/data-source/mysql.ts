@@ -1,3 +1,4 @@
+// cspell:ignore conn
 import { createPool, Pool, PoolOptions, PoolConnection } from 'mysql2/promise'
 
 import {
@@ -23,7 +24,7 @@ import { MysqlSqlBuilder } from './mysql/mysql-sql-builder'
 import { ObjectPathAccessor } from 'mzen-schema'
 
 export interface DataSourceMysqlConfig extends PoolOptions {
-  // Add any additional MySQL-specific configuration options here
+  ensureDatabase?: boolean
 }
 
 export class DataSourceMysql implements DataSourceInterface {
@@ -42,7 +43,19 @@ export class DataSourceMysql implements DataSourceInterface {
   }
 
   async connect(): Promise<DataSourceInterface> {
-    // Connection is automatically established when using mysql2 with createPool
+    if (this.config.ensureDatabase && this.config.database) {
+      const { database, ensureDatabase, ...rest } = this.config
+      const bootstrapPool = createPool(rest)
+      try {
+        const conn = await bootstrapPool.getConnection()
+        await conn.query(
+          `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+        )
+        conn.release()
+      } finally {
+        await bootstrapPool.end()
+      }
+    }
     return this
   }
 
