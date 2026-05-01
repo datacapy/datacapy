@@ -74,6 +74,10 @@ export class DataSourceMysql implements DataSourceInterface {
     await this.query(sql)
   }
 
+  async execute(sql: string, values?: any[]): Promise<any> {
+    return this.query(sql, values)
+  }
+
   async find<Type>(
     tableName: string,
     query?: QuerySelection,
