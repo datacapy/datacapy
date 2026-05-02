@@ -393,6 +393,102 @@ describe('Repo', () => {
     */
   })
 
+  describe('hasIndexes()', () => {
+    it('should return false when indexes is not configured', () => {
+      const repo = new Repo({ name: 'user', collectionName: 'user' })
+      expect(repo.hasIndexes()).toBe(false)
+    })
+    it('should return false when indexes is an empty object', () => {
+      const repo = new Repo({
+        name: 'user',
+        collectionName: 'user',
+        indexes: {},
+      })
+      expect(repo.hasIndexes()).toBe(false)
+    })
+    it('should return true when at least one index is configured', () => {
+      const repo = new Repo({
+        name: 'user',
+        collectionName: 'user',
+        indexes: { emailIndex: { spec: { email: 1 } } },
+      })
+      expect(repo.hasIndexes()).toBe(true)
+    })
+  })
+
+  describe('createIndexes()', () => {
+    it('should throw when no indexes are configured', async () => {
+      const repo = new Repo({ name: 'user', collectionName: 'user' })
+      repo.dataSource = new MockDataSource({})
+      await expect(repo.createIndexes()).rejects.toThrow(
+        'Repo "user" has no indexes configured'
+      )
+    })
+    it('should throw when indexes is an empty object', async () => {
+      const repo = new Repo({
+        name: 'user',
+        collectionName: 'user',
+        indexes: {},
+      })
+      repo.dataSource = new MockDataSource({})
+      await expect(repo.createIndexes()).rejects.toThrow(
+        'Repo "user" has no indexes configured'
+      )
+    })
+    it('should call createIndex on the datasource for each configured index', async () => {
+      const repo = new Repo({
+        name: 'user',
+        collectionName: 'user',
+        indexes: {
+          emailIndex: { spec: { email: 1 } },
+          nameIndex: { spec: { name: 1 } },
+        },
+      })
+      const dataSource = new MockDataSource({})
+      repo.dataSource = dataSource
+      await repo.createIndexes()
+      expect(dataSource.queryCount).toBe(2)
+    })
+  })
+
+  describe('init()', () => {
+    it('should not call createIndexes when autoIndex is true but no indexes are configured', async () => {
+      const repo = new Repo({
+        name: 'user',
+        collectionName: 'user',
+        autoIndex: true,
+      })
+      const dataSource = new MockDataSource({})
+      repo.dataSource = dataSource
+      await repo.init()
+      expect(dataSource.queryCount).toBe(0)
+    })
+    it('should call createIndexes when autoIndex is true and indexes are configured', async () => {
+      const repo = new Repo({
+        name: 'user',
+        collectionName: 'user',
+        autoIndex: true,
+        indexes: { emailIndex: { spec: { email: 1 } } },
+      })
+      const dataSource = new MockDataSource({})
+      repo.dataSource = dataSource
+      await repo.init()
+      expect(dataSource.queryCount).toBe(1)
+    })
+    it('should not call createIndexes when autoIndex is false', async () => {
+      const repo = new Repo({
+        name: 'user',
+        collectionName: 'user',
+        autoIndex: false,
+        indexes: { emailIndex: { spec: { email: 1 } } },
+      })
+      const dataSource = new MockDataSource({})
+      repo.dataSource = dataSource
+      await repo.init()
+      expect(dataSource.queryCount).toBe(0)
+    })
+  })
+
   require('./find.test')
   require('./find-one.test')
   require('./insert-many.test')

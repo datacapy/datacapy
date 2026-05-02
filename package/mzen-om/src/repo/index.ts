@@ -149,7 +149,8 @@ export class Repo<T> {
       var promises: Promise<any>[] = []
       if (!this.schema) {
         this.initSchema()
-        if (this.config.autoIndex) promises.push(this.createIndexes())
+        if (this.config.autoIndex && this.hasIndexes())
+          promises.push(this.createIndexes())
       }
       await Promise.all(promises)
       this.initialised = true
@@ -343,13 +344,21 @@ export class Repo<T> {
   async reset() {
     // This method drops the collection and re-creates it with indexes if any are defined
     await this.drop()
-    if (this.config.autoIndex) {
+    if (this.config.autoIndex && this.hasIndexes()) {
       await this.createIndexes()
     }
   }
 
+  hasIndexes(): boolean {
+    return !!this.config.indexes && Object.keys(this.config.indexes).length > 0
+  }
+
   async createIndexes() {
-    var promises: Promise<any>[] = []
+    if (!this.hasIndexes()) {
+      throw new Error(
+        `Repo "${this.config.collectionName}" has no indexes configured`
+      )
+    }
     for (let indexName in this.config.indexes) {
       var index = this.config.indexes[indexName]
       if (index.options == undefined) index.options = {}
