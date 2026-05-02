@@ -120,4 +120,62 @@ describe('upsertOne()', function () {
     expect(dataSource.dataUpdate[0]['$set'].number).toBe(123)
     expect(dataSource.dataUpdate[0]['$set'].string).toBe('543')
   })
+
+  it('should pass $setOnInsert fields through to the datasource', async () => {
+    var updateData = {
+      $set: { name: 'Kevin' },
+      $setOnInsert: { _id: 'abc', baseCurrency: 'GBP' },
+    }
+
+    var user = new Repo({ name: 'user', schema: { name: String } })
+    const dataSource = new MockDataSource({})
+    user.dataSource = dataSource
+
+    await user.upsertOne({}, updateData)
+    expect(dataSource.dataUpdate[0]['$setOnInsert']._id).toBe('abc')
+    expect(dataSource.dataUpdate[0]['$setOnInsert'].baseCurrency).toBe('GBP')
+  })
+
+  it('should filter private "write" fields from $setOnInsert', async () => {
+    var updateData = {
+      $set: { name: 'Kevin' },
+      $setOnInsert: { _id: 'abc', serverOnlyField: 'secret' },
+    }
+
+    var user = new Repo({
+      name: 'user',
+      schema: {
+        name: String,
+        serverOnlyField: { $type: String, $filter: { private: 'write' } },
+      },
+    })
+    const dataSource = new MockDataSource({})
+    user.dataSource = dataSource
+
+    await user.upsertOne({}, updateData, { filterPrivate: true })
+    expect(dataSource.dataUpdate[0]['$setOnInsert']._id).toBe('abc')
+    expect(
+      dataSource.dataUpdate[0]['$setOnInsert'].serverOnlyField
+    ).toBeUndefined()
+  })
+
+  it('should type-cast $setOnInsert fields via schema', async () => {
+    var updateData = {
+      $set: { name: 'Kevin' },
+      $setOnInsert: { count: '42' },
+    }
+
+    var user = new Repo({
+      name: 'user',
+      schema: {
+        name: String,
+        count: { $type: Number },
+      },
+    })
+    const dataSource = new MockDataSource({})
+    user.dataSource = dataSource
+
+    await user.upsertOne({}, updateData)
+    expect(dataSource.dataUpdate[0]['$setOnInsert'].count).toBe(42)
+  })
 })

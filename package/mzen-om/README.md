@@ -141,6 +141,7 @@ See [DataSource Context Documentation](docs/dynamic-datasource.md) for details.
 - [DataSource Context](docs/dynamic-datasource.md) - Multi-datasource support
 - [Encryption](docs/encryption.md) - Field-level at-rest encryption
 - [Performance](docs/performance.md) - Optimization strategies
+- [Upsert Operations](docs/upsert.md) - upsertOne, upsertMany, and $setOnInsert
 
 ### Development
 

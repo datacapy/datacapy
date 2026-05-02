@@ -49,6 +49,7 @@ export interface QueryUpdate {
   // in each of these operators the property name specifies a field name
   // - and may use dot notation to target embedded documents
   $set?: { [key: string]: any }
+  $setOnInsert?: { [key: string]: any } // fields written only when inserting a new document; ignored on update
   $unset?: { [key: string]: any } // deletes a particular field the specified field value is not important
   $inc?: { [key: string]: number } // increments a field by a specified value
   $mul?: { [key: string]: number } // multiply the value of a field by a number

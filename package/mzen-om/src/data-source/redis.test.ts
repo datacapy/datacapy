@@ -1104,6 +1104,46 @@ describe('DataSourceRedis', () => {
       )
       expect(store.expire).toHaveBeenCalledWith('sessions:doc:newSession', 3600)
     })
+
+    it('includes $setOnInsert fields in the insert doc on miss', async () => {
+      await ds.upsertOne(
+        'album',
+        { _id: 'new10' },
+        {
+          $set: { name: 'New Album' },
+          $setOnInsert: { baseCurrency: 'GBP', source: 'ecb' },
+        }
+      )
+      const doc = JSON.parse(store.data.get('album:doc:new10'))
+      expect(doc.baseCurrency).toBe('GBP')
+      expect(doc.source).toBe('ecb')
+      expect(doc.name).toBe('New Album')
+    })
+
+    it('does not apply $setOnInsert fields when a match is found', async () => {
+      await ds.upsertOne(
+        'album',
+        { _id: '1' },
+        {
+          $set: { name: 'Updated' },
+          $setOnInsert: { baseCurrency: 'SHOULD_NOT_APPEAR' },
+        }
+      )
+      const doc = JSON.parse(store.data.get('album:doc:1'))
+      expect(doc.name).toBe('Updated')
+      expect(doc.baseCurrency).toBeUndefined()
+    })
+
+    it('inserts using only $setOnInsert fields when $set is absent', async () => {
+      await ds.upsertOne(
+        'album',
+        { _id: 'new11', artistId: '99' },
+        { $setOnInsert: { source: 'import' } }
+      )
+      const doc = JSON.parse(store.data.get('album:doc:new11'))
+      expect(doc.source).toBe('import')
+      expect(doc._id).toBe('new11')
+    })
   })
 
   // ── upsertMany() ─────────────────────────────────────────────────────────────
@@ -1158,6 +1198,47 @@ describe('DataSourceRedis', () => {
         upsertedCount: 1,
         upsertedId: 'newMany2',
       })
+    })
+
+    it('includes $setOnInsert fields in the insert doc on miss', async () => {
+      await ds.upsertMany(
+        'album',
+        { _id: 'newMany10' },
+        {
+          $set: { name: 'New Album' },
+          $setOnInsert: { baseCurrency: 'GBP', source: 'ecb' },
+        }
+      )
+      const doc = JSON.parse(store.data.get('album:doc:newMany10'))
+      expect(doc.baseCurrency).toBe('GBP')
+      expect(doc.source).toBe('ecb')
+      expect(doc.name).toBe('New Album')
+    })
+
+    it('does not apply $setOnInsert fields when matches are found', async () => {
+      await ds.upsertMany(
+        'album',
+        { artistId: '14' },
+        {
+          $set: { label: 'Gold' },
+          $setOnInsert: { baseCurrency: 'SHOULD_NOT_APPEAR' },
+        }
+      )
+      const result = await ds.find('album', { artistId: '14' })
+      for (const doc of result) {
+        expect((doc as any).baseCurrency).toBeUndefined()
+      }
+    })
+
+    it('inserts using only $setOnInsert fields when $set is absent', async () => {
+      await ds.upsertMany(
+        'album',
+        { _id: 'newMany11', artistId: '99' },
+        { $setOnInsert: { source: 'import' } }
+      )
+      const doc = JSON.parse(store.data.get('album:doc:newMany11'))
+      expect(doc.source).toBe('import')
+      expect(doc._id).toBe('newMany11')
     })
   })
 

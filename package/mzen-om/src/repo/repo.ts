@@ -749,10 +749,29 @@ export class Repo<T> {
       }
     }
 
+    if (update && update.$setOnInsert) {
+      update.$setOnInsert = this.stripTransients(
+        update.$setOnInsert as Partial<T>,
+        'iteratePaths'
+      )
+      if (options?.filterPrivate && this.schema) {
+        update.$setOnInsert = this.schema.filterPrivate(
+          update.$setOnInsert,
+          'write',
+          'iteratePaths'
+        )
+      }
+    }
+
     if (this.schema) {
       if (update && update.$set) {
         update.$set = await this.schema.applyEncryptPaths(
           update.$set as Record<string, any>
+        )
+      }
+      if (update && update.$setOnInsert) {
+        update.$setOnInsert = await this.schema.applyEncryptPaths(
+          update.$setOnInsert as Record<string, any>
         )
       }
       promises.push(
@@ -764,6 +783,17 @@ export class Repo<T> {
         promises.push(
           this.schema.validatePaths(update.$set).then((result) => {
             return (validateResultUpdate = result)
+          })
+        )
+      }
+      if (update && update.$setOnInsert) {
+        promises.push(
+          this.schema.validatePaths(update.$setOnInsert).then((result) => {
+            validateResultUpdate = Schema.mergeValidationResults([
+              validateResultUpdate,
+              result,
+            ])
+            return validateResultUpdate
           })
         )
       }

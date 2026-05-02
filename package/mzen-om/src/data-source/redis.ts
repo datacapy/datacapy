@@ -558,6 +558,7 @@ export class DataSourceRedis implements DataSourceInterface {
     const insertDoc = {
       ...this._extractEqualityFields(filter),
       ...(update.$set ?? {}),
+      ...(update.$setOnInsert ?? {}),
     }
     const insertResult = await this.insertOne(
       collectionName,
@@ -589,6 +590,7 @@ export class DataSourceRedis implements DataSourceInterface {
     const insertDoc = {
       ...this._extractEqualityFields(filter),
       ...(update.$set ?? {}),
+      ...(update.$setOnInsert ?? {}),
     }
     const insertResult = await this.insertOne(
       collectionName,

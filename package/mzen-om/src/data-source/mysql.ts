@@ -282,6 +282,7 @@ export class DataSourceMysql implements DataSourceInterface {
     const insertDoc = {
       ...this._extractEqualityFields(filter),
       ...(update.$set ?? {}),
+      ...(update.$setOnInsert ?? {}),
     }
     const insertResult = await this.insertOne(tableName, insertDoc, options)
     return {
@@ -317,6 +318,7 @@ export class DataSourceMysql implements DataSourceInterface {
     const insertDoc = {
       ...this._extractEqualityFields(filter),
       ...(update.$set ?? {}),
+      ...(update.$setOnInsert ?? {}),
     }
     const insertResult = await this.insertOne(tableName, insertDoc, options)
     return {

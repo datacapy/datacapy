@@ -124,7 +124,7 @@ export class MysqlSqlBuilder {
     const setClauses: string[] = []
     const params: any[] = []
 
-    const supportedOperators = ['$set', '$unset', '$inc']
+    const supportedOperators = ['$set', '$setOnInsert', '$unset', '$inc']
 
     for (const [key, value] of Object.entries(queryUpdate)) {
       if (!supportedOperators.includes(key)) {
