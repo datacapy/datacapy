@@ -2,6 +2,8 @@ export { RepoErrorValidation } from './error'
 export {
   TYPE_HINT_STRING,
   TYPE_HINT_INT,
+  TYPE_HINT_BIGINT,
+  TYPE_HINT_BIGINT_UNSIGNED,
   TYPE_HINT_DECIMAL,
   TYPE_HINT_DATE,
   TYPE_HINT_DATETIME,
