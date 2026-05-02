@@ -95,6 +95,11 @@ export interface QueryPersistResultInsertOne extends QueryPersistResult {
   id: any // id of inserted or updated documents if only one doc was inserted / updated or id of the first doc inserted/updated
 }
 
+export interface QueryPersistResultUpsert extends QueryPersistResult {
+  upsertedCount: number // number of documents inserted (as opposed to updated)
+  upsertedId?: any // id of the inserted document when upsertOne inserts
+}
+
 export interface DataSourceInterface {
   isDynamic?(): boolean
   connect(): Promise<DataSourceInterface>
@@ -158,6 +163,20 @@ export interface DataSourceInterface {
     queryUpdate: QueryUpdate,
     options?: any
   ): Promise<QueryPersistResult>
+
+  upsertMany(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert>
+
+  upsertOne(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert>
 
   deleteMany(
     collectionName: string,

@@ -1037,6 +1037,130 @@ describe('DataSourceRedis', () => {
     })
   })
 
+  // ── upsertOne() ──────────────────────────────────────────────────────────────
+
+  describe('upsertOne()', () => {
+    let ds: DataSourceRedis
+
+    beforeEach(async () => {
+      ds = await buildConnectedDataSource()
+      await seed(ds, 'album', albums)
+    })
+
+    it('updates an existing document when the filter matches', async () => {
+      await ds.upsertOne('album', { _id: '1' }, { $set: { name: 'Updated' } })
+      const doc = JSON.parse(store.data.get('album:doc:1'))
+      expect(doc.name).toBe('Updated')
+    })
+
+    it('returns { count: 1, upsertedCount: 0 } when a document is updated', async () => {
+      const result = await ds.upsertOne(
+        'album',
+        { _id: '1' },
+        { $set: { name: 'Updated' } }
+      )
+      expect(result).toEqual({ count: 1, upsertedCount: 0 })
+    })
+
+    it('inserts a new document from filter equality fields + $set when no match', async () => {
+      await ds.upsertOne(
+        'album',
+        { _id: 'new1', artistId: '99' },
+        { $set: { name: 'New Album' } }
+      )
+      const doc = JSON.parse(store.data.get('album:doc:new1'))
+      expect(doc._id).toBe('new1')
+      expect(doc.artistId).toBe('99')
+      expect(doc.name).toBe('New Album')
+    })
+
+    it('adds the new id to the ids set on insert', async () => {
+      await ds.upsertOne(
+        'album',
+        { _id: 'new2', artistId: '99' },
+        { $set: { name: 'New Album' } }
+      )
+      expect(store.sets.get('album:ids').has('new2')).toBe(true)
+    })
+
+    it('returns { count: 1, upsertedCount: 1, upsertedId } on insert', async () => {
+      const result = await ds.upsertOne(
+        'album',
+        { _id: 'new3', artistId: '99' },
+        { $set: { name: 'New Album' } }
+      )
+      expect(result).toEqual({ count: 1, upsertedCount: 1, upsertedId: 'new3' })
+    })
+
+    it('calls EXPIRE on the new doc key when a TTL is registered', async () => {
+      const ttlDs = await buildConnectedDataSource()
+      await ttlDs.createIndex('sessions', '_id', { expireAfterSeconds: 3600 })
+      store.expire.mockClear()
+
+      await ttlDs.upsertOne(
+        'sessions',
+        { _id: 'newSession' },
+        { $set: { data: 'x' } }
+      )
+      expect(store.expire).toHaveBeenCalledWith('sessions:doc:newSession', 3600)
+    })
+  })
+
+  // ── upsertMany() ─────────────────────────────────────────────────────────────
+
+  describe('upsertMany()', () => {
+    let ds: DataSourceRedis
+
+    beforeEach(async () => {
+      ds = await buildConnectedDataSource()
+      await seed(ds, 'album', albums)
+    })
+
+    it('updates all matching documents when filter matches', async () => {
+      await ds.upsertMany(
+        'album',
+        { artistId: '14' },
+        { $set: { label: 'Gold' } }
+      )
+      const result = await ds.find('album', { label: 'Gold' })
+      expect(result).toHaveLength(4)
+    })
+
+    it('returns { count: N, upsertedCount: 0 } when documents are updated', async () => {
+      const result = await ds.upsertMany(
+        'album',
+        { popular: 1 },
+        { $set: { featured: true } }
+      )
+      expect(result).toEqual({ count: 4, upsertedCount: 0 })
+    })
+
+    it('inserts one document from filter + $set when no match', async () => {
+      await ds.upsertMany(
+        'album',
+        { _id: 'newMany1', artistId: '77' },
+        { $set: { name: 'New Many' } }
+      )
+      const doc = JSON.parse(store.data.get('album:doc:newMany1'))
+      expect(doc._id).toBe('newMany1')
+      expect(doc.artistId).toBe('77')
+      expect(doc.name).toBe('New Many')
+    })
+
+    it('returns { count: 1, upsertedCount: 1 } when an insert occurs', async () => {
+      const result = await ds.upsertMany(
+        'album',
+        { _id: 'newMany2', artistId: '77' },
+        { $set: { name: 'New Many' } }
+      )
+      expect(result).toEqual({
+        count: 1,
+        upsertedCount: 1,
+        upsertedId: 'newMany2',
+      })
+    })
+  })
+
   // ── deleteOne() ──────────────────────────────────────────────────────────────
 
   describe('deleteOne()', () => {

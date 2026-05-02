@@ -8,6 +8,7 @@ import {
   QueryPersistResult,
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
+  QueryPersistResultUpsert,
 } from './interface'
 
 export interface DataSourceRedisConfig {
@@ -535,6 +536,80 @@ export class DataSourceRedis implements DataSourceInterface {
     writer.set(this.docKey(collectionName, match._id), JSON.stringify(match))
     this.applyTtlIfConfigured(writer, collectionName, match._id)
     return { count: 1 }
+  }
+
+  async upsertMany(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    _options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    const docs = await this.loadDocs(collectionName, filter)
+    const matching = docs.filter((doc) => this.matchesQuery(doc, filter))
+    if (matching.length > 0) {
+      const writer = this.getWriter()
+      for (const doc of matching) {
+        this.applyUpdate(doc, update)
+        writer.set(this.docKey(collectionName, doc._id), JSON.stringify(doc))
+        this.applyTtlIfConfigured(writer, collectionName, doc._id)
+      }
+      return { count: matching.length, upsertedCount: 0 }
+    }
+    const insertDoc = {
+      ...this._extractEqualityFields(filter),
+      ...(update.$set ?? {}),
+    }
+    const insertResult = await this.insertOne(
+      collectionName,
+      insertDoc,
+      _options
+    )
+    return {
+      count: insertResult.count,
+      upsertedCount: insertResult.count,
+      upsertedId: insertResult.id,
+    }
+  }
+
+  async upsertOne(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    _options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    const docs = await this.loadDocs(collectionName, filter)
+    const match = docs.find((doc) => this.matchesQuery(doc, filter))
+    if (match) {
+      this.applyUpdate(match, update)
+      const writer = this.getWriter()
+      writer.set(this.docKey(collectionName, match._id), JSON.stringify(match))
+      this.applyTtlIfConfigured(writer, collectionName, match._id)
+      return { count: 1, upsertedCount: 0 }
+    }
+    const insertDoc = {
+      ...this._extractEqualityFields(filter),
+      ...(update.$set ?? {}),
+    }
+    const insertResult = await this.insertOne(
+      collectionName,
+      insertDoc,
+      _options
+    )
+    return {
+      count: insertResult.count,
+      upsertedCount: insertResult.count,
+      upsertedId: insertResult.id,
+    }
+  }
+
+  private _extractEqualityFields(filter: QuerySelection): Record<string, any> {
+    const doc: Record<string, any> = {}
+    for (const [key, val] of Object.entries(filter)) {
+      if (val !== null && typeof val === 'object' && !Array.isArray(val))
+        continue
+      doc[key] = val
+    }
+    return doc
   }
 
   async deleteMany(

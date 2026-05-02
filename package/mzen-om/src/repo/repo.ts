@@ -8,6 +8,7 @@ import {
   QueryPersistResult,
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
+  QueryPersistResultUpsert,
   IndexSpec,
 } from 'data-source/interface'
 import Schema, {
@@ -840,6 +841,72 @@ export class Repo<T> {
     )
 
     // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(
+          `${this.config.dataSource}:${lookupKey}`
+        )
+      }
+    }
+
+    return result
+  }
+
+  async upsertMany(
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?
+  ): Promise<QueryPersistResultUpsert> {
+    if (this.config.collectionName == undefined) {
+      throw new Error('No collection name provided')
+    }
+
+    const dataSource = await this.getDataSource(options?.context)
+
+    const { f, u, o } = await this._updatePrepare(filter, update, options)
+    const result = await dataSource.upsertMany(
+      this.config.collectionName,
+      f,
+      u,
+      o
+    )
+
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(
+          `${this.config.dataSource}:${lookupKey}`
+        )
+      }
+    }
+
+    return result
+  }
+
+  async upsertOne(
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?
+  ): Promise<QueryPersistResultUpsert> {
+    if (this.config.collectionName == undefined) {
+      throw new Error('No collection name provided')
+    }
+
+    const dataSource = await this.getDataSource(options?.context)
+
+    const { f, u, o } = await this._updatePrepare(filter, update, options)
+    const result = await dataSource.upsertOne(
+      this.config.collectionName,
+      f,
+      u,
+      o
+    )
+
     if (this.dataSource?.isDynamic?.()) {
       const lookupKey = options?.context?.getForDataSource?.(
         this.config.dataSource

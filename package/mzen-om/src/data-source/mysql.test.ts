@@ -346,4 +346,164 @@ describe('DataSourceMysql', () => {
       expect(addColumnCall).toBeUndefined()
     })
   })
+
+  describe('upsertOne', () => {
+    it('should return { count: 1, upsertedCount: 0 } when the UPDATE matches a row', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery.mockResolvedValue([{ affectedRows: 1 }])
+
+      const result = await dataSource.upsertOne(
+        'users',
+        { email: 'x@y.com' },
+        { $set: { name: 'Bob' } }
+      )
+      expect(result).toEqual({ count: 1, upsertedCount: 0 })
+    })
+
+    it('should execute only an UPDATE query when the row exists', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery.mockResolvedValue([{ affectedRows: 1 }])
+
+      await dataSource.upsertOne(
+        'users',
+        { email: 'x@y.com' },
+        { $set: { name: 'Bob' } }
+      )
+      const statements: string[] = mockQuery.mock.calls.map(
+        (c) => c[0] as string
+      )
+      expect(
+        statements.some((s) => s.trim().toUpperCase().startsWith('UPDATE'))
+      ).toBe(true)
+      expect(
+        statements.some((s) => s.trim().toUpperCase().startsWith('INSERT'))
+      ).toBe(false)
+    })
+
+    it('should INSERT when the UPDATE matches no rows and return { count: 1, upsertedCount: 1, upsertedId }', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery
+        .mockResolvedValueOnce([{ affectedRows: 0 }])
+        .mockResolvedValueOnce([{ affectedRows: 1, insertId: 42 }])
+
+      const result = await dataSource.upsertOne(
+        'users',
+        { email: 'x@y.com' },
+        { $set: { name: 'Bob' } }
+      )
+      expect(result).toEqual({ count: 1, upsertedCount: 1, upsertedId: 42 })
+    })
+
+    it('should merge scalar filter fields with $set fields into the insert document', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery
+        .mockResolvedValueOnce([{ affectedRows: 0 }])
+        .mockResolvedValueOnce([{ affectedRows: 1, insertId: 1 }])
+
+      await dataSource.upsertOne(
+        'users',
+        { email: 'x@y.com' },
+        { $set: { name: 'Bob' } }
+      )
+      const insertCall = mockQuery.mock.calls.find((c) =>
+        (c[0] as string).trim().toUpperCase().startsWith('INSERT')
+      )
+      expect(insertCall).toBeDefined()
+      const insertedDoc = JSON.parse(insertCall[1][0])
+      expect(insertedDoc).toMatchObject({ email: 'x@y.com', name: 'Bob' })
+    })
+
+    it('should create the table when it does not exist before inserting', async () => {
+      jest
+        .spyOn(dataSource, 'tableExists' as any)
+        .mockResolvedValueOnce(false) // upsertOne initial check → createTable
+        .mockResolvedValueOnce(false) // createTable's own check → allow CREATE
+        .mockResolvedValueOnce(true) // insertOne check → skip re-create
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery
+        .mockResolvedValueOnce([{}]) // CREATE TABLE
+        .mockResolvedValueOnce([{ affectedRows: 0 }]) // UPDATE
+        .mockResolvedValueOnce([{ affectedRows: 1, insertId: 7 }]) // INSERT
+
+      const result = await dataSource.upsertOne(
+        'users',
+        { email: 'new@y.com' },
+        { $set: { name: 'New' } }
+      )
+      expect(result.upsertedCount).toBe(1)
+    })
+  })
+
+  describe('upsertMany', () => {
+    it('should return { count: N, upsertedCount: 0 } when the UPDATE matches rows', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery.mockResolvedValue([{ affectedRows: 3 }])
+
+      const result = await dataSource.upsertMany(
+        'users',
+        { active: true },
+        { $set: { updated: 1 } }
+      )
+      expect(result).toEqual({ count: 3, upsertedCount: 0 })
+    })
+
+    it('should execute only an UPDATE query (without LIMIT 1) when rows exist', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery.mockResolvedValue([{ affectedRows: 2 }])
+
+      await dataSource.upsertMany(
+        'users',
+        { active: true },
+        { $set: { updated: 1 } }
+      )
+      const updateCall = mockQuery.mock.calls.find((c) =>
+        (c[0] as string).trim().toUpperCase().startsWith('UPDATE')
+      )
+      expect(updateCall).toBeDefined()
+      expect((updateCall[0] as string).toUpperCase()).not.toContain('LIMIT')
+    })
+
+    it('should INSERT one document when no rows match and return { count: 1, upsertedCount: 1 }', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery
+        .mockResolvedValueOnce([{ affectedRows: 0 }])
+        .mockResolvedValueOnce([{ affectedRows: 1, insertId: 55 }])
+
+      const result = await dataSource.upsertMany(
+        'users',
+        { email: 'a@b.com' },
+        { $set: { name: 'Alice' } }
+      )
+      expect(result).toEqual({ count: 1, upsertedCount: 1, upsertedId: 55 })
+    })
+
+    it('should merge scalar filter fields with $set for the insert document', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery
+        .mockResolvedValueOnce([{ affectedRows: 0 }])
+        .mockResolvedValueOnce([{ affectedRows: 1, insertId: 1 }])
+
+      await dataSource.upsertMany(
+        'users',
+        { email: 'a@b.com' },
+        { $set: { name: 'Alice' } }
+      )
+      const insertCall = mockQuery.mock.calls.find((c) =>
+        (c[0] as string).trim().toUpperCase().startsWith('INSERT')
+      )
+      expect(insertCall).toBeDefined()
+      expect(JSON.parse(insertCall[1][0])).toMatchObject({
+        email: 'a@b.com',
+        name: 'Alice',
+      })
+    })
+  })
 })

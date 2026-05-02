@@ -39,6 +39,12 @@ class MockDataSourceWithTransactions implements DataSourceInterface {
   async updateMany(): Promise<any> {
     return { count: 0 };
   }
+  async upsertOne(): Promise<any> {
+    return { count: 1, upsertedCount: 0 };
+  }
+  async upsertMany(): Promise<any> {
+    return { count: 0, upsertedCount: 0 };
+  }
   async deleteOne(): Promise<any> {
     return { count: 1 };
   }
@@ -109,6 +115,12 @@ class MockDataSourceNoTransactions implements DataSourceInterface {
   }
   async updateMany(): Promise<any> {
     return { count: 0 };
+  }
+  async upsertOne(): Promise<any> {
+    return { count: 1, upsertedCount: 0 };
+  }
+  async upsertMany(): Promise<any> {
+    return { count: 0, upsertedCount: 0 };
   }
   async deleteOne(): Promise<any> {
     return { count: 1 };

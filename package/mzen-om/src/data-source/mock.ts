@@ -8,6 +8,7 @@ import {
   QueryPersistResult,
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
+  QueryPersistResultUpsert,
 } from './interface'
 import clone = require('clone')
 
@@ -198,6 +199,28 @@ export class DataSourceMock implements DataSourceInterface {
     return {
       count: 1,
     }
+  }
+
+  async upsertMany(
+    _collectionName: string,
+    _querySelect: QuerySelection,
+    queryUpdate: QueryUpdate,
+    _options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    this.queryCount++
+    this.dataUpdate = this.dataUpdate.concat(queryUpdate)
+    return { count: 10, upsertedCount: 0 }
+  }
+
+  async upsertOne(
+    _collectionName: string,
+    _querySelect: QuerySelection,
+    queryUpdate: QueryUpdate,
+    _options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    this.queryCount++
+    this.dataUpdate = this.dataUpdate.concat(queryUpdate)
+    return { count: 1, upsertedCount: 0 }
   }
 
   async deleteMany(

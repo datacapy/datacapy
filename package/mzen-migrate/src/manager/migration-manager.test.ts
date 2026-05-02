@@ -102,6 +102,14 @@ class TestDataSource implements DataSourceInterface {
     return { count: 0 };
   }
 
+  async upsertOne(): Promise<any> {
+    return { count: 1, upsertedCount: 0 };
+  }
+
+  async upsertMany(): Promise<any> {
+    return { count: 0, upsertedCount: 0 };
+  }
+
   async deleteOne(collectionName: string, query: any): Promise<any> {
     const collection = this.collections.get(collectionName);
     if (!collection) return { count: 0 };

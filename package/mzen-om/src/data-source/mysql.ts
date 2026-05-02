@@ -11,6 +11,7 @@ import {
   QueryPersistResult,
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
+  QueryPersistResultUpsert,
 } from './interface'
 import {
   JSON_DOCUMENT_COLUMN_NAME,
@@ -254,6 +255,85 @@ export class DataSourceMysql implements DataSourceInterface {
     )
     const [result]: [{ affectedRows: number }] = await this.query(sql, values)
     return { count: result.affectedRows }
+  }
+
+  async upsertMany(
+    tableName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    if (!(await this.tableExists(tableName))) {
+      await this.createTable(tableName)
+    }
+    this.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.sqlBuilder.buildUpdateQuery(
+      tableName,
+      filter,
+      update
+    )
+    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
+    if (result.affectedRows > 0) {
+      return { count: result.affectedRows, upsertedCount: 0 }
+    }
+    const insertDoc = {
+      ...this._extractEqualityFields(filter),
+      ...(update.$set ?? {}),
+    }
+    const insertResult = await this.insertOne(tableName, insertDoc, options)
+    return {
+      count: insertResult.count,
+      upsertedCount: insertResult.count,
+      upsertedId: insertResult.id,
+    }
+  }
+
+  async upsertOne(
+    tableName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    if (!(await this.tableExists(tableName))) {
+      await this.createTable(tableName)
+    }
+    this.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.sqlBuilder.buildUpdateQuery(
+      tableName,
+      filter,
+      update,
+      true
+    )
+    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
+    if (result.affectedRows > 0) {
+      return { count: result.affectedRows, upsertedCount: 0 }
+    }
+    const insertDoc = {
+      ...this._extractEqualityFields(filter),
+      ...(update.$set ?? {}),
+    }
+    const insertResult = await this.insertOne(tableName, insertDoc, options)
+    return {
+      count: insertResult.count,
+      upsertedCount: insertResult.count,
+      upsertedId: insertResult.id,
+    }
+  }
+
+  private _extractEqualityFields(filter: QuerySelection): Record<string, any> {
+    const doc: Record<string, any> = {}
+    for (const [key, val] of Object.entries(filter)) {
+      if (val !== null && typeof val === 'object' && !Array.isArray(val))
+        continue
+      doc[key] = val
+    }
+    return doc
   }
 
   async deleteMany(

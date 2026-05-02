@@ -10,6 +10,7 @@ import {
   QueryPersistResult,
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
+  QueryPersistResultUpsert,
 } from './interface'
 
 export interface DataSourceMongodbConfig {
@@ -238,6 +239,44 @@ export class DataSourceMongodb implements DataSourceInterface {
     var collection = this.getCollection(collectionName)
     var response = await collection.updateOne(querySelect, queryUpdate, options)
     return { count: response.modifiedCount + response.upsertedCount }
+  }
+
+  async upsertMany(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    options = options ? options : {}
+    const collection = this.getCollection(collectionName)
+    const response = await collection.updateMany(filter, update, {
+      ...options,
+      upsert: true,
+    })
+    return {
+      count: response.modifiedCount + response.upsertedCount,
+      upsertedCount: response.upsertedCount,
+      upsertedId: response.upsertedId ?? undefined,
+    }
+  }
+
+  async upsertOne(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    options = options ? options : {}
+    const collection = this.getCollection(collectionName)
+    const response = await collection.updateOne(filter, update, {
+      ...options,
+      upsert: true,
+    })
+    return {
+      count: response.modifiedCount + response.upsertedCount,
+      upsertedCount: response.upsertedCount,
+      upsertedId: response.upsertedId ?? undefined,
+    }
   }
 
   async deleteMany(

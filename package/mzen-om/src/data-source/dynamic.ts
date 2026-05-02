@@ -5,6 +5,7 @@ import {
   QueryPersistResult,
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
+  QueryPersistResultUpsert,
   QuerySelection,
   QuerySelectionOptions,
   QueryUpdate,
@@ -153,6 +154,28 @@ export class DataSourceDynamic implements DataSourceInterface {
   ): Promise<QueryPersistResult> {
     throw new Error(
       `Cannot update dynamic datasource directly. Use repo methods with DataSourceContext`
+    )
+  }
+
+  async upsertMany(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    throw new Error(
+      `Cannot upsert into dynamic datasource directly. Use repo methods with DataSourceContext`
+    )
+  }
+
+  async upsertOne(
+    collectionName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    throw new Error(
+      `Cannot upsert into dynamic datasource directly. Use repo methods with DataSourceContext`
     )
   }
 
