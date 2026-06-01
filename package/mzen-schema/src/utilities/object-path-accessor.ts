@@ -36,9 +36,14 @@ export class ObjectPathAccessor {
    * Unsets all elements matching 'path' in the given 'subject'.
    */
   static unsetPath(path: string | number, subject: any) {
-    return ObjectPathAccessor.searchRecursive(path, subject, function () {
-      return undefined // changing value to undefined causes the prop to be unset
-    })
+    return ObjectPathAccessor.searchRecursive(
+      path,
+      subject,
+      function () {
+        return undefined // changing value to undefined causes the prop to be unset
+      },
+      { skipAutoCreate: true }
+    )
   }
   /*
    * Mutate path
@@ -69,6 +74,7 @@ export class ObjectPathAccessor {
       currentDepth?: number
       wildcardPath?: boolean
       matches?: Array<any>
+      skipAutoCreate?: boolean
     }
   ) {
     meta = meta ? meta : {}
@@ -84,6 +90,7 @@ export class ObjectPathAccessor {
     var depth = currentDepth + 1
 
     var hasMutator = typeof mutatorFunc == 'function'
+    var skipAutoCreate = meta.skipAutoCreate ?? false
 
     if (currentDepth <= patternParts.length) {
       if (currentNode == '*') {
@@ -143,6 +150,7 @@ export class ObjectPathAccessor {
       if (currentDepth < patternParts.length) {
         if (
           hasMutator &&
+          !skipAutoCreate &&
           prop != '*' &&
           subject[prop] === undefined &&
           nextNode !== undefined

@@ -490,6 +490,13 @@ describe('ObjectPathAccessor', () => {
 
       expect(data).toEqual(['a', 'b', 'd', 'e'])
     })
+    it('should not create intermediate paths that do not exist', () => {
+      const data = [{ lastResponseAt: new Date() }]
+
+      ObjectPathAccessor.unsetPath('*.messages.*.user', data)
+
+      expect((data[0] as any).messages).toBeUndefined()
+    })
   })
   describe('mutatePath()', () => {
     it('should mutate value at given path', () => {
