@@ -218,11 +218,11 @@ describe('MysqlSqlBuilder - UPDATE operations', () => {
         expect(result.params).toEqual(['new-tag'])
       })
 
-      it('should append a single object value as JSON', () => {
+      it('should append a single object value using CAST(? AS JSON)', () => {
         const obj = { id: 1, name: 'item' }
         const result = sqlBuilder.buildSetClause({ $push: { items: obj } })
         expect(sqlBuilder.stripWhitespace(result.clause)).toBe(
-          `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.items', JSON_ARRAY_APPEND(COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.items'), JSON_ARRAY()), '$', ?))`
+          `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.items', JSON_ARRAY_APPEND(COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.items'), JSON_ARRAY()), '$', CAST(? AS JSON)))`
         )
         expect(result.params).toEqual([JSON.stringify(obj)])
       })

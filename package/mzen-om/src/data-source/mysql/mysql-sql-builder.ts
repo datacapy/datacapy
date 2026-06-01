@@ -208,7 +208,12 @@ export class MysqlSqlBuilder {
             !Array.isArray(fieldValue) &&
             '$each' in fieldValue
           const items: any[] = isEach ? fieldValue.$each : [fieldValue]
-          const appendArgs = items.map(() => `'$', ?`).join(', ')
+          const appendArgs = items
+            .map((item) => {
+              const isObject = typeof item === 'object' && item !== null
+              return `'$', ${isObject ? 'CAST(? AS JSON)' : '?'}`
+            })
+            .join(', ')
           setClauses.push(
             stripWhitespace(`
               ${JSON_DOCUMENT_COLUMN_NAME} =
@@ -239,13 +244,13 @@ export class MysqlSqlBuilder {
           let expr = currentArray
           for (const item of items) {
             const isObject = typeof item === 'object' && item !== null
-            const castParam = isObject ? `CAST(? AS JSON)` : `CAST(? AS JSON)`
-            // JSON_CONTAINS check param is always JSON-encoded; append param is raw (or JSON for objects)
+            // JSON_CONTAINS check param is always JSON-encoded; append uses CAST for objects
+            const appendPlaceholder = isObject ? `CAST(? AS JSON)` : `?`
             expr = stripWhitespace(`
               IF(
-                JSON_CONTAINS(${currentArray}, ${castParam}),
+                JSON_CONTAINS(${currentArray}, CAST(? AS JSON)),
                 ${currentArray},
-                JSON_ARRAY_APPEND(${expr}, '$', ?)
+                JSON_ARRAY_APPEND(${expr}, '$', ${appendPlaceholder})
               )
             `)
             params.push(JSON.stringify(item))
