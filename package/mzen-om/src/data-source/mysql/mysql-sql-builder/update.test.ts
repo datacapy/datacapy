@@ -1,3 +1,4 @@
+// cspell:ignore ARRAYAGG
 import { MysqlSqlBuilder } from '../mysql-sql-builder'
 import { JSON_DOCUMENT_COLUMN_NAME } from '../mysql-constants'
 
@@ -204,6 +205,151 @@ describe('MysqlSqlBuilder - UPDATE operations', () => {
           `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.meta.score', NULL)`
       )
       expect(result.params).toEqual([])
+    })
+  })
+
+  describe('array operators', () => {
+    describe('$push', () => {
+      it('should append a single primitive value', () => {
+        const result = sqlBuilder.buildSetClause({ $push: { tags: 'new-tag' } })
+        expect(sqlBuilder.stripWhitespace(result.clause)).toBe(
+          `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.tags', JSON_ARRAY_APPEND(COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.tags'), JSON_ARRAY()), '$', ?))`
+        )
+        expect(result.params).toEqual(['new-tag'])
+      })
+
+      it('should append a single object value as JSON', () => {
+        const obj = { id: 1, name: 'item' }
+        const result = sqlBuilder.buildSetClause({ $push: { items: obj } })
+        expect(sqlBuilder.stripWhitespace(result.clause)).toBe(
+          `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.items', JSON_ARRAY_APPEND(COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.items'), JSON_ARRAY()), '$', ?))`
+        )
+        expect(result.params).toEqual([JSON.stringify(obj)])
+      })
+
+      it('should append multiple values with $each', () => {
+        const result = sqlBuilder.buildSetClause({
+          $push: { tags: { $each: ['a', 'b', 'c'] } },
+        })
+        expect(sqlBuilder.stripWhitespace(result.clause)).toBe(
+          `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.tags', JSON_ARRAY_APPEND(COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.tags'), JSON_ARRAY()), '$', ?, '$', ?, '$', ?))`
+        )
+        expect(result.params).toEqual(['a', 'b', 'c'])
+      })
+    })
+
+    describe('$addToSet', () => {
+      it('should generate IF/JSON_CONTAINS guard for a single value', () => {
+        const result = sqlBuilder.buildSetClause({
+          $addToSet: { tags: 'unique-tag' },
+        })
+        expect(sqlBuilder.stripWhitespace(result.clause)).toContain(
+          'JSON_CONTAINS('
+        )
+        expect(sqlBuilder.stripWhitespace(result.clause)).toContain(
+          'JSON_ARRAY_APPEND('
+        )
+        expect(result.params).toEqual([
+          JSON.stringify('unique-tag'),
+          'unique-tag',
+        ])
+      })
+
+      it('should generate nested IF guards for $each', () => {
+        const result = sqlBuilder.buildSetClause({
+          $addToSet: { roles: { $each: ['admin', 'editor'] } },
+        })
+        // Two IF blocks — one per element
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect((clause.match(/JSON_CONTAINS/g) ?? []).length).toBe(2)
+        expect(result.params).toEqual([
+          JSON.stringify('admin'),
+          'admin',
+          JSON.stringify('editor'),
+          'editor',
+        ])
+      })
+    })
+
+    describe('$pop', () => {
+      it('should remove the last element when value is 1', () => {
+        const result = sqlBuilder.buildSetClause({ $pop: { tags: 1 } })
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect(clause).toContain('JSON_LENGTH(')
+        expect(clause).toContain('- 1')
+        expect(clause).toContain('JSON_REMOVE(')
+        expect(result.params).toEqual([])
+      })
+
+      it('should remove the first element when value is -1', () => {
+        const result = sqlBuilder.buildSetClause({ $pop: { tags: -1 } })
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect(clause).toContain('$.tags[0]')
+        expect(result.params).toEqual([])
+      })
+
+      it('should throw for values other than 1 or -1', () => {
+        expect(() =>
+          sqlBuilder.buildSetClause({ $pop: { tags: 2 as any } })
+        ).toThrow(/must be 1.*or -1/)
+      })
+    })
+
+    describe('$pull', () => {
+      it('should filter a string value using JSON_TABLE subquery', () => {
+        const result = sqlBuilder.buildSetClause({ $pull: { tags: 'old-tag' } })
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect(clause).toContain('JSON_TABLE(')
+        expect(clause).toContain('JSON_ARRAYAGG(')
+        expect(clause).toContain('JSON_CONTAINS(')
+        expect(result.params).toEqual([JSON.stringify('old-tag')])
+      })
+
+      it('should filter a numeric value', () => {
+        const result = sqlBuilder.buildSetClause({ $pull: { scores: 42 } })
+        expect(result.params).toEqual([JSON.stringify(42)])
+      })
+
+      it('should throw for object predicate values', () => {
+        expect(() =>
+          sqlBuilder.buildSetClause({
+            $pull: { items: { status: 'inactive' } },
+          })
+        ).toThrow(/query predicate is not supported/)
+      })
+    })
+
+    describe('$pullAll', () => {
+      it('should filter multiple values using MEMBER OF', () => {
+        const result = sqlBuilder.buildSetClause({
+          $pullAll: { tags: ['a', 'b', 'c'] },
+        })
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect(clause).toContain('MEMBER OF')
+        expect(clause).toContain('JSON_TABLE(')
+        expect(result.params).toEqual([JSON.stringify(['a', 'b', 'c'])])
+      })
+
+      it('should throw when value is not an array', () => {
+        expect(() =>
+          sqlBuilder.buildSetClause({
+            $pullAll: { tags: 'not-an-array' as any },
+          })
+        ).toThrow(/must be an array/)
+      })
+    })
+
+    it('should include array operator results in full buildUpdateQuery', async () => {
+      const result = await sqlBuilder.buildUpdateQuery(
+        'users',
+        { id: 'u1' },
+        { $push: { tags: 'new' } }
+      )
+      expect(result.sql).toContain('UPDATE `users`')
+      expect(result.sql).toContain('JSON_ARRAY_APPEND')
+      expect(result.sql).toContain("jdoc->>'$.id' = ?")
+      // set params come before where params
+      expect(result.values).toEqual(['new', 'u1'])
     })
   })
 

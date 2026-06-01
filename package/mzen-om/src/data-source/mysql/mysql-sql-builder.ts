@@ -1,3 +1,4 @@
+// cspell:ignore ARRAYAGG elem
 import {
   QuerySelection,
   QuerySelectionOptions,
@@ -124,12 +125,22 @@ export class MysqlSqlBuilder {
     const setClauses: string[] = []
     const params: any[] = []
 
-    const supportedOperators = ['$set', '$setOnInsert', '$unset', '$inc']
+    const supportedOperators = [
+      '$set',
+      '$setOnInsert',
+      '$unset',
+      '$inc',
+      '$push',
+      '$addToSet',
+      '$pop',
+      '$pull',
+      '$pullAll',
+    ]
 
     for (const [key, value] of Object.entries(queryUpdate)) {
       if (!supportedOperators.includes(key)) {
         throw new Error(
-          `Unsupported operator: ${key}. Only $set, $unset, and $inc are supported.`
+          `Unsupported operator: ${key}. Supported operators: ${supportedOperators.join(', ')}.`
         )
       }
 
@@ -186,6 +197,144 @@ export class MysqlSqlBuilder {
             `)
           )
           params.push(increment)
+        }
+      } else if (key === '$push') {
+        for (const [field, fieldValue] of Object.entries(value as object)) {
+          const path = `'$.${sanitizeJsonPathKey(field)}'`
+          const currentArray = `COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, ${path}), JSON_ARRAY())`
+          const isEach =
+            typeof fieldValue === 'object' &&
+            fieldValue !== null &&
+            !Array.isArray(fieldValue) &&
+            '$each' in fieldValue
+          const items: any[] = isEach ? fieldValue.$each : [fieldValue]
+          const appendArgs = items.map(() => `'$', ?`).join(', ')
+          setClauses.push(
+            stripWhitespace(`
+              ${JSON_DOCUMENT_COLUMN_NAME} =
+                JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, ${path},
+                  JSON_ARRAY_APPEND(${currentArray}, ${appendArgs}))
+            `)
+          )
+          for (const item of items) {
+            if (typeof item === 'object' && item !== null) {
+              params.push(JSON.stringify(item))
+            } else {
+              params.push(item)
+            }
+          }
+        }
+      } else if (key === '$addToSet') {
+        for (const [field, fieldValue] of Object.entries(value as object)) {
+          const path = `'$.${sanitizeJsonPathKey(field)}'`
+          const currentArray = `COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, ${path}), JSON_ARRAY())`
+          const isEach =
+            typeof fieldValue === 'object' &&
+            fieldValue !== null &&
+            !Array.isArray(fieldValue) &&
+            '$each' in fieldValue
+          const items: any[] = isEach ? fieldValue.$each : [fieldValue]
+          // Build nested IF expressions: each element only appended when not already contained
+          // innermost starts with currentArray and wraps outward
+          let expr = currentArray
+          for (const item of items) {
+            const isObject = typeof item === 'object' && item !== null
+            const castParam = isObject ? `CAST(? AS JSON)` : `CAST(? AS JSON)`
+            // JSON_CONTAINS check param is always JSON-encoded; append param is raw (or JSON for objects)
+            expr = stripWhitespace(`
+              IF(
+                JSON_CONTAINS(${currentArray}, ${castParam}),
+                ${currentArray},
+                JSON_ARRAY_APPEND(${expr}, '$', ?)
+              )
+            `)
+            params.push(JSON.stringify(item))
+            if (isObject) {
+              params.push(JSON.stringify(item))
+            } else {
+              params.push(item)
+            }
+          }
+          setClauses.push(
+            stripWhitespace(`
+              ${JSON_DOCUMENT_COLUMN_NAME} =
+                JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, ${path}, ${expr})
+            `)
+          )
+        }
+      } else if (key === '$pop') {
+        for (const [field, direction] of Object.entries(value as object)) {
+          if (direction !== 1 && direction !== -1) {
+            throw new Error(
+              `$pop value for field "${field}" must be 1 (remove last) or -1 (remove first).`
+            )
+          }
+          const path = `'$.${sanitizeJsonPathKey(field)}'`
+          const len = `JSON_LENGTH(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, ${path}))`
+          const removeExpr =
+            direction === 1
+              ? stripWhitespace(`
+                  JSON_REMOVE(${JSON_DOCUMENT_COLUMN_NAME},
+                    CONCAT('$.${sanitizeJsonPathKey(field)}[', ${len} - 1, ']'))
+                `)
+              : stripWhitespace(`
+                  JSON_REMOVE(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizeJsonPathKey(field)}[0]')
+                `)
+          setClauses.push(
+            stripWhitespace(`
+              ${JSON_DOCUMENT_COLUMN_NAME} =
+                IF(${len} > 0, ${removeExpr}, ${JSON_DOCUMENT_COLUMN_NAME})
+            `)
+          )
+        }
+      } else if (key === '$pull') {
+        for (const [field, matchValue] of Object.entries(value as object)) {
+          if (
+            typeof matchValue === 'object' &&
+            matchValue !== null &&
+            !Array.isArray(matchValue)
+          ) {
+            throw new Error(
+              `$pull with a query predicate is not supported for field "${field}". ` +
+                `Only scalar values are supported.`
+            )
+          }
+          const path = `'$.${sanitizeJsonPathKey(field)}'`
+          const currentArray = `COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, ${path}), JSON_ARRAY())`
+          setClauses.push(
+            stripWhitespace(`
+              ${JSON_DOCUMENT_COLUMN_NAME} =
+                JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, ${path},
+                  COALESCE((
+                    SELECT JSON_ARRAYAGG(elem)
+                    FROM JSON_TABLE(${currentArray}, '$[*]' COLUMNS(elem JSON PATH '$')) t
+                    WHERE NOT JSON_CONTAINS(elem, CAST(? AS JSON))
+                  ), JSON_ARRAY()))
+            `)
+          )
+          params.push(JSON.stringify(matchValue))
+        }
+      } else if (key === '$pullAll') {
+        for (const [field, matchValues] of Object.entries(value as object)) {
+          if (!Array.isArray(matchValues)) {
+            throw new Error(
+              `$pullAll value for field "${field}" must be an array.`
+            )
+          }
+          const path = `'$.${sanitizeJsonPathKey(field)}'`
+          const currentArray = `COALESCE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, ${path}), JSON_ARRAY())`
+          setClauses.push(
+            stripWhitespace(`
+              ${JSON_DOCUMENT_COLUMN_NAME} =
+                JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, ${path},
+                  COALESCE((
+                    SELECT JSON_ARRAYAGG(elem)
+                    FROM JSON_TABLE(${currentArray}, '$[*]' COLUMNS(elem JSON PATH '$')) t
+                    WHERE NOT (elem MEMBER OF (CAST(? AS JSON)))
+                  ), JSON_ARRAY()))
+            `)
+          )
+          params.push(JSON.stringify(matchValues))
         }
       }
     }

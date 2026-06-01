@@ -55,6 +55,11 @@ export interface QueryUpdate {
   $mul?: { [key: string]: number } // multiply the value of a field by a number
   $min?: { [key: string]: any } // updates the value if the specified value is less than the current value of the field
   $max?: { [key: string]: any } // updates the value if the specified value is greater than the current value of the field (number or date)
+  $push?: { [key: string]: any } // appends a value to an array field; supports $each modifier for multiple values
+  $addToSet?: { [key: string]: any } // appends a value to an array only if it does not already exist; supports $each modifier
+  $pop?: { [key: string]: 1 | -1 } // removes the last (1) or first (-1) element of an array
+  $pull?: { [key: string]: any } // removes all elements from an array that match a specified scalar value
+  $pullAll?: { [key: string]: any[] } // removes all occurrences of each listed value from an array
 
   [key: string]: any // accept implementation specific props
 }

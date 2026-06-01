@@ -107,3 +107,5 @@ RelationAbstract (base)
 - [Validation](validation.md) - Learn about data validation
 - [DataSource Context](dynamic-datasource.md) - Learn about multi-datasource
   support
+- [Update Operators](update-operators.md) - Supported `$set`, `$push`, `$pull`,
+  and other update operators
