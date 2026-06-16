@@ -135,6 +135,7 @@ export class MysqlSqlBuilder {
       '$pop',
       '$pull',
       '$pullAll',
+      '$rename',
     ]
 
     for (const [key, value] of Object.entries(queryUpdate)) {
@@ -340,6 +341,25 @@ export class MysqlSqlBuilder {
             `)
           )
           params.push(JSON.stringify(matchValues))
+        }
+      } else if (key === '$rename') {
+        for (const [oldField, newField] of Object.entries(
+          value as Record<string, string>
+        )) {
+          const oldPath = `'$.${sanitizeJsonPathKey(oldField)}'`
+          const newPath = `'$.${sanitizeJsonPathKey(newField)}'`
+          setClauses.push(
+            stripWhitespace(`
+              ${JSON_DOCUMENT_COLUMN_NAME} =
+                IF(
+                  JSON_CONTAINS_PATH(${JSON_DOCUMENT_COLUMN_NAME}, 'one', ${oldPath}),
+                  JSON_REMOVE(
+                    JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, ${newPath},
+                      JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, ${oldPath})),
+                    ${oldPath}),
+                  ${JSON_DOCUMENT_COLUMN_NAME})
+            `)
+          )
         }
       }
     }

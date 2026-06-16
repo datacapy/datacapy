@@ -60,6 +60,7 @@ export interface QueryUpdate {
   $pop?: { [key: string]: 1 | -1 } // removes the last (1) or first (-1) element of an array
   $pull?: { [key: string]: any } // removes all elements from an array that match a specified scalar value
   $pullAll?: { [key: string]: any[] } // removes all occurrences of each listed value from an array
+  $rename?: { [key: string]: string } // renames a field; value is the new field name
 
   [key: string]: any // accept implementation specific props
 }

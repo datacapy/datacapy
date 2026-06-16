@@ -339,6 +339,51 @@ describe('MysqlSqlBuilder - UPDATE operations', () => {
       })
     })
 
+    describe('$rename', () => {
+      it('should copy value to new field and remove old field', () => {
+        const result = sqlBuilder.buildSetClause({
+          $rename: { firstName: 'givenName' },
+        })
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect(clause).toContain('JSON_CONTAINS_PATH(')
+        expect(clause).toContain("'$.firstName'")
+        expect(clause).toContain("'$.givenName'")
+        expect(clause).toContain('JSON_SET(')
+        expect(clause).toContain('JSON_REMOVE(')
+        expect(result.params).toEqual([])
+      })
+
+      it('should handle nested field paths', () => {
+        const result = sqlBuilder.buildSetClause({
+          $rename: { 'address.zip': 'address.postalCode' },
+        })
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect(clause).toContain("'$.address.zip'")
+        expect(clause).toContain("'$.address.postalCode'")
+        expect(result.params).toEqual([])
+      })
+
+      it('should rename multiple fields in one call', () => {
+        const result = sqlBuilder.buildSetClause({
+          $rename: { a: 'b', c: 'd' },
+        })
+        const clause = sqlBuilder.stripWhitespace(result.clause)
+        expect((clause.match(/JSON_CONTAINS_PATH/g) ?? []).length).toBe(2)
+        expect(result.params).toEqual([])
+      })
+
+      it('should include $rename in full buildUpdateQuery', async () => {
+        const result = await sqlBuilder.buildUpdateQuery(
+          'users',
+          { id: 'u1' },
+          { $rename: { firstName: 'givenName' } }
+        )
+        expect(result.sql).toContain('UPDATE `users`')
+        expect(result.sql).toContain('JSON_CONTAINS_PATH')
+        expect(result.values).toEqual(['u1'])
+      })
+    })
+
     it('should include array operator results in full buildUpdateQuery', async () => {
       const result = await sqlBuilder.buildUpdateQuery(
         'users',
