@@ -60,6 +60,15 @@ export class MigrationManager {
       this.logger.verboseLog("Resolving target datasource...");
       const targetDataSource = await this.resolveDataSource();
 
+      // Initialize dynamic repos so patches can call repo methods directly
+      const dsContext = this.buildDataSourceContext();
+      if (dsContext) {
+        await this.config.modelManager.initDynamicReposForDataSource(
+          this.config.dataSourceName,
+          dsContext,
+        );
+      }
+
       // Step 2: Initialize meta table
       this.logger.verboseLog("Initializing meta table...");
       const metaTable = new MetaTable(
@@ -342,12 +351,33 @@ export class MigrationManager {
   }
 
   /**
+   * Build a DataSourceContext from config.context, normalising plain objects
+   * into the DataSourceContext format. Returns undefined if no context configured.
+   */
+  private buildDataSourceContext(): DataSourceContext | undefined {
+    const { context, dataSourceName } = this.config;
+    if (!context) return undefined;
+    if (context instanceof DataSourceContext) return context;
+
+    const entry = Object.keys(context as Record<string, string>).reduce(
+      (acc, key) => {
+        acc[dataSourceName] = {
+          lookupKey: (context as Record<string, string>)[key],
+        };
+        return acc;
+      },
+      {} as any,
+    );
+    return DataSourceContext.fromDataSources(entry);
+  }
+
+  /**
    * Resolve target datasource based on configuration
    *
    * Handles both static and dynamic datasources
    */
   private async resolveDataSource(): Promise<DataSourceInterface> {
-    const { modelManager, dataSourceName, context } = this.config;
+    const { modelManager, dataSourceName } = this.config;
 
     // Try static datasource lookup first
     try {
@@ -365,25 +395,11 @@ export class MigrationManager {
     }
 
     // Try dynamic datasource lookup
-    if (!context) {
+    const dsContext = this.buildDataSourceContext();
+    if (!dsContext) {
       throw new Error(
         `Datasource "${dataSourceName}" not found. If this is a dynamic datasource, provide context via --context argument.`,
       );
-    }
-
-    // Convert context to DataSourceContext if it's a plain object
-    let dsContext: DataSourceContext;
-    if (context instanceof DataSourceContext) {
-      dsContext = context;
-    } else {
-      // Convert Record<string, string> to DataSourceContext
-      // Assume the dataSourceName maps to a lookupKey
-      const contextEntry = Object.keys(context).reduce((acc, key) => {
-        acc[dataSourceName] = { lookupKey: context[key] };
-        return acc;
-      }, {} as any);
-
-      dsContext = DataSourceContext.fromDataSources(contextEntry);
     }
 
     const contextEntry = dsContext.getForDataSource(dataSourceName);

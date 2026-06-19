@@ -22,6 +22,7 @@ type RepoLike = {
   }
   getName(): string
   dataSource?: DataSourceInterface
+  init(): Promise<void>
 }
 
 /**
@@ -256,26 +257,17 @@ export class DataSourceManager {
       throw new Error(`Repo not found: ${repoName}`)
     }
 
-    // Resolve entry for this repo's datasource
     const entry = context.getForDataSource(repo.config.dataSource)
-
-    // Get the actual datasource using resolved entry
     const actualDS = await this.getDataSourceDynamic(
       repo.config.dataSource,
       entry
     )
 
-    // Create indexes on the resolved datasource
-    if (repo.config.indexes) {
-      for (let indexName in repo.config.indexes) {
-        const index = repo.config.indexes[indexName]
-        await actualDS.createIndex(
-          repo.config.collectionName,
-          index.spec,
-          index.options
-        )
-      }
-    }
+    // Wire repo to the real datasource so all repo methods work correctly
+    repo.dataSource = actualDS
+
+    // Delegate initialisation to repo — respects autoIndex, avoids duplicated logic
+    await repo.init()
 
     this.logger.log(
       `[DataSourceManager] Initialized dynamic repo: ${repoName} for datasource: ${repo.config.dataSource}`
@@ -295,7 +287,7 @@ export class DataSourceManager {
     repos: { [key: string]: RepoLike }
   ): Promise<void> {
     const repoList = Object.values(repos).filter(
-      (r) => r.config.dataSource === dsName && r.dataSource?.isDynamic?.()
+      (r) => r.config.dataSource === dsName
     )
 
     this.logger.log(

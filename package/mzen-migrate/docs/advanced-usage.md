@@ -21,12 +21,12 @@ Patches targeting this datasource:
 
 ```typescript
 export default class InitAccountIndexes implements DatabasePatchInterface {
-  version = '2024-02-05_1000'
-  description = 'Initialize account-level indexes'
-  dataSourceName = 'db'  // Targets account database
+  version = "2024-02-05_1000";
+  description = "Initialize account-level indexes";
+  dataSourceName = "db"; // Targets account database
 
   async update(modelManager: ModelManager): Promise<void> {
-    const db = modelManager.getDataSource('db')
+    const db = modelManager.getDataSource("db");
     // Migrate account database
   }
 }
@@ -45,13 +45,13 @@ Patches targeting project datasources:
 
 ```typescript
 export default class AddProjectFeature implements DatabasePatchInterface {
-  version = '2024-02-05_1100'
-  description = 'Add feature to project database'
-  dataSourceName = 'project'  // Targets project database
+  version = "2024-02-05_1100";
+  description = "Add feature to project database";
+  dataSourceName = "project"; // Targets project database
 
   async update(modelManager: ModelManager): Promise<void> {
-    // Context (projectId) is provided via CLI
-    const projectDB = modelManager.getDataSource('project')
+    // Repos are pre-wired to the project's actual datasource by the migration runner
+    const repo = modelManager.getRepo("myRepo");
     // Migrate this specific project's database
   }
 }
@@ -78,47 +78,47 @@ This requires implementing a `ContextResolver` in your application's configurati
 
 ```typescript
 // migrate.config.js
-import { ContextResolverProject } from './src/context/ContextResolverProject'
-import { modelManager } from './src/model-manager'
+import { ContextResolverProject } from "./src/context/ContextResolverProject";
+import { modelManager } from "./src/model-manager";
 
 export default async () => {
-  await modelManager.init()
+  await modelManager.init();
 
   // Create context resolver for wildcard pattern support
-  const accountDataSource = modelManager.getDataSource('db')
-  const contextResolver = new ContextResolverProject(accountDataSource)
+  const accountDataSource = modelManager.getDataSource("db");
+  const contextResolver = new ContextResolverProject(accountDataSource);
 
   return {
     modelManager,
-    contextResolver,  // Enable context lookup patterns
-    patchDirectory: './migrate',
-  }
-}
+    contextResolver, // Enable context lookup patterns
+    patchDirectory: "./migrate",
+  };
+};
 ```
 
 **ContextResolver implementation example:**
 
 ```typescript
 // src/context/ContextResolverProject.ts
-import { ContextResolver } from 'mzen-migrate'
-import { DataSourceInterface } from 'mzen-om'
+import { ContextResolver } from "mzen-migrate";
+import { DataSourceInterface } from "mzen-om";
 
 export class ContextResolverProject implements ContextResolver {
   constructor(private accountDataSource: DataSourceInterface) {}
 
   async resolve(pattern: string): Promise<Array<Record<string, string>>> {
-    if (pattern === '*') {
+    if (pattern === "*") {
       // Query all projects from account database
-      const projects = await this.accountDataSource.find('project', {})
+      const projects = await this.accountDataSource.find("project", {});
 
       // Convert to context value objects
-      return projects.map(project => ({
-        projectId: project._id
-      }))
+      return projects.map((project) => ({
+        projectId: project._id,
+      }));
     }
 
     // Support other patterns as needed
-    throw new Error(`Unsupported context pattern: ${pattern}`)
+    throw new Error(`Unsupported context pattern: ${pattern}`);
   }
 }
 ```
@@ -187,24 +187,18 @@ Access context-specific data in your migrations:
 
 ```typescript
 export default class ProjectMigration implements DatabasePatchInterface {
-  version = '2024-02-06_1000'
-  description = 'Migrate project-specific data'
-  dataSourceName = 'project'
+  version = "2024-02-06_1000";
+  description = "Migrate project-specific data";
+  dataSourceName = "project";
 
   async update(modelManager: ModelManager): Promise<void> {
-    // Get the project datasource (resolved via CLI context)
-    const projectDB = modelManager.getDataSource('project')
+    // Repos are pre-wired to the project's actual datasource by the migration runner
+    const repo = modelManager.getRepo("survey");
 
-    // Optional: Access context information
-    // (if your ModelManager exposes context)
-    const projectId = modelManager.getContext('project')?.lookupKey
-
-    console.log(`Migrating project: ${projectId}`)
+    console.log("Migrating project surveys...");
 
     // Perform migration
-    await projectDB.updateMany('surveys', {}, {
-      $set: { status: 'active' }
-    })
+    await repo.updateMany({}, { $set: { status: "active" } });
   }
 }
 ```
@@ -226,91 +220,91 @@ mzen-migrate --config ./migrate.config.js \
 Instead of using the CLI, you can run migrations programmatically:
 
 ```typescript
-import { MigrationManager } from 'mzen-migrate'
-import modelManager from './model-manager'
+import { MigrationManager } from "mzen-migrate";
+import modelManager from "./model-manager";
 
 async function runMigrations() {
   // Initialize ModelManager
-  await modelManager.init()
+  await modelManager.init();
 
   // Configure migration
   const config = {
     modelManager,
-    dataSourceName: 'db',
-    patchDirectory: './migrate',
-    targetVersion: 'latest',
+    dataSourceName: "db",
+    patchDirectory: "./migrate",
+    targetVersion: "latest",
     dryRun: false,
     verbose: true,
     stopOnError: true,
-  }
+  };
 
   // Run migration
-  const manager = new MigrationManager(config)
-  const result = await manager.migrate()
+  const manager = new MigrationManager(config);
+  const result = await manager.migrate();
 
   // Handle result
-  console.log(`Applied ${result.successCount} patches`)
-  console.log(`Current version: ${result.currentVersion}`)
+  console.log(`Applied ${result.successCount} patches`);
+  console.log(`Current version: ${result.currentVersion}`);
 
   if (result.failedCount > 0) {
-    console.error('Migration failed!')
-    result.patchResults.forEach(r => {
-      if (r.status === 'failed') {
-        console.error(`${r.version}: ${r.error?.message}`)
+    console.error("Migration failed!");
+    result.patchResults.forEach((r) => {
+      if (r.status === "failed") {
+        console.error(`${r.version}: ${r.error?.message}`);
       }
-    })
-    process.exit(1)
+    });
+    process.exit(1);
   }
 
   // Cleanup
-  await modelManager.shutdown()
+  await modelManager.shutdown();
 }
 
-runMigrations().catch(console.error)
+runMigrations().catch(console.error);
 ```
 
 ### Custom Logger
 
 ```typescript
-import { MigrationManager } from 'mzen-migrate'
+import { MigrationManager } from "mzen-migrate";
 
 const config = {
   modelManager,
-  dataSourceName: 'db',
-  patchDirectory: './migrate',
-  logger: (message: string, level: 'info' | 'warn' | 'error') => {
+  dataSourceName: "db",
+  patchDirectory: "./migrate",
+  logger: (message: string, level: "info" | "warn" | "error") => {
     // Custom logging logic
-    if (level === 'error') {
-      myLogger.error(message)
-    } else if (level === 'warn') {
-      myLogger.warn(message)
+    if (level === "error") {
+      myLogger.error(message);
+    } else if (level === "warn") {
+      myLogger.warn(message);
     } else {
-      myLogger.info(message)
+      myLogger.info(message);
     }
-  }
-}
+  },
+};
 
-const manager = new MigrationManager(config)
-await manager.migrate()
+const manager = new MigrationManager(config);
+await manager.migrate();
 ```
 
 ### Conditional Migrations
 
 ```typescript
 export default class ConditionalMigration implements DatabasePatchInterface {
-  version = '2024-02-07_1000'
-  description = 'Conditional feature migration'
-  dataSourceName = 'db'
+  version = "2024-02-07_1000";
+  description = "Conditional feature migration";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const featureEnabled = process.env.ENABLE_FEATURE === 'true'
+    const featureEnabled = process.env.ENABLE_FEATURE === "true";
 
     if (!featureEnabled) {
-      console.log('⚠ Feature disabled, skipping migration')
-      return
+      console.log("⚠ Feature disabled, skipping migration");
+      return;
     }
 
-    console.log('Feature enabled, applying migration')
+    console.log("Feature enabled, applying migration");
     // Migration logic
   }
 }
@@ -325,26 +319,26 @@ Ensure one patch completes before another:
 ```typescript
 // 2024-02-08_1000_create-tables.ts
 export default class CreateTables implements DatabasePatchInterface {
-  version = '2024-02-08_1000'
-  description = 'Create tables'
-  dataSourceName = 'db'
+  version = "2024-02-08_1000";
+  description = "Create tables";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
     // Create tables
-    await createUserTable()
-    await createRoleTable()
+    await createUserTable();
+    await createRoleTable();
   }
 }
 
 // 2024-02-08_1001_create-indexes.ts
 export default class CreateIndexes implements DatabasePatchInterface {
-  version = '2024-02-08_1001'
-  description = 'Create indexes (depends on 1000)'
-  dataSourceName = 'db'
+  version = "2024-02-08_1001";
+  description = "Create indexes (depends on 1000)";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
     // This runs after 1000 due to version ordering
-    await createIndexes()
+    await createIndexes();
   }
 }
 ```
@@ -354,34 +348,34 @@ Version ordering ensures dependencies are respected: `1000` runs before `1001`.
 ### External Data Loading
 
 ```typescript
-import { readFile } from 'fs/promises'
-import path from 'path'
+import { readFile } from "fs/promises";
+import path from "path";
 
 export default class LoadExternalData implements DatabasePatchInterface {
-  version = '2024-02-09_1000'
-  description = 'Load data from external file'
-  dataSourceName = 'db'
+  version = "2024-02-09_1000";
+  description = "Load data from external file";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('product')
+    const repo = modelManager.getRepo("product");
 
     // Load data from JSON file
-    const dataPath = path.join(__dirname, '../data/products.json')
-    const rawData = await readFile(dataPath, 'utf-8')
-    const products = JSON.parse(rawData)
+    const dataPath = path.join(__dirname, "../data/products.json");
+    const rawData = await readFile(dataPath, "utf-8");
+    const products = JSON.parse(rawData);
 
     // Validate data
     if (!Array.isArray(products)) {
-      throw new Error('Invalid product data format')
+      throw new Error("Invalid product data format");
     }
 
     // Insert products
-    console.log(`Importing ${products.length} products...`)
+    console.log(`Importing ${products.length} products...`);
     for (const product of products) {
-      await repo.create(product)
+      await repo.create(product);
     }
 
-    console.log(`✓ Imported ${products.length} products`)
+    console.log(`✓ Imported ${products.length} products`);
   }
 }
 ```
@@ -390,39 +384,39 @@ export default class LoadExternalData implements DatabasePatchInterface {
 
 ```typescript
 export default class LargeMigration implements DatabasePatchInterface {
-  version = '2024-02-10_1000'
-  description = 'Large data migration with progress'
-  dataSourceName = 'db'
+  version = "2024-02-10_1000";
+  description = "Large data migration with progress";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('user')
+    const repo = modelManager.getRepo("user");
 
-    const totalCount = await repo.count({})
-    console.log(`Processing ${totalCount} users...`)
+    const totalCount = await repo.count({});
+    console.log(`Processing ${totalCount} users...`);
 
-    let processed = 0
-    let skip = 0
-    const limit = 1000
+    let processed = 0;
+    let skip = 0;
+    const limit = 1000;
 
     while (true) {
-      const batch = await repo.find({}, { skip, limit })
-      if (batch.length === 0) break
+      const batch = await repo.find({}, { skip, limit });
+      if (batch.length === 0) break;
 
       for (const user of batch) {
-        await processUser(user)
-        processed++
+        await processUser(user);
+        processed++;
 
         // Report progress every 100 users
         if (processed % 100 === 0) {
-          const percent = ((processed / totalCount) * 100).toFixed(1)
-          console.log(`Progress: ${processed}/${totalCount} (${percent}%)`)
+          const percent = ((processed / totalCount) * 100).toFixed(1);
+          console.log(`Progress: ${processed}/${totalCount} (${percent}%)`);
         }
       }
 
-      skip += limit
+      skip += limit;
     }
 
-    console.log(`✓ Processed ${processed} users`)
+    console.log(`✓ Processed ${processed} users`);
   }
 }
 ```
@@ -431,39 +425,35 @@ export default class LargeMigration implements DatabasePatchInterface {
 
 ```typescript
 export default class ValidateData implements DatabasePatchInterface {
-  version = '2024-02-11_1000'
-  description = 'Validate and fix data inconsistencies'
-  dataSourceName = 'db'
+  version = "2024-02-11_1000";
+  description = "Validate and fix data inconsistencies";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('user')
+    const repo = modelManager.getRepo("user");
 
     // Find invalid records
     const invalidUsers = await repo.find({
-      $or: [
-        { email: { $exists: false } },
-        { email: '' },
-        { email: null }
-      ]
-    })
+      $or: [{ email: { $exists: false } }, { email: "" }, { email: null }],
+    });
 
     if (invalidUsers.length > 0) {
-      console.log(`⚠ Found ${invalidUsers.length} users with invalid emails`)
+      console.log(`⚠ Found ${invalidUsers.length} users with invalid emails`);
 
       // Option 1: Fix them
       for (const user of invalidUsers) {
         await repo.updateOne(
           { email: `user-${user._id}@example.com` },
-          { _id: user._id }
-        )
+          { _id: user._id },
+        );
       }
 
       // Option 2: Delete them
       // await repo.deleteMany({ _id: { $in: invalidUsers.map(u => u._id) } })
 
-      console.log(`✓ Fixed ${invalidUsers.length} users`)
+      console.log(`✓ Fixed ${invalidUsers.length} users`);
     } else {
-      console.log('✓ All users have valid emails')
+      console.log("✓ All users have valid emails");
     }
   }
 }
@@ -496,12 +486,12 @@ mzen-migrate --config ./migrate.config.js \
 
 ```typescript
 // Check before inserting
-const existing = await repo.findOne({ code: 'FREE' })
+const existing = await repo.findOne({ code: "FREE" });
 if (existing) {
-  console.log('Already exists, skipping')
-  return
+  console.log("Already exists, skipping");
+  return;
 }
-await repo.create({ code: 'FREE', name: 'Free' })
+await repo.create({ code: "FREE", name: "Free" });
 ```
 
 ### "Invalid version format"
@@ -515,7 +505,7 @@ await repo.create({ code: 'FREE', name: 'Free' })
 ```typescript
 // Filename: 2024-02-05_1430_add-table.ts
 export default class AddTable implements DatabasePatchInterface {
-  version = '2024-02-05_1430'  // Must match filename
+  version = "2024-02-05_1430"; // Must match filename
   // ...
 }
 ```
@@ -618,36 +608,33 @@ async update(modelManager: ModelManager): Promise<void> {
 ```typescript
 // ❌ Slow - Individual updates
 for (const user of users) {
-  await repo.updateOne({ status: 'active' }, { _id: user._id })
+  await repo.updateOne({ status: "active" }, { _id: user._id });
 }
 
 // ✅ Fast - Bulk update
-await repo.updateMany(
-  { status: 'active' },
-  { status: { $exists: false } }
-)
+await repo.updateMany({ status: "active" }, { status: { $exists: false } });
 ```
 
 ### Index Creation Timing
 
 ```typescript
 export default class OptimizedIndexCreation implements DatabasePatchInterface {
-  version = '2024-02-12_1000'
-  description = 'Create indexes with optimization'
-  dataSourceName = 'db'
+  version = "2024-02-12_1000";
+  description = "Create indexes with optimization";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const db = modelManager.getDataSource('db')
+    const db = modelManager.getDataSource("db");
 
     // Create indexes after data is loaded, not before
     // This is faster than creating indexes first and then inserting data
 
-    console.log('Loading data...')
-    await loadLargeDataset()
+    console.log("Loading data...");
+    await loadLargeDataset();
 
-    console.log('Creating indexes (this may take a while)...')
-    await db.createIndex('users', { email: 1 }, { unique: true })
-    console.log('✓ Indexes created')
+    console.log("Creating indexes (this may take a while)...");
+    await db.createIndex("users", { email: 1 }, { unique: true });
+    console.log("✓ Indexes created");
   }
 }
 ```
@@ -656,36 +643,34 @@ export default class OptimizedIndexCreation implements DatabasePatchInterface {
 
 ```typescript
 export default class ParallelMigration implements DatabasePatchInterface {
-  version = '2024-02-13_1000'
-  description = 'Parallel data migration'
-  dataSourceName = 'db'
+  version = "2024-02-13_1000";
+  description = "Parallel data migration";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('user')
+    const repo = modelManager.getRepo("user");
 
     // Process multiple batches in parallel
-    const batchSize = 1000
-    const totalCount = await repo.count({})
-    const batches = Math.ceil(totalCount / batchSize)
+    const batchSize = 1000;
+    const totalCount = await repo.count({});
+    const batches = Math.ceil(totalCount / batchSize);
 
-    console.log(`Processing ${totalCount} users in ${batches} batches...`)
+    console.log(`Processing ${totalCount} users in ${batches} batches...`);
 
-    const promises = []
+    const promises = [];
     for (let i = 0; i < batches; i++) {
-      const skip = i * batchSize
-      promises.push(
-        this.processBatch(repo, skip, batchSize)
-      )
+      const skip = i * batchSize;
+      promises.push(this.processBatch(repo, skip, batchSize));
     }
 
-    await Promise.all(promises)
-    console.log(`✓ Processed ${totalCount} users`)
+    await Promise.all(promises);
+    console.log(`✓ Processed ${totalCount} users`);
   }
 
   private async processBatch(repo, skip: number, limit: number) {
-    const batch = await repo.find({}, { skip, limit })
+    const batch = await repo.find({}, { skip, limit });
     for (const user of batch) {
-      await this.processUser(user)
+      await this.processUser(user);
     }
   }
 }
@@ -696,72 +681,72 @@ export default class ParallelMigration implements DatabasePatchInterface {
 ### Mock DataSource
 
 ```typescript
-import { DataSourceMock } from 'mzen-om'
-import { ModelManager } from 'mzen-om'
+import { DataSourceMock } from "mzen-om";
+import { ModelManager } from "mzen-om";
 
-describe('Migration Tests', () => {
-  it('should create indexes', async () => {
+describe("Migration Tests", () => {
+  it("should create indexes", async () => {
     // Create mock datasource
-    const mockDS = new DataSourceMock({})
+    const mockDS = new DataSourceMock({});
 
     // Create ModelManager with mock
-    const modelManager = new ModelManager({})
-    modelManager.addDataSource('db', mockDS)
+    const modelManager = new ModelManager({});
+    modelManager.addDataSource("db", mockDS);
 
     // Run migration
-    const migration = new InitIndexes()
-    await migration.update(modelManager)
+    const migration = new InitIndexes();
+    await migration.update(modelManager);
 
     // Verify
-    expect(mockDS.indexes).toHaveLength(3)
-  })
-})
+    expect(mockDS.indexes).toHaveLength(3);
+  });
+});
 ```
 
 ### Integration Tests
 
 ```typescript
 // test/integration/migrations.test.ts
-import { MigrationManager } from 'mzen-migrate'
-import { setupTestDatabase, teardownTestDatabase } from './helpers'
+import { MigrationManager } from "mzen-migrate";
+import { setupTestDatabase, teardownTestDatabase } from "./helpers";
 
-describe('Migration Integration Tests', () => {
+describe("Migration Integration Tests", () => {
   beforeEach(async () => {
-    await setupTestDatabase()
-  })
+    await setupTestDatabase();
+  });
 
   afterEach(async () => {
-    await teardownTestDatabase()
-  })
+    await teardownTestDatabase();
+  });
 
-  it('should migrate from scratch', async () => {
+  it("should migrate from scratch", async () => {
     const manager = new MigrationManager({
       modelManager: testModelManager,
-      dataSourceName: 'db',
-      patchDirectory: './migrate',
-    })
+      dataSourceName: "db",
+      patchDirectory: "./migrate",
+    });
 
-    const result = await manager.migrate()
+    const result = await manager.migrate();
 
-    expect(result.successCount).toBeGreaterThan(0)
-    expect(result.failedCount).toBe(0)
-  })
+    expect(result.successCount).toBeGreaterThan(0);
+    expect(result.failedCount).toBe(0);
+  });
 
-  it('should be idempotent', async () => {
+  it("should be idempotent", async () => {
     const manager = new MigrationManager({
       modelManager: testModelManager,
-      dataSourceName: 'db',
-      patchDirectory: './migrate',
-    })
+      dataSourceName: "db",
+      patchDirectory: "./migrate",
+    });
 
     // Run twice
-    await manager.migrate()
-    const result = await manager.migrate()
+    await manager.migrate();
+    const result = await manager.migrate();
 
     // Second run should have no patches to apply
-    expect(result.successCount).toBe(0)
-  })
-})
+    expect(result.successCount).toBe(0);
+  });
+});
 ```
 
 ## Deployment Integration
@@ -785,7 +770,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install dependencies
         run: pnpm install
@@ -825,14 +810,22 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-      - name: migrate
-        image: myapp:latest
-        command: ["pnpm", "mzen-migrate", "--config", "./migrate.config.js", "--datasource", "db"]
-        envFrom:
-        - configMapRef:
-            name: db-config
-        - secretRef:
-            name: db-secrets
+        - name: migrate
+          image: myapp:latest
+          command:
+            [
+              "pnpm",
+              "mzen-migrate",
+              "--config",
+              "./migrate.config.js",
+              "--datasource",
+              "db",
+            ]
+          envFrom:
+            - configMapRef:
+                name: db-config
+            - secretRef:
+                name: db-secrets
 ```
 
 ## Summary
@@ -849,6 +842,7 @@ Advanced patterns covered:
 - ✅ Deployment integration
 
 For more information, see:
+
 - [Architecture Documentation](./architecture.md)
 - [Best Practices](./best-practices.md)
 - [Main README](../README.md)
