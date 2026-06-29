@@ -552,7 +552,12 @@ export class Schema {
     this.schemaIterator.iterate(object, (opts) => {
       const { spec, fieldName, container } = opts
       if (!spec?.$filter?.encrypt) return
-      if (!container || container[fieldName] == null) return
+      if (
+        !container ||
+        container[fieldName] == null ||
+        container[fieldName] === ''
+      )
+        return
       if (!this.config.encryptionService) {
         throw new Error(
           `Encryption required for field "${String(fieldName)}" but no encryptionService configured in schema`

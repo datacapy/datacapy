@@ -74,9 +74,19 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
       throw new Error('Private key not configured — decryption unavailable')
     }
 
-    const payload = JSON.parse(
-      Buffer.from(ciphertext, 'base64').toString('utf8')
-    )
+    // Detect legacy plaintext values stored before encryption was introduced.
+    // The encryption envelope is base64(JSON{k,iv,tag,d}). If the value doesn't
+    // decode to that structure it's a legacy value — return it unchanged.
+    let payload: { k: string; iv: string; tag: string; d: string }
+    try {
+      const decoded = Buffer.from(ciphertext, 'base64').toString('utf8')
+      payload = JSON.parse(decoded)
+    } catch {
+      return ciphertext
+    }
+    if (!payload?.k || !payload?.iv || !payload?.tag || !payload?.d) {
+      return ciphertext
+    }
 
     const aesKey = privateDecrypt(
       {
