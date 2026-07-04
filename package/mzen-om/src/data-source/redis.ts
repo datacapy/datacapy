@@ -744,6 +744,17 @@ export class DataSourceRedis implements DataSourceInterface {
     }
   }
 
+  // ─── Raw client access ────────────────────────────────────────────────────
+
+  /**
+   * Runs a Lua script against the underlying ioredis client via EVAL.
+   * Exposed for callers that need atomic multi-command operations (e.g. rate
+   * limiting) that this data source's document API does not model.
+   */
+  async eval(script: string, numKeys: number, ...args: string[]): Promise<any> {
+    return this.client.eval(script, numKeys, ...args)
+  }
+
   // ─── Pub / Sub ────────────────────────────────────────────────────────────
 
   async publish(channel: string, message: any): Promise<void> {
