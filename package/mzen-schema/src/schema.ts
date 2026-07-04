@@ -14,7 +14,7 @@ export interface SchemaValidationMeta {
 }
 
 export interface SchemaValidationResult {
-  errors?: { [path: string]: string[] }
+  errors?: { [path: string]: string[] | { [path: string]: string[] } }
   isValid?: boolean
 }
 
