@@ -26,14 +26,14 @@ pnpm add mzen-migrate
 Create `migrate.config.js` in your project root:
 
 ```javascript
-const modelManager = require('./src/model-manager').default
+const modelManager = require("./src/model-manager").default;
 
 module.exports = async () => {
   return {
-    modelManager,              // Your existing ModelManager instance
-    patchDirectory: './migrate'
-  }
-}
+    modelManager, // Your existing ModelManager instance
+    patchDirectory: "./migrate",
+  };
+};
 ```
 
 ### 2. Create Your First Patch
@@ -42,23 +42,23 @@ Create patches in `migrate/YYYY/MM/YYYY-MM-DD_HHMM_label.ts`:
 
 ```typescript
 // migrate/2024/02/2024-02-05_1430_add-users-table.ts
-import { DatabasePatchInterface } from 'mzen-migrate'
-import { ModelManager } from 'mzen-om'
+import { DatabasePatchInterface } from "mzen-migrate";
+import { ModelManager } from "mzen-om";
 
 export default class AddUsersTable implements DatabasePatchInterface {
-  version = '2024-02-05_1430'
-  description = 'Add users table'
-  dataSourceName = 'db'  // Target datasource
+  version = "2024-02-05_1430";
+  description = "Add users table";
+  dataSourceName = "db"; // Target datasource
 
   async update(modelManager: ModelManager): Promise<void> {
-    const dataSource = modelManager.getDataSource('db')
+    const dataSource = modelManager.getDataSource("db");
 
     // Your migration logic here
-    await dataSource.insertOne('users', {
-      _id: '000000000000000000000001',
-      email: 'admin@example.com',
-      role: 'admin'
-    })
+    await dataSource.insertOne("users", {
+      _id: "000000000000000000000001",
+      email: "admin@example.com",
+      role: "admin",
+    });
   }
 }
 ```
@@ -129,15 +129,15 @@ pnpm mzen-migrate --config ./migrate.config.js --datasource db --verbose
 The config file should export an async function that returns a `MigrationConfig` object:
 
 ```typescript
-import { ModelManager } from 'mzen-om'
+import { ModelManager } from "mzen-om";
 
 export default async () => {
   return {
-    modelManager,           // Required: Your ModelManager instance
-    patchDirectory: './migrate',  // Optional: Patch directory
-    verbose: false          // Optional: Enable verbose logging
-  }
-}
+    modelManager, // Required: Your ModelManager instance
+    patchDirectory: "./migrate", // Optional: Patch directory
+    verbose: false, // Optional: Enable verbose logging
+  };
+};
 ```
 
 ### Configuration Options
@@ -161,10 +161,10 @@ All patches must implement `DatabasePatchInterface`:
 
 ```typescript
 export interface DatabasePatchInterface {
-  version: string          // Format: YYYY-MM-DD_HHMM
-  description: string      // Human-readable description
-  dataSourceName: string   // Target datasource: 'db', 'project', etc.
-  update(modelManager: ModelManager): Promise<void>
+  version: string; // Format: YYYY-MM-DD_HHMM
+  description: string; // Human-readable description
+  dataSourceName: string; // Target datasource: 'db', 'project', etc.
+  update(modelManager: ModelManager): Promise<void>;
 }
 ```
 
@@ -188,24 +188,24 @@ migrate/
 #### Simple Table Creation
 
 ```typescript
-import { DatabasePatchInterface } from 'mzen-migrate'
-import { ModelManager } from 'mzen-om'
+import { DatabasePatchInterface } from "mzen-migrate";
+import { ModelManager } from "mzen-om";
 
 export default class AddUsersTable implements DatabasePatchInterface {
-  version = '2024-02-05_1430'
-  description = 'Add users table'
-  dataSourceName = 'db'
+  version = "2024-02-05_1430";
+  description = "Add users table";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const db = modelManager.getDataSource('db')
+    const db = modelManager.getDataSource("db");
 
     // Insert initial record to create table
-    await db.insertOne('users', {
-      _id: '000000000000000000000001',
-      email: 'admin@example.com',
-      role: 'admin',
-      createdAt: new Date()
-    })
+    await db.insertOne("users", {
+      _id: "000000000000000000000001",
+      email: "admin@example.com",
+      role: "admin",
+      createdAt: new Date(),
+    });
   }
 }
 ```
@@ -214,23 +214,31 @@ export default class AddUsersTable implements DatabasePatchInterface {
 
 ```typescript
 export default class AddUserIndexes implements DatabasePatchInterface {
-  version = '2024-02-06_1000'
-  description = 'Add indexes to users table'
-  dataSourceName = 'db'
+  version = "2024-02-06_1000";
+  description = "Add indexes to users table";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const db = modelManager.getDataSource('db')
+    const db = modelManager.getDataSource("db");
 
     // Create unique index on email
-    await db.createIndex('users', { email: 1 }, {
-      name: 'idx_users_email',
-      unique: true
-    })
+    await db.createIndex(
+      "users",
+      { email: 1 },
+      {
+        name: "idx_users_email",
+        unique: true,
+      },
+    );
 
     // Create index on createdAt
-    await db.createIndex('users', { createdAt: -1 }, {
-      name: 'idx_users_created'
-    })
+    await db.createIndex(
+      "users",
+      { createdAt: -1 },
+      {
+        name: "idx_users_created",
+      },
+    );
   }
 }
 ```
@@ -239,27 +247,27 @@ export default class AddUserIndexes implements DatabasePatchInterface {
 
 ```typescript
 export default class SeedDefaultRoles implements DatabasePatchInterface {
-  version = '2024-02-07_1400'
-  description = 'Seed default user roles'
-  dataSourceName = 'db'
+  version = "2024-02-07_1400";
+  description = "Seed default user roles";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
     // Access repo through ModelManager
-    const roleRepo = modelManager.getRepo('role')
+    const roleRepo = modelManager.getRepo("role");
 
     // Check if already seeded
-    const count = await roleRepo.count()
+    const count = await roleRepo.count();
     if (count > 0) {
-      console.log('Roles already exist, skipping seed')
-      return
+      console.log("Roles already exist, skipping seed");
+      return;
     }
 
     // Insert default roles
     await roleRepo.insertMany([
-      { name: 'admin', permissions: ['*'] },
-      { name: 'editor', permissions: ['read', 'write'] },
-      { name: 'viewer', permissions: ['read'] }
-    ])
+      { name: "admin", permissions: ["*"] },
+      { name: "editor", permissions: ["read", "write"] },
+      { name: "viewer", permissions: ["read"] },
+    ]);
   }
 }
 ```
@@ -268,18 +276,22 @@ export default class SeedDefaultRoles implements DatabasePatchInterface {
 
 ```typescript
 export default class AddProjectStatus implements DatabasePatchInterface {
-  version = '2024-02-08_1000'
-  description = 'Add status field to surveys'
-  dataSourceName = 'project'  // Targets dynamic project datasource
+  version = "2024-02-08_1000";
+  description = "Add status field to surveys";
+  dataSourceName = "project"; // Targets dynamic project datasource
 
   async update(modelManager: ModelManager): Promise<void> {
     // Get project datasource (resolved via CLI --context)
-    const projectDS = modelManager.getDataSource('project')
+    const projectDS = modelManager.getDataSource("project");
 
     // Update all surveys in this project
-    await projectDS.updateMany('surveys', {}, {
-      $set: { status: 'draft' }
-    })
+    await projectDS.updateMany(
+      "surveys",
+      {},
+      {
+        $set: { status: "draft" },
+      },
+    );
   }
 }
 ```
@@ -328,10 +340,12 @@ Versions use the format `YYYY-MM-DD_HHMM`:
 - **HHMM**: 4-digit time (0000-2359)
 
 Examples:
+
 - `2024-02-05_1430` - February 5, 2024 at 2:30 PM
 - `2024-12-31_2359` - December 31, 2024 at 11:59 PM
 
 **Benefits:**
+
 - Natural chronological ordering
 - Easy to generate: `const version = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '')`
 - Eliminates merge conflicts (timestamps are unique)
@@ -346,19 +360,19 @@ Each patch runs in a transaction with automatic rollback on failure:
 ```typescript
 // This patch will rollback if any operation fails
 export default class SafeMigration implements DatabasePatchInterface {
-  version = '2024-02-09_1000'
-  description = 'Safe migration with automatic rollback'
-  dataSourceName = 'db'
+  version = "2024-02-09_1000";
+  description = "Safe migration with automatic rollback";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const db = modelManager.getDataSource('db')
+    const db = modelManager.getDataSource("db");
 
     // All these operations are in a transaction
-    await db.insertOne('users', { email: 'user1@example.com' })
-    await db.insertOne('users', { email: 'user2@example.com' })
+    await db.insertOne("users", { email: "user1@example.com" });
+    await db.insertOne("users", { email: "user2@example.com" });
 
     // If this fails, both inserts are rolled back
-    await db.createIndex('users', { email: 1 }, { unique: true })
+    await db.createIndex("users", { email: 1 }, { unique: true });
   }
 }
 ```
@@ -401,21 +415,21 @@ Migration status is tracked in a `migrationMeta` table (customizable via `metaTa
 ### Querying Migration Status
 
 ```typescript
-import { MetaTable } from 'mzen-migrate'
+import { MetaTable } from "mzen-migrate";
 
 // Get current database version
-const metaTable = new MetaTable(dataSource, 'migrationMeta')
-const currentVersion = await metaTable.getCurrentVersion()
-console.log(`Current version: ${currentVersion}`)
+const metaTable = new MetaTable(dataSource, "migrationMeta");
+const currentVersion = await metaTable.getCurrentVersion();
+console.log(`Current version: ${currentVersion}`);
 
 // Get all applied patches
-const patches = await metaTable.getAppliedPatches()
-patches.forEach(p => {
-  console.log(`${p.version}: ${p.description} (applied ${p.appliedAt})`)
-})
+const patches = await metaTable.getAppliedPatches();
+patches.forEach((p) => {
+  console.log(`${p.version}: ${p.description} (applied ${p.appliedAt})`);
+});
 
 // Check if specific patch was applied
-const isApplied = await metaTable.isPatchApplied('2024-02-05_1430')
+const isApplied = await metaTable.isPatchApplied("2024-02-05_1430");
 ```
 
 ## Programmatic Usage
@@ -423,29 +437,29 @@ const isApplied = await metaTable.isPatchApplied('2024-02-05_1430')
 You can also use mzen-migrate programmatically:
 
 ```typescript
-import { MigrationManager } from 'mzen-migrate'
-import modelManager from './src/model-manager'
+import { MigrationManager } from "mzen-migrate";
+import modelManager from "./src/model-manager";
 
 const config = {
   modelManager,
-  dataSourceName: 'db',
-  patchDirectory: './migrate',
-  verbose: true
-}
+  dataSourceName: "db",
+  patchDirectory: "./migrate",
+  verbose: true,
+};
 
-const manager = new MigrationManager(config)
-const result = await manager.migrate()
+const manager = new MigrationManager(config);
+const result = await manager.migrate();
 
-console.log(`Applied ${result.successCount} patches`)
-console.log(`Current version: ${result.currentVersion}`)
+console.log(`Applied ${result.successCount} patches`);
+console.log(`Current version: ${result.currentVersion}`);
 
 if (result.failedCount > 0) {
-  console.error('Migration failed!')
-  result.patchResults.forEach(r => {
-    if (r.status === 'failed') {
-      console.error(`${r.version}: ${r.error?.message}`)
+  console.error("Migration failed!");
+  result.patchResults.forEach((r) => {
+    if (r.status === "failed") {
+      console.error(`${r.version}: ${r.error?.message}`);
     }
-  })
+  });
 }
 ```
 
@@ -468,17 +482,17 @@ Each patch should do one thing and be reversible if needed:
 ```typescript
 // Good - Single, clear purpose
 export default class AddUserEmailIndex implements DatabasePatchInterface {
-  version = '2024-02-10_1000'
-  description = 'Add index on users.email for faster lookups'
-  dataSourceName = 'db'
+  version = "2024-02-10_1000";
+  description = "Add index on users.email for faster lookups";
+  dataSourceName = "db";
   // ...
 }
 
 // Avoid - Multiple unrelated changes
 export default class MiscChanges implements DatabasePatchInterface {
-  version = '2024-02-10_1100'
-  description = 'Add indexes, update roles, and seed data'
-  dataSourceName = 'db'
+  version = "2024-02-10_1100";
+  description = "Add indexes, update roles, and seed data";
+  dataSourceName = "db";
   // Too much in one patch!
 }
 ```
@@ -488,22 +502,22 @@ export default class MiscChanges implements DatabasePatchInterface {
 Use DataSourceMock to test patches:
 
 ```typescript
-import { DataSourceMock } from 'mzen-om'
-import AddUsersTable from './2024-02-05_1430_add-users-table'
+import { DataSourceMock } from "mzen-om";
+import AddUsersTable from "./2024-02-05_1430_add-users-table";
 
-describe('AddUsersTable patch', () => {
-  it('should create users table', async () => {
-    const mockDS = new DataSourceMock({})
-    const mockMM = new ModelManager({})
-    mockMM.addDataSource('db', mockDS)
+describe("AddUsersTable patch", () => {
+  it("should create users table", async () => {
+    const mockDS = new DataSourceMock({});
+    const mockMM = new ModelManager({});
+    mockMM.addDataSource("db", mockDS);
 
-    const patch = new AddUsersTable()
-    await patch.update(mockMM)
+    const patch = new AddUsersTable();
+    await patch.update(mockMM);
 
     // Verify patch worked
-    expect(mockDS.dataInsert).toHaveLength(1)
-  })
-})
+    expect(mockDS.dataInsert).toHaveLength(1);
+  });
+});
 ```
 
 ### 5. Use Descriptive Patch Names
@@ -524,22 +538,22 @@ Patches should be safe to run multiple times:
 
 ```typescript
 export default class SeedData implements DatabasePatchInterface {
-  version = '2024-02-11_1000'
-  description = 'Seed initial data'
-  dataSourceName = 'db'
+  version = "2024-02-11_1000";
+  description = "Seed initial data";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('setting')
+    const repo = modelManager.getRepo("setting");
 
     // Check if already seeded
-    const exists = await repo.findOne({ key: 'app.initialized' })
+    const exists = await repo.findOne({ key: "app.initialized" });
     if (exists) {
-      console.log('Already initialized, skipping')
-      return
+      console.log("Already initialized, skipping");
+      return;
     }
 
     // Safe to seed
-    await repo.insertOne({ key: 'app.initialized', value: true })
+    await repo.insertOne({ key: "app.initialized", value: true });
   }
 }
 ```
@@ -565,8 +579,8 @@ pnpm mzen-migrate --config ./migrate.config.js \\
 **Solution:** Check meta table, patch may have been applied in previous run:
 
 ```typescript
-const metaTable = new MetaTable(dataSource)
-const isApplied = await metaTable.isPatchApplied('2024-02-05_1430')
+const metaTable = new MetaTable(dataSource);
+const isApplied = await metaTable.isPatchApplied("2024-02-05_1430");
 ```
 
 ### Invalid Version Format Error
@@ -578,7 +592,7 @@ const isApplied = await metaTable.isPatchApplied('2024-02-05_1430')
 ```typescript
 // Filename: 2024-02-05_1430_add-table.ts
 export default class AddTable implements DatabasePatchInterface {
-  version = '2024-02-05_1430'  // Must match filename
+  version = "2024-02-05_1430"; // Must match filename
   // ...
 }
 ```
@@ -589,8 +603,8 @@ export default class AddTable implements DatabasePatchInterface {
 
 ```typescript
 class MigrationManager {
-  constructor(config: MigrationConfig)
-  migrate(): Promise<MigrationResult>
+  constructor(config: MigrationConfig);
+  migrate(): Promise<MigrationResult>;
 }
 ```
 
@@ -598,12 +612,16 @@ class MigrationManager {
 
 ```typescript
 class MetaTable {
-  constructor(dataSource: DataSourceInterface, tableName?: string)
-  initialize(): Promise<void>
-  getCurrentVersion(): Promise<string>
-  recordPatch(version: string, description: string, duration?: number): Promise<void>
-  getAppliedPatches(): Promise<MetaRecord[]>
-  isPatchApplied(version: string): Promise<boolean>
+  constructor(dataSource: DataSourceInterface, tableName?: string);
+  initialize(): Promise<void>;
+  getCurrentVersion(): Promise<string>;
+  recordPatch(
+    version: string,
+    description: string,
+    duration?: number,
+  ): Promise<void>;
+  getAppliedPatches(): Promise<MetaRecord[]>;
+  isPatchApplied(version: string): Promise<boolean>;
 }
 ```
 
@@ -611,20 +629,20 @@ class MetaTable {
 
 ```typescript
 class VersionManager {
-  static parseVersion(version: string): number
-  static compareVersions(v1: string, v2: string): number
-  static sortVersions(versions: string[]): string[]
-  static isValidVersion(version: string): boolean
-  static generateVersion(date?: Date): string
-  static getLatestVersion(versions: string[]): string | undefined
+  static parseVersion(version: string): number;
+  static compareVersions(v1: string, v2: string): number;
+  static sortVersions(versions: string[]): string[];
+  static isValidVersion(version: string): boolean;
+  static generateVersion(date?: Date): string;
+  static getLatestVersion(versions: string[]): string | undefined;
 }
 ```
 
 ## Documentation
 
-- **[Architecture](./docs/architecture.md)** - Migration system internals and technical implementation
-- **[Best Practices](./docs/best-practices.md)** - Guidelines for writing safe, maintainable migrations
-- **[Advanced Usage](./docs/advanced-usage.md)** - Advanced patterns, troubleshooting, and deployment
+- **[Architecture](./docs/architecture/index.md)** - Migration system internals and technical implementation
+- **[Best Practices](./docs/best-practices/index.md)** - Guidelines for writing safe, maintainable migrations
+- **[Advanced Usage](./docs/advanced-usage/index.md)** - Advanced patterns, troubleshooting, and deployment
 
 ## Contributing
 
