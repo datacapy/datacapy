@@ -743,7 +743,7 @@ describe('DataSourceMysql', () => {
       expect(result.insertedIds).toEqual({ 0: 42 })
     })
 
-    it('rolls back the transaction and rethrows on a rejected query, releasing the connection and closing the dedicated pool', async () => {
+    it('rolls back the transaction and rethrows on a rejected query, releasing the connection without closing the dedicated pool', async () => {
       const dbError = new Error('duplicate entry')
       mockConnQuery.mockRejectedValue(dbError)
 
@@ -759,7 +759,8 @@ describe('DataSourceMysql', () => {
       expect(mockConn.rollback).toHaveBeenCalledTimes(1)
       expect(mockConn.commit).not.toHaveBeenCalled()
       expect(mockConn.release).toHaveBeenCalledTimes(1)
-      expect(mockPoolEnd).toHaveBeenCalledTimes(1)
+      // the dedicated pool is cached and reused across calls - it must not be torn down per call
+      expect(mockPoolEnd).not.toHaveBeenCalled()
     })
 
     it('never mutates the shared pool config with multipleStatements', async () => {
@@ -777,6 +778,43 @@ describe('DataSourceMysql', () => {
         (c) => c[0].multipleStatements === true
       )
       expect(bulkWriteCall).toBeDefined()
+    })
+
+    it('lazily creates the dedicated pool once and reuses it across multiple bulkWrite calls', async () => {
+      mockConnQuery.mockResolvedValue([{ affectedRows: 1, insertId: 1 }, []])
+      const createPool = mysqlCreatePool as jest.Mock
+      const createPoolCallsBefore = createPool.mock.calls.length
+
+      await dataSource.bulkWrite('users', [
+        { insertOne: { document: { name: 'John' } } },
+      ])
+      await dataSource.bulkWrite('users', [
+        { insertOne: { document: { name: 'Jane' } } },
+      ])
+
+      // Exactly one new createPool call for the dedicated bulk pool, even though bulkWrite was
+      // called twice - the second call must reuse the cached pool instead of creating another
+      expect(createPool.mock.calls.length - createPoolCallsBefore).toBe(1)
+      expect(mockGetConnection).toHaveBeenCalledTimes(2)
+    })
+
+    it('close() ends the dedicated pool only if bulkWrite ever created it', async () => {
+      const mainPoolEnd = jest.fn().mockResolvedValue(undefined)
+      ;(dataSource as any).pool.end = mainPoolEnd
+
+      // close() before any bulkWrite call must not attempt to end a pool that was never created
+      await dataSource.close()
+      expect(mainPoolEnd).toHaveBeenCalledTimes(1)
+      expect(mockPoolEnd).not.toHaveBeenCalled()
+
+      mockConnQuery.mockResolvedValue([{ affectedRows: 1, insertId: 1 }, []])
+      await dataSource.bulkWrite('users', [
+        { insertOne: { document: { name: 'John' } } },
+      ])
+
+      await dataSource.close()
+      expect(mainPoolEnd).toHaveBeenCalledTimes(2)
+      expect(mockPoolEnd).toHaveBeenCalledTimes(1)
     })
 
     it('threads limitOne per op type: updateOne/deleteOne limit to one row, updateMany/deleteMany do not', async () => {

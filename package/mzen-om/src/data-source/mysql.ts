@@ -41,6 +41,7 @@ export class DataSourceMysql implements DataSourceInterface {
   private indexExistsCache: Map<string, boolean> = new Map()
   private tableExistsCache: Map<string, boolean> = new Map()
   private connection: PoolConnection | null = null
+  private bulkPool: Pool | null = null
 
   constructor(config: DataSourceMysqlConfig) {
     this.config = config
@@ -459,66 +460,69 @@ export class DataSourceMysql implements DataSourceInterface {
     const combinedSql = statements.map((s) => s.sql).join('; ')
     const combinedValues = statements.flatMap((s) => s.values)
 
-    // A dedicated, single-use pool/connection carries the multipleStatements flag rather than
-    // enabling it on the shared `this.pool` - flipping it on the shared pool would expose every
-    // other query on this instance to stacked-query injection if any string were ever
-    // concatenated unsafely elsewhere. This also means bulkWrite never participates in an
-    // already-open transactionStart()/transactionCommit() pair on this instance - it is always
-    // its own atomic unit on its own connection.
-    const bulkPool = createPool({ ...this.config, multipleStatements: true })
+    const bulkPool = this.getBulkPool()
+    const conn = await bulkPool.getConnection()
     try {
-      const conn = await bulkPool.getConnection()
+      await conn.beginTransaction()
+      let rawResults: MysqlBulkStatementResult | MysqlBulkStatementResult[]
       try {
-        await conn.beginTransaction()
-        let rawResults: MysqlBulkStatementResult | MysqlBulkStatementResult[]
-        try {
-          // mysql2's QueryResult union has no statement-indexed shape for multipleStatements
-          // queries - cast at this driver boundary, same as the [{affectedRows,insertId}] casts
-          // used by the singular insert/update/delete methods elsewhere in this file.
-          const [queryResult] = (await conn.query(
-            combinedSql,
-            combinedValues
-          )) as unknown as [
-            MysqlBulkStatementResult | MysqlBulkStatementResult[],
-            unknown,
-          ]
-          rawResults = queryResult
-          await conn.commit()
-        } catch (err) {
-          // mysql2 aborts the whole multi-statement batch on the first error and does not
-          // reliably expose which statement failed - callers needing that precision must fall
-          // back to smaller batches or per-op calls.
-          await conn.rollback()
-          throw err
-        }
-
-        // mysql2 unwraps the outer per-statement array when only one statement is executed
-        const perStatementResults: MysqlBulkStatementResult[] =
-          statements.length === 1
-            ? [rawResults as MysqlBulkStatementResult]
-            : (rawResults as MysqlBulkStatementResult[])
-
-        ops.forEach((op, index) => {
-          const stmtResult = perStatementResults[index]
-          if ('insertOne' in op) {
-            result.insertedCount += stmtResult.affectedRows
-            result.insertedIds[index] = stmtResult.insertId
-          } else if ('updateOne' in op || 'updateMany' in op) {
-            // MySQL's affectedRows conflates matched/modified (CLIENT_FOUND_ROWS not set)
-            result.matchedCount += stmtResult.affectedRows
-            result.modifiedCount += stmtResult.affectedRows
-          } else if ('deleteOne' in op || 'deleteMany' in op) {
-            result.deletedCount += stmtResult.affectedRows
-          }
-        })
-
-        return result
-      } finally {
-        conn.release()
+        // mysql2's QueryResult union has no statement-indexed shape for multipleStatements
+        // queries - cast at this driver boundary, same as the [{affectedRows,insertId}] casts
+        // used by the singular insert/update/delete methods elsewhere in this file.
+        const [queryResult] = (await conn.query(
+          combinedSql,
+          combinedValues
+        )) as unknown as [
+          MysqlBulkStatementResult | MysqlBulkStatementResult[],
+          unknown,
+        ]
+        rawResults = queryResult
+        await conn.commit()
+      } catch (err) {
+        // mysql2 aborts the whole multi-statement batch on the first error and does not
+        // reliably expose which statement failed - callers needing that precision must fall
+        // back to smaller batches or per-op calls.
+        await conn.rollback()
+        throw err
       }
+
+      // mysql2 unwraps the outer per-statement array when only one statement is executed
+      const perStatementResults: MysqlBulkStatementResult[] =
+        statements.length === 1
+          ? [rawResults as MysqlBulkStatementResult]
+          : (rawResults as MysqlBulkStatementResult[])
+
+      ops.forEach((op, index) => {
+        const stmtResult = perStatementResults[index]
+        if ('insertOne' in op) {
+          result.insertedCount += stmtResult.affectedRows
+          result.insertedIds[index] = stmtResult.insertId
+        } else if ('updateOne' in op || 'updateMany' in op) {
+          // MySQL's affectedRows conflates matched/modified (CLIENT_FOUND_ROWS not set)
+          result.matchedCount += stmtResult.affectedRows
+          result.modifiedCount += stmtResult.affectedRows
+        } else if ('deleteOne' in op || 'deleteMany' in op) {
+          result.deletedCount += stmtResult.affectedRows
+        }
+      })
+
+      return result
     } finally {
-      await bulkPool.end()
+      conn.release()
     }
+  }
+
+  // Same config as the main pool, plus multipleStatements - isolated to this dedicated pool so
+  // the shared `this.pool` used by every other query is never exposed to stacked-query injection
+  // risk. Created once and cached (not per-call) to avoid the cost of establishing and tearing
+  // down a pool on every bulkWrite call; closed alongside the main pool in close(). This also
+  // means bulkWrite never participates in an already-open transactionStart()/transactionCommit()
+  // pair on this instance - it is always its own atomic unit on its own connection.
+  private getBulkPool(): Pool {
+    if (!this.bulkPool) {
+      this.bulkPool = createPool({ ...this.config, multipleStatements: true })
+    }
+    return this.bulkPool
   }
 
   async drop(tableName: string): Promise<any> {
@@ -693,6 +697,10 @@ export class DataSourceMysql implements DataSourceInterface {
       await this.connection.release()
     }
     await this.pool.end()
+    if (this.bulkPool) {
+      await this.bulkPool.end()
+      this.bulkPool = null
+    }
   }
 
   async tableExists(tableName: string): Promise<boolean> {
