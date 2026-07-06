@@ -173,7 +173,21 @@ async update(modelManager: ModelManager): Promise<void> {
 **Which option to use:**
 
 - **Every matched document gets the same value** (a static field, or an update built entirely from operators like `$set`/`$inc`/`$unset`) → use a single `repo.updateMany(update, filter)` call. This runs entirely on the database server: no documents cross the network, and there's only one round trip regardless of collection size.
-- **Each document needs a different, computed value** (e.g. normalizing per-document text, or logic that depends on external data) → there's no bulk-write escape hatch for this. `mzen-om` has no `bulkWrite`-style batched-heterogeneous-ops call and no cursor object — `find()` always resolves the full page into memory, so pagination is only via `skip`/`limit`. Page through with a bounded `limit`, and expect one `updateOne` network round trip per changed document. See [Data Transformation](./common-patterns.md#pattern-data-transformation) below for a worked example, including how to bound the damage when that round-trip count is large.
+- **Each document needs a different, computed value** (e.g. normalizing per-document text, or logic that depends on external data) → use `repo.bulkWrite([...])` to submit a mixed batch of `insertOne`/`updateOne`/`updateMany`/`deleteOne`/`deleteMany` ops in one call, instead of one `updateOne` round trip per document:
+
+  ```typescript
+  await repo.bulkWrite(
+    users.map((user) => ({
+      updateOne: {
+        filter: { _id: user._id },
+        update: { $set: { normalizedName: normalize(user.name) } },
+      },
+    })),
+  );
+  ```
+
+  `bulkWrite` is `ordered`-only (it stops and rolls back at the first failing op — there's no partial-success mode) and, on MySQL, cannot always identify which op in the batch failed if one does. It doesn't replace the pagination advice above: `find()` still has no cursor, so building a very large ops array still means resolving the full page into memory first — page through with a bounded `limit` and call `bulkWrite` once per page. See [Data Transformation](./common-patterns.md#pattern-data-transformation) below for a worked example, including how to bound the damage when that round-trip count is large.
+
 - **Never** call `repo.find({})` with no `limit` on a collection that isn't known to be small — see the `find()` API reference in [`README.md`](../../README.md#writing-patches) for the `skip`/`limit` options.
 
 ## Related Documentation
