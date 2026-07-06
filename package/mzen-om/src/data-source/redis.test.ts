@@ -1393,6 +1393,57 @@ describe('DataSourceRedis', () => {
     })
   })
 
+  describe('bulkWrite()', () => {
+    it('opens and commits its own transaction when none is ambient', async () => {
+      const ds = await buildConnectedDataSource()
+      const result = await ds.bulkWrite('album', [
+        { insertOne: { document: { _id: 'a1', name: 'New Album' } } },
+      ])
+
+      expect(store.multi).toHaveBeenCalledTimes(1)
+      expect(store.data.has('album:doc:a1')).toBe(true)
+      expect(result.insertedCount).toBe(1)
+      expect(result.insertedIds).toEqual({ 0: 'a1' })
+    })
+
+    it('reuses an already-open ambient transaction without committing/discarding it itself', async () => {
+      const ds = await buildConnectedDataSource()
+      await ds.transactionStart()
+      expect(store.multi).toHaveBeenCalledTimes(1)
+
+      await ds.bulkWrite('album', [
+        { insertOne: { document: { _id: 'a2', name: 'Another Album' } } },
+      ])
+
+      // bulkWrite must not have opened a second, nested transaction
+      expect(store.multi).toHaveBeenCalledTimes(1)
+      // and must not have committed the ambient transaction itself - not yet visible
+      expect(store.data.has('album:doc:a2')).toBe(false)
+
+      await ds.transactionCommit()
+      expect(store.data.has('album:doc:a2')).toBe(true)
+    })
+
+    it('rolls back and rethrows when an op fails mid-batch, with no ambient transaction', async () => {
+      const ds = await buildConnectedDataSource()
+      await seed(ds, 'album', [albums[0]])
+
+      jest
+        .spyOn(ds, 'deleteOne')
+        .mockRejectedValueOnce(new Error('delete failed'))
+
+      await expect(
+        ds.bulkWrite('album', [
+          { insertOne: { document: { _id: 'a3', name: 'Doomed Album' } } },
+          { deleteOne: { filter: { _id: albums[0]._id } } },
+        ])
+      ).rejects.toThrow('delete failed')
+
+      // the insert queued before the failing op must not have been applied
+      expect(store.data.has('album:doc:a3')).toBe(false)
+    })
+  })
+
   // ── close() ──────────────────────────────────────────────────────────────────
 
   describe('close()', () => {

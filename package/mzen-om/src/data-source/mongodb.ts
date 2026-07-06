@@ -11,6 +11,8 @@ import {
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
   QueryPersistResultUpsert,
+  BulkWriteOp,
+  QueryPersistResultBulk,
 } from './interface'
 
 export interface DataSourceMongodbConfig {
@@ -297,6 +299,55 @@ export class DataSourceMongodb implements DataSourceInterface {
     var collection = this.getCollection(collectionName)
     var response = await collection.deleteOne(query)
     return { count: response.deletedCount }
+  }
+
+  async bulkWrite(
+    collectionName: string,
+    ops: BulkWriteOp[],
+    options?: any
+  ): Promise<QueryPersistResultBulk> {
+    options = options ? options : {}
+    const collection = this.getCollection(collectionName)
+    const driverOps = ops.map((op) => {
+      if ('insertOne' in op) {
+        return { insertOne: { document: op.insertOne.document } }
+      } else if ('updateOne' in op) {
+        return {
+          updateOne: {
+            filter: op.updateOne.filter,
+            update: op.updateOne.update,
+          },
+        }
+      } else if ('updateMany' in op) {
+        return {
+          updateMany: {
+            filter: op.updateMany.filter,
+            update: op.updateMany.update,
+          },
+        }
+      } else if ('deleteOne' in op) {
+        return { deleteOne: { filter: op.deleteOne.filter } }
+      } else if ('deleteMany' in op) {
+        return { deleteMany: { filter: op.deleteMany.filter } }
+      } else {
+        throw new Error('Unsupported bulkWrite operation')
+      }
+    })
+    // ordered: true is forced (not left to caller override) to keep semantics uniform with the
+    // other DataSourceInterface implementations, none of which expose an unordered mode
+    const response = await collection.bulkWrite(driverOps, {
+      ...options,
+      ordered: true,
+    })
+    return {
+      insertedCount: response.insertedCount,
+      matchedCount: response.matchedCount,
+      modifiedCount: response.modifiedCount,
+      deletedCount: response.deletedCount,
+      upsertedCount: response.upsertedCount,
+      insertedIds: response.insertedIds,
+      upsertedIds: response.upsertedIds,
+    }
   }
 
   drop(collectionName: string): Promise<any> {

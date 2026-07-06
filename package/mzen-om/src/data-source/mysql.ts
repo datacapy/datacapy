@@ -12,7 +12,12 @@ import {
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
   QueryPersistResultUpsert,
+  BulkWriteOp,
+  QueryPersistResultBulk,
 } from './interface'
+
+// mysql2's promise QueryResult union isn't statement-indexed for multipleStatements queries
+type MysqlBulkStatementResult = { affectedRows: number; insertId: number }
 import {
   JSON_DOCUMENT_COLUMN_NAME,
   GENERATED_COLUMN_PREFIX,
@@ -377,6 +382,143 @@ export class DataSourceMysql implements DataSourceInterface {
     )
     const [result]: [{ affectedRows: number }] = await this.query(sql, values)
     return { count: result.affectedRows }
+  }
+
+  async bulkWrite(
+    tableName: string,
+    ops: BulkWriteOp[],
+    options?: any
+  ): Promise<QueryPersistResultBulk> {
+    const result: QueryPersistResultBulk = {
+      insertedCount: 0,
+      matchedCount: 0,
+      modifiedCount: 0,
+      deletedCount: 0,
+      upsertedCount: 0,
+      insertedIds: {},
+      upsertedIds: {},
+    }
+
+    if (ops.length === 0) {
+      return result
+    }
+
+    const hasInsert = ops.some((op) => 'insertOne' in op)
+    if (hasInsert && !(await this.tableExists(tableName))) {
+      await this.createTable(tableName)
+    }
+
+    this.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.columnExists(table, column),
+      tableName
+    )
+
+    const statements: { sql: string; values: any[] }[] = []
+    for (const op of ops) {
+      if ('insertOne' in op) {
+        statements.push(
+          this.sqlBuilder.buildInsertOneQuery(tableName, op.insertOne.document)
+        )
+      } else if ('updateOne' in op) {
+        statements.push(
+          await this.sqlBuilder.buildUpdateQuery(
+            tableName,
+            op.updateOne.filter,
+            op.updateOne.update,
+            true
+          )
+        )
+      } else if ('updateMany' in op) {
+        statements.push(
+          await this.sqlBuilder.buildUpdateQuery(
+            tableName,
+            op.updateMany.filter,
+            op.updateMany.update
+          )
+        )
+      } else if ('deleteOne' in op) {
+        statements.push(
+          await this.sqlBuilder.buildDeleteQuery(
+            tableName,
+            op.deleteOne.filter,
+            true
+          )
+        )
+      } else if ('deleteMany' in op) {
+        statements.push(
+          await this.sqlBuilder.buildDeleteQuery(
+            tableName,
+            op.deleteMany.filter
+          )
+        )
+      } else {
+        throw new Error('Unsupported bulkWrite operation')
+      }
+    }
+
+    const combinedSql = statements.map((s) => s.sql).join('; ')
+    const combinedValues = statements.flatMap((s) => s.values)
+
+    // A dedicated, single-use pool/connection carries the multipleStatements flag rather than
+    // enabling it on the shared `this.pool` - flipping it on the shared pool would expose every
+    // other query on this instance to stacked-query injection if any string were ever
+    // concatenated unsafely elsewhere. This also means bulkWrite never participates in an
+    // already-open transactionStart()/transactionCommit() pair on this instance - it is always
+    // its own atomic unit on its own connection.
+    const bulkPool = createPool({ ...this.config, multipleStatements: true })
+    try {
+      const conn = await bulkPool.getConnection()
+      try {
+        await conn.beginTransaction()
+        let rawResults: MysqlBulkStatementResult | MysqlBulkStatementResult[]
+        try {
+          // mysql2's QueryResult union has no statement-indexed shape for multipleStatements
+          // queries - cast at this driver boundary, same as the [{affectedRows,insertId}] casts
+          // used by the singular insert/update/delete methods elsewhere in this file.
+          const [queryResult] = (await conn.query(
+            combinedSql,
+            combinedValues
+          )) as unknown as [
+            MysqlBulkStatementResult | MysqlBulkStatementResult[],
+            unknown,
+          ]
+          rawResults = queryResult
+          await conn.commit()
+        } catch (err) {
+          // mysql2 aborts the whole multi-statement batch on the first error and does not
+          // reliably expose which statement failed - callers needing that precision must fall
+          // back to smaller batches or per-op calls.
+          await conn.rollback()
+          throw err
+        }
+
+        // mysql2 unwraps the outer per-statement array when only one statement is executed
+        const perStatementResults: MysqlBulkStatementResult[] =
+          statements.length === 1
+            ? [rawResults as MysqlBulkStatementResult]
+            : (rawResults as MysqlBulkStatementResult[])
+
+        ops.forEach((op, index) => {
+          const stmtResult = perStatementResults[index]
+          if ('insertOne' in op) {
+            result.insertedCount += stmtResult.affectedRows
+            result.insertedIds[index] = stmtResult.insertId
+          } else if ('updateOne' in op || 'updateMany' in op) {
+            // MySQL's affectedRows conflates matched/modified (CLIENT_FOUND_ROWS not set)
+            result.matchedCount += stmtResult.affectedRows
+            result.modifiedCount += stmtResult.affectedRows
+          } else if ('deleteOne' in op || 'deleteMany' in op) {
+            result.deletedCount += stmtResult.affectedRows
+          }
+        })
+
+        return result
+      } finally {
+        conn.release()
+      }
+    } finally {
+      await bulkPool.end()
+    }
   }
 
   async drop(tableName: string): Promise<any> {

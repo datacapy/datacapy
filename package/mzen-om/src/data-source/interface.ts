@@ -107,6 +107,31 @@ export interface QueryPersistResultUpsert extends QueryPersistResult {
   upsertedId?: any // id of the inserted document when upsertOne inserts
 }
 
+export type BulkWriteOp<Type = any> =
+  | { insertOne: { document: Type } }
+  | { updateOne: { filter: QuerySelection; update: QueryUpdate } }
+  | { updateMany: { filter: QuerySelection; update: QueryUpdate } }
+  | { deleteOne: { filter: QuerySelection } }
+  | { deleteMany: { filter: QuerySelection } }
+
+// Deliberately named with fuller field names (insertedCount/matchedCount/modifiedCount/...) rather
+// than the narrower `count`/`ids` used by QueryPersistResultInsertMany/QueryPersistResultUpsert,
+// because a single bulk result must disambiguate multiple counters across mixed op types at once.
+// upsertedCount/upsertedIds are always 0/{} for MySQL/Mock/Redis since BulkWriteOp has no upsert
+// member - kept for shape parity so a document-store datasource implementation can pass its native
+// driver's bulk write result through unchanged. For MySQL, matchedCount === modifiedCount always
+// (affectedRows conflates the two since CLIENT_FOUND_ROWS is never set); a document-store driver
+// with a native distinction between matched and modified counts can report them separately.
+export interface QueryPersistResultBulk {
+  insertedCount: number
+  matchedCount: number
+  modifiedCount: number
+  deletedCount: number
+  upsertedCount: number
+  insertedIds: { [opIndex: number]: any }
+  upsertedIds: { [opIndex: number]: any }
+}
+
 export interface DataSourceInterface {
   isDynamic?(): boolean
   connect(): Promise<DataSourceInterface>
@@ -196,6 +221,12 @@ export interface DataSourceInterface {
     query: QuerySelection,
     options?: any
   ): Promise<QueryPersistResult>
+
+  bulkWrite(
+    collectionName: string,
+    ops: BulkWriteOp[],
+    options?: any
+  ): Promise<QueryPersistResultBulk>
 
   drop(collectionName: string): Promise<any>
 

@@ -9,6 +9,8 @@ import {
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
   QueryPersistResultUpsert,
+  QueryPersistResultBulk,
+  BulkWriteOp,
   IndexSpec,
 } from 'data-source/interface'
 import Schema, {
@@ -682,19 +684,7 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    doc = clone(doc) // We use Array.slice() to make a copy of the original args
-    doc = this.stripTransients(doc)
-
-    if (options && options.filterPrivate) {
-      doc = this.schema.filterPrivate(doc, 'write')
-    }
-
-    doc = await this.schema.applyEncrypt(doc)
-
-    var validateResult = await this.schema.validate(doc)
-    if (!validateResult.isValid) {
-      throw new RepoErrorValidation(validateResult.errors)
-    }
+    doc = await this._insertOnePrepare(doc, options)
 
     const result = await dataSource.insertOne(
       this.config.collectionName,
@@ -715,6 +705,29 @@ export class Repo<T> {
     }
 
     return result
+  }
+
+  async _insertOnePrepare(doc: Partial<T>, options?): Promise<Partial<T>> {
+    this.initSchema()
+    if (this.schema == undefined) {
+      throw new Error('No schema provided')
+    }
+
+    doc = clone(doc) // We use clone() to make a copy of the original arg
+    doc = this.stripTransients(doc)
+
+    if (options && options.filterPrivate) {
+      doc = this.schema.filterPrivate(doc, 'write')
+    }
+
+    doc = await this.schema.applyEncrypt(doc)
+
+    var validateResult = await this.schema.validate(doc)
+    if (!validateResult.isValid) {
+      throw new RepoErrorValidation(validateResult.errors)
+    }
+
+    return doc
   }
 
   async _updatePrepare(
@@ -1016,6 +1029,83 @@ export class Repo<T> {
 
     const { f, o } = await this._deletePrepare(filter, options)
     const result = await dataSource.deleteOne(this.config.collectionName, f, o)
+
+    // Release datasource reference if using registry
+    if (this.dataSource?.isDynamic?.()) {
+      const lookupKey = options?.context?.getForDataSource?.(
+        this.config.dataSource
+      )?.lookupKey
+      if (lookupKey) {
+        this.modelManager?.dataSourceRegistry?.release(
+          `${this.config.dataSource}:${lookupKey}`
+        )
+      }
+    }
+
+    return result
+  }
+
+  async _bulkWritePrepare(
+    ops: BulkWriteOp<Partial<T>>[],
+    options?
+  ): Promise<BulkWriteOp[]> {
+    const preparedOps: BulkWriteOp[] = []
+    // Sequential loop: each _prepare helper throws as soon as its own op fails validation, so
+    // the first invalid op (by array index) stops the loop before any later op is even prepared
+    // and before dataSource.bulkWrite is ever called - stronger than "first DB-level failure
+    // rolls back" since no partial DB work happens on a validation failure at all.
+    for (const op of ops) {
+      if ('insertOne' in op) {
+        const document = await this._insertOnePrepare(
+          op.insertOne.document,
+          options
+        )
+        preparedOps.push({ insertOne: { document } })
+      } else if ('updateOne' in op) {
+        const { f, u } = await this._updatePrepare(
+          op.updateOne.filter,
+          op.updateOne.update,
+          options
+        )
+        preparedOps.push({ updateOne: { filter: f, update: u } })
+      } else if ('updateMany' in op) {
+        const { f, u } = await this._updatePrepare(
+          op.updateMany.filter,
+          op.updateMany.update,
+          options
+        )
+        preparedOps.push({ updateMany: { filter: f, update: u } })
+      } else if ('deleteOne' in op) {
+        const { f } = await this._deletePrepare(op.deleteOne.filter, options)
+        preparedOps.push({ deleteOne: { filter: f } })
+      } else if ('deleteMany' in op) {
+        const { f } = await this._deletePrepare(op.deleteMany.filter, options)
+        preparedOps.push({ deleteMany: { filter: f } })
+      } else {
+        throw new Error('Unsupported bulkWrite operation')
+      }
+    }
+    return preparedOps
+  }
+
+  async bulkWrite(
+    ops: BulkWriteOp<Partial<T>>[],
+    options?
+  ): Promise<QueryPersistResultBulk> {
+    if (this.config.collectionName == undefined) {
+      throw new Error('No collection name provided')
+    }
+
+    // Resolve datasource (with dynamic support)
+    const dataSource = await this.getDataSource(options?.context)
+
+    const preparedOps = await this._bulkWritePrepare(ops, options)
+
+    const result = await dataSource.bulkWrite(
+      this.config.collectionName,
+      preparedOps,
+      options
+    )
 
     // Release datasource reference if using registry
     if (this.dataSource?.isDynamic?.()) {

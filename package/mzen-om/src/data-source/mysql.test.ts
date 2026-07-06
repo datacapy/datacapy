@@ -1,3 +1,4 @@
+// cspell:ignore Conn
 import { DataSourceMysql } from './mysql'
 import { createPool as mysqlCreatePool } from 'mysql2/promise'
 
@@ -633,6 +634,180 @@ describe('DataSourceMysql', () => {
       expect((updateCall[0] as string).toLowerCase()).not.toContain(
         'setoninsert' // cspell:ignore setoninsert
       )
+    })
+  })
+
+  describe('bulkWrite', () => {
+    let mockConnQuery: jest.Mock
+    let mockConn: {
+      query: jest.Mock
+      beginTransaction: jest.Mock
+      commit: jest.Mock
+      rollback: jest.Mock
+      release: jest.Mock
+    }
+    let mockGetConnection: jest.Mock
+    let mockPoolEnd: jest.Mock
+
+    beforeEach(() => {
+      mockConnQuery = jest.fn()
+      mockConn = {
+        query: mockConnQuery,
+        beginTransaction: jest.fn().mockResolvedValue(undefined),
+        commit: jest.fn().mockResolvedValue(undefined),
+        rollback: jest.fn().mockResolvedValue(undefined),
+        release: jest.fn(),
+      }
+      mockGetConnection = jest.fn().mockResolvedValue(mockConn)
+      mockPoolEnd = jest.fn().mockResolvedValue(undefined)
+
+      const createPool = mysqlCreatePool as jest.Mock
+      createPool.mockReturnValue({
+        query: mockQuery,
+        getConnection: mockGetConnection,
+        end: mockPoolEnd,
+      })
+
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+    })
+
+    it('joins a mixed insert/update/delete batch into one semicolon-separated statement with flattened params', async () => {
+      mockConnQuery.mockResolvedValue([
+        [
+          { affectedRows: 1, insertId: 10 },
+          { affectedRows: 2, insertId: 0 },
+          { affectedRows: 1, insertId: 0 },
+        ],
+        [],
+      ])
+
+      await dataSource.bulkWrite('users', [
+        { insertOne: { document: { name: 'John' } } },
+        { updateOne: { filter: { _id: '1' }, update: { $set: { age: 30 } } } },
+        { deleteOne: { filter: { _id: '2' } } },
+      ])
+
+      expect(mockConnQuery).toHaveBeenCalledTimes(1)
+      const [sql, values] = mockConnQuery.mock.calls[0]
+      const statements = (sql as string).split('; ')
+      expect(statements).toHaveLength(3)
+      expect(statements[0].toUpperCase()).toContain('INSERT INTO')
+      expect(statements[1].toUpperCase()).toContain('UPDATE')
+      expect(statements[2].toUpperCase()).toContain('DELETE FROM')
+      // values: 1 for the insert doc + 1 for the update SET + 1 for update WHERE + 1 for delete WHERE
+      expect(values).toHaveLength(4)
+    })
+
+    it('parses per-op results into insertedCount/matchedCount/modifiedCount/deletedCount/insertedIds', async () => {
+      mockConnQuery.mockResolvedValue([
+        [
+          { affectedRows: 1, insertId: 10 },
+          { affectedRows: 3, insertId: 0 },
+          { affectedRows: 2, insertId: 0 },
+        ],
+        [],
+      ])
+
+      const result = await dataSource.bulkWrite('users', [
+        { insertOne: { document: { name: 'John' } } },
+        {
+          updateMany: {
+            filter: { active: true },
+            update: { $set: { seen: true } },
+          },
+        },
+        { deleteMany: { filter: { archived: true } } },
+      ])
+
+      expect(result).toEqual({
+        insertedCount: 1,
+        matchedCount: 3,
+        modifiedCount: 3,
+        deletedCount: 2,
+        upsertedCount: 0,
+        insertedIds: { 0: 10 },
+        upsertedIds: {},
+      })
+      expect(mockConn.commit).toHaveBeenCalledTimes(1)
+    })
+
+    it('handles a single-op batch where mysql2 returns an unwrapped result', async () => {
+      mockConnQuery.mockResolvedValue([{ affectedRows: 1, insertId: 42 }, []])
+
+      const result = await dataSource.bulkWrite('users', [
+        { insertOne: { document: { name: 'Solo' } } },
+      ])
+
+      expect(result.insertedCount).toBe(1)
+      expect(result.insertedIds).toEqual({ 0: 42 })
+    })
+
+    it('rolls back the transaction and rethrows on a rejected query, releasing the connection and closing the dedicated pool', async () => {
+      const dbError = new Error('duplicate entry')
+      mockConnQuery.mockRejectedValue(dbError)
+
+      await expect(
+        dataSource.bulkWrite('users', [
+          { insertOne: { document: { name: 'John' } } },
+          {
+            updateOne: { filter: { _id: '1' }, update: { $set: { age: 30 } } },
+          },
+        ])
+      ).rejects.toThrow(dbError)
+
+      expect(mockConn.rollback).toHaveBeenCalledTimes(1)
+      expect(mockConn.commit).not.toHaveBeenCalled()
+      expect(mockConn.release).toHaveBeenCalledTimes(1)
+      expect(mockPoolEnd).toHaveBeenCalledTimes(1)
+    })
+
+    it('never mutates the shared pool config with multipleStatements', async () => {
+      mockConnQuery.mockResolvedValue([{ affectedRows: 1, insertId: 1 }, []])
+
+      await dataSource.bulkWrite('users', [
+        { insertOne: { document: { name: 'John' } } },
+      ])
+
+      const createPool = mysqlCreatePool as jest.Mock
+      // First call is the constructor's shared pool - must not have multipleStatements set
+      expect(createPool.mock.calls[0][0].multipleStatements).toBeUndefined()
+      // The bulkWrite call creates its own dedicated pool with multipleStatements: true
+      const bulkWriteCall = createPool.mock.calls.find(
+        (c) => c[0].multipleStatements === true
+      )
+      expect(bulkWriteCall).toBeDefined()
+    })
+
+    it('threads limitOne per op type: updateOne/deleteOne limit to one row, updateMany/deleteMany do not', async () => {
+      mockConnQuery.mockResolvedValue([
+        [
+          { affectedRows: 1, insertId: 0 },
+          { affectedRows: 1, insertId: 0 },
+          { affectedRows: 1, insertId: 0 },
+          { affectedRows: 1, insertId: 0 },
+        ],
+        [],
+      ])
+
+      await dataSource.bulkWrite('users', [
+        { updateOne: { filter: { _id: '1' }, update: { $set: { age: 30 } } } },
+        {
+          updateMany: {
+            filter: { active: true },
+            update: { $set: { seen: true } },
+          },
+        },
+        { deleteOne: { filter: { _id: '2' } } },
+        { deleteMany: { filter: { archived: true } } },
+      ])
+
+      const [sql] = mockConnQuery.mock.calls[0]
+      const statements = (sql as string).split('; ')
+      expect(statements[0].toUpperCase()).toContain('LIMIT 1')
+      expect(statements[1].toUpperCase()).not.toContain('LIMIT 1')
+      expect(statements[2].toUpperCase()).toContain('LIMIT 1')
+      expect(statements[3].toUpperCase()).not.toContain('LIMIT 1')
     })
   })
 })

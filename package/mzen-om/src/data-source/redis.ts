@@ -9,6 +9,8 @@ import {
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
   QueryPersistResultUpsert,
+  BulkWriteOp,
+  QueryPersistResultBulk,
 } from './interface'
 
 export interface DataSourceRedisConfig {
@@ -645,6 +647,95 @@ export class DataSourceRedis implements DataSourceInterface {
       writer.srem(this.idsKey(collectionName), String(match._id))
     }
     return { count: 1 }
+  }
+
+  // Reuses the existing pipeline/getWriter/transactionStart mechanism. If a transaction is
+  // already open on this instance (caller already called transactionStart()), ops are queued
+  // onto that ambient pipeline and this method does not commit/rollback it - that remains the
+  // caller's responsibility. Otherwise bulkWrite opens and owns its own local transaction for
+  // the duration of the call.
+  // Caveat (pre-existing, not new to bulkWrite): loadDocs() inside updateOne/updateMany/
+  // deleteOne/deleteMany/upsert* reads via this.client, not the pending pipeline, so a later op
+  // in the same batch will not see an earlier op's write until after EXEC.
+  async bulkWrite(
+    collectionName: string,
+    ops: BulkWriteOp[],
+    options?: any
+  ): Promise<QueryPersistResultBulk> {
+    const result: QueryPersistResultBulk = {
+      insertedCount: 0,
+      matchedCount: 0,
+      modifiedCount: 0,
+      deletedCount: 0,
+      upsertedCount: 0,
+      insertedIds: {},
+      upsertedIds: {},
+    }
+
+    const ownsTransaction = !this.pipeline
+    if (ownsTransaction) {
+      await this.transactionStart()
+    }
+
+    try {
+      for (let index = 0; index < ops.length; index++) {
+        const op = ops[index]
+        if ('insertOne' in op) {
+          const r = await this.insertOne(
+            collectionName,
+            op.insertOne.document,
+            options
+          )
+          result.insertedCount += r.count
+          result.insertedIds[index] = r.id
+        } else if ('updateOne' in op) {
+          const r = await this.updateOne(
+            collectionName,
+            op.updateOne.filter,
+            op.updateOne.update,
+            options
+          )
+          result.matchedCount += r.count
+          result.modifiedCount += r.count
+        } else if ('updateMany' in op) {
+          const r = await this.updateMany(
+            collectionName,
+            op.updateMany.filter,
+            op.updateMany.update,
+            options
+          )
+          result.matchedCount += r.count
+          result.modifiedCount += r.count
+        } else if ('deleteOne' in op) {
+          const r = await this.deleteOne(
+            collectionName,
+            op.deleteOne.filter,
+            options
+          )
+          result.deletedCount += r.count
+        } else if ('deleteMany' in op) {
+          const r = await this.deleteMany(
+            collectionName,
+            op.deleteMany.filter,
+            options
+          )
+          result.deletedCount += r.count
+        } else {
+          throw new Error('Unsupported bulkWrite operation')
+        }
+      }
+    } catch (err) {
+      if (ownsTransaction) {
+        await this.transactionRollback()
+      }
+      throw err
+    }
+
+    if (ownsTransaction) {
+      await this.transactionCommit()
+    }
+
+    return result
   }
 
   // ─── Collection operations ────────────────────────────────────────────────

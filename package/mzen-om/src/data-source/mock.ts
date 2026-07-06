@@ -9,6 +9,8 @@ import {
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
   QueryPersistResultUpsert,
+  BulkWriteOp,
+  QueryPersistResultBulk,
 } from './interface'
 import clone = require('clone')
 
@@ -243,6 +245,66 @@ export class DataSourceMock implements DataSourceInterface {
     return {
       count: 1,
     }
+  }
+
+  // Sequential loop delegating to this class's own methods. Stops at the first thrown error -
+  // in-memory state mutated by ops before the failing index is NOT rolled back; that's an
+  // accepted limitation of this test double, not something to fix.
+  async bulkWrite(
+    collectionName: string,
+    ops: BulkWriteOp[],
+    options?: any
+  ): Promise<QueryPersistResultBulk> {
+    const result: QueryPersistResultBulk = {
+      insertedCount: 0,
+      matchedCount: 0,
+      modifiedCount: 0,
+      deletedCount: 0,
+      upsertedCount: 0,
+      insertedIds: {},
+      upsertedIds: {},
+    }
+
+    for (let index = 0; index < ops.length; index++) {
+      const op = ops[index]
+      if ('insertOne' in op) {
+        const r = await this.insertOne(
+          collectionName,
+          op.insertOne.document,
+          options
+        )
+        result.insertedCount += r.count
+        result.insertedIds[index] = r.id
+      } else if ('updateOne' in op) {
+        const r = await this.updateOne(
+          collectionName,
+          op.updateOne.filter,
+          op.updateOne.update,
+          options
+        )
+        result.matchedCount += r.count
+        result.modifiedCount += r.count
+      } else if ('updateMany' in op) {
+        const r = await this.updateMany(
+          collectionName,
+          op.updateMany.filter,
+          op.updateMany.update,
+          options
+        )
+        result.matchedCount += r.count
+        result.modifiedCount += r.count
+      } else if ('deleteOne' in op) {
+        const r = await this.deleteOne(collectionName, op.deleteOne.filter)
+        result.deletedCount += r.count
+      } else if ('deleteMany' in op) {
+        const r = await this.deleteMany(collectionName, op.deleteMany.filter)
+        result.deletedCount += r.count
+      } else {
+        throw new Error('Unsupported bulkWrite operation')
+      }
+    }
+
+    return result
   }
 
   drop(_collectionName: string): Promise<any> {

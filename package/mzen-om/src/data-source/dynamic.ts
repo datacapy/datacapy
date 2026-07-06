@@ -6,6 +6,8 @@ import {
   QueryPersistResultInsertMany,
   QueryPersistResultInsertOne,
   QueryPersistResultUpsert,
+  QueryPersistResultBulk,
+  BulkWriteOp,
   QuerySelection,
   QuerySelectionOptions,
   QueryUpdate,
@@ -196,6 +198,16 @@ export class DataSourceDynamic implements DataSourceInterface {
   ): Promise<QueryPersistResult> {
     throw new Error(
       `Cannot delete from dynamic datasource directly. Use repo methods with DataSourceContext`
+    )
+  }
+
+  async bulkWrite(
+    collectionName: string,
+    ops: BulkWriteOp[],
+    options?: any
+  ): Promise<QueryPersistResultBulk> {
+    throw new Error(
+      `Cannot bulk write to dynamic datasource directly. Use repo methods with DataSourceContext`
     )
   }
 

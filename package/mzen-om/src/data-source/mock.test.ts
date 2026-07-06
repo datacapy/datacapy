@@ -77,5 +77,56 @@ describe('Data Source', () => {
         expect(result).toBe(4)
       })
     })
+
+    describe('bulkWrite()', () => {
+      it('should accumulate counters/ids across a mixed op array', async () => {
+        const datasource = new DataSourceMock(data)
+        const result = await datasource.bulkWrite('album', [
+          { insertOne: { document: { _id: '9', name: 'A Moon Shaped Pool' } } },
+          {
+            updateOne: {
+              filter: { _id: '1' },
+              update: { $set: { popular: 1 } },
+            },
+          },
+          { deleteOne: { filter: { _id: '2' } } },
+        ])
+
+        expect(result).toEqual({
+          insertedCount: 1,
+          matchedCount: 1,
+          modifiedCount: 1,
+          deletedCount: 1,
+          upsertedCount: 0,
+          insertedIds: { 0: '9' },
+          upsertedIds: {},
+        })
+        expect(datasource.dataInsert).toEqual([
+          { _id: '9', name: 'A Moon Shaped Pool' },
+        ])
+      })
+
+      it('should stop at the first op that throws', async () => {
+        const datasource = new DataSourceMock(data)
+        jest
+          .spyOn(datasource, 'updateOne')
+          .mockRejectedValueOnce(new Error('update failed'))
+        const deleteOneSpy = jest.spyOn(datasource, 'deleteOne')
+
+        await expect(
+          datasource.bulkWrite('album', [
+            {
+              updateOne: {
+                filter: { _id: '1' },
+                update: { $set: { popular: 1 } },
+              },
+            },
+            { deleteOne: { filter: { _id: '2' } } },
+          ])
+        ).rejects.toThrow('update failed')
+
+        expect(deleteOneSpy).not.toHaveBeenCalled()
+      })
+    })
   })
 })
