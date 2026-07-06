@@ -263,15 +263,26 @@ export class DataSourceManager {
       entry
     )
 
-    // Wire repo to the real datasource so all repo methods work correctly
-    repo.dataSource = actualDS
+    try {
+      // Wire repo to the real datasource so all repo methods work correctly
+      repo.dataSource = actualDS
 
-    // Delegate initialisation to repo — respects autoIndex, avoids duplicated logic
-    await repo.init()
+      // Delegate initialisation to repo — respects autoIndex, avoids duplicated logic
+      await repo.init()
 
-    this.logger.log(
-      `[DataSourceManager] Initialized dynamic repo: ${repoName} for datasource: ${repo.config.dataSource}`
-    )
+      this.logger.log(
+        `[DataSourceManager] Initialized dynamic repo: ${repoName} for datasource: ${repo.config.dataSource}`
+      )
+    } finally {
+      // The datasource is only needed transiently to wire and init the repo —
+      // later repo operations re-acquire fresh via repo.getDataSource(), so
+      // release immediately rather than leaking a reference for the process lifetime.
+      if (entry?.lookupKey) {
+        this.dataSourceRegistry?.release(
+          `${repo.config.dataSource}:${entry.lookupKey}`
+        )
+      }
+    }
   }
 
   /**

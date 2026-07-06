@@ -45,6 +45,7 @@ export class MigrationManager {
    */
   async migrate(): Promise<MigrationResult> {
     const startTime = new Date();
+    let releaseKey: string | undefined;
 
     try {
       // Check if this is a batch migration (contextLookup provided)
@@ -58,7 +59,9 @@ export class MigrationManager {
 
       // Step 1: Resolve target datasource
       this.logger.verboseLog("Resolving target datasource...");
-      const targetDataSource = await this.resolveDataSource();
+      const resolved = await this.resolveDataSource();
+      const targetDataSource = resolved.dataSource;
+      releaseKey = resolved.releaseKey;
 
       // Initialize dynamic repos so patches can call repo methods directly
       const dsContext = this.buildDataSourceContext();
@@ -212,6 +215,10 @@ export class MigrationManager {
       );
 
       throw error;
+    } finally {
+      if (releaseKey) {
+        this.config.modelManager.dataSourceRegistry?.release(releaseKey);
+      }
     }
   }
 
@@ -376,7 +383,10 @@ export class MigrationManager {
    *
    * Handles both static and dynamic datasources
    */
-  private async resolveDataSource(): Promise<DataSourceInterface> {
+  private async resolveDataSource(): Promise<{
+    dataSource: DataSourceInterface;
+    releaseKey?: string;
+  }> {
     const { modelManager, dataSourceName } = this.config;
 
     // Try static datasource lookup first
@@ -388,7 +398,7 @@ export class MigrationManager {
         (staticDataSource as any).isDynamic();
       if (staticDataSource && !isDynamic) {
         this.logger.verboseLog(`Resolved static datasource: ${dataSourceName}`);
-        return staticDataSource;
+        return { dataSource: staticDataSource };
       }
     } catch (error) {
       // Not a static datasource, try dynamic lookup
@@ -419,7 +429,11 @@ export class MigrationManager {
         `Resolved dynamic datasource: ${dataSourceName} (lookupKey: ${contextEntry.lookupKey})`,
       );
 
-      return dynamicDataSource;
+      const releaseKey = contextEntry.lookupKey
+        ? `${dataSourceName}:${contextEntry.lookupKey}`
+        : undefined;
+
+      return { dataSource: dynamicDataSource, releaseKey };
     } catch (error) {
       throw new Error(
         `Failed to resolve datasource "${dataSourceName}": ${error instanceof Error ? error.message : String(error)}`,

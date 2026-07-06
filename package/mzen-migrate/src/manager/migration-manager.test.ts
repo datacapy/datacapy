@@ -154,6 +154,18 @@ class TestDataSource implements DataSourceInterface {
 
   async dropIndexes(): Promise<void> {}
 
+  async bulkWrite(): Promise<any> {
+    return {
+      insertedCount: 0,
+      matchedCount: 0,
+      modifiedCount: 0,
+      deletedCount: 0,
+      upsertedCount: 0,
+      insertedIds: {},
+      upsertedIds: {},
+    };
+  }
+
   async transactionStart(): Promise<void> {}
 
   async transactionCommit(): Promise<void> {}
@@ -400,6 +412,78 @@ describe("MigrationManager", () => {
       const manager = new MigrationManager(config);
 
       await expect(manager.migrate()).rejects.toThrow("does not exist");
+    });
+  });
+
+  describe("dynamic datasource ref counting", () => {
+    // These tests target the reference leak fixed alongside this test suite:
+    // resolveDataSource() acquires a dynamic datasource reference that must be
+    // released once migrate() is done with it, on both success and error paths.
+    const registryKey = "project:proj1";
+
+    function buildDynamicModelManager() {
+      const dynamicModelManager = new ModelManager({
+        dynamicDataSource: { enable: true },
+      });
+
+      // Registry entry is pre-seeded directly so resolveDataSource()'s acquire
+      // resolves without needing a real DataSourceLookup/connection. The lookup
+      // below must never actually be invoked as a result.
+      dynamicModelManager.setDataSourceLookup("project", {
+        lookup: async () => {
+          throw new Error("lookup() should not be called when pre-seeded");
+        },
+      });
+
+      return dynamicModelManager;
+    }
+
+    it("releases the resolveDataSource() reference after a successful migration", async () => {
+      const dynamicModelManager = buildDynamicModelManager();
+      await dynamicModelManager.dataSourceRegistry!.getOrCreate(
+        registryKey,
+        async () => new TestDataSource(),
+      );
+
+      const config: MigrationConfig = {
+        modelManager: dynamicModelManager,
+        dataSourceName: "project",
+        context: { projectId: "proj1" },
+        patchDirectory: fixturesPath,
+        verbose: false,
+      };
+
+      await new MigrationManager(config).migrate();
+
+      const entry = dynamicModelManager
+        .dataSourceRegistry!.getStats()
+        .entries.find((e) => e.key === registryKey);
+      expect(entry?.refCount).toBe(1); // back to the pre-seed's own reference
+    });
+
+    it("releases the resolveDataSource() reference even when a patch fails", async () => {
+      const dynamicModelManager = buildDynamicModelManager();
+      await dynamicModelManager.dataSourceRegistry!.getOrCreate(
+        registryKey,
+        async () => new TestDataSource(),
+      );
+
+      const config: MigrationConfig = {
+        modelManager: dynamicModelManager,
+        dataSourceName: "project",
+        context: { projectId: "proj1" },
+        patchDirectory: "/nonexistent/path",
+        verbose: false,
+      };
+
+      await expect(new MigrationManager(config).migrate()).rejects.toThrow(
+        "does not exist",
+      );
+
+      const entry = dynamicModelManager
+        .dataSourceRegistry!.getStats()
+        .entries.find((e) => e.key === registryKey);
+      expect(entry?.refCount).toBe(1);
     });
   });
 });
