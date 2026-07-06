@@ -87,7 +87,7 @@ export default class AddUserPreferences implements DatabasePatchInterface {
 
 ### Pattern: Data Transformation
 
-Each user's normalized email is a different computed value, so `updateMany` can't do this in one call — `mzen-om` has no batched multi-op write, so this means one `updateOne` round trip per changed document. Page through with `skip`/`limit` so the working set stays bounded, rather than loading the whole collection at once:
+Each user's normalized email is a different computed value, so `updateMany` can't do this in one call — use `bulkWrite` to batch the per-document `updateOne` ops into a single round trip instead of issuing them one at a time. Page through with `skip`/`limit` so the working set stays bounded, rather than loading the whole collection at once:
 
 ```typescript
 export default class NormalizeEmails implements DatabasePatchInterface {
@@ -106,13 +106,18 @@ export default class NormalizeEmails implements DatabasePatchInterface {
       const batch = await repo.find({}, { skip, limit });
       if (batch.length === 0) break;
 
-      for (const user of batch) {
-        const normalizedEmail = user.email.toLowerCase();
+      const ops = batch
+        .filter((user) => user.email !== user.email.toLowerCase())
+        .map((user) => ({
+          updateOne: {
+            filter: { _id: user._id },
+            update: { email: user.email.toLowerCase() },
+          },
+        }));
 
-        if (user.email !== normalizedEmail) {
-          await repo.updateOne({ email: normalizedEmail }, { _id: user._id });
-          updated++;
-        }
+      if (ops.length > 0) {
+        await repo.bulkWrite(ops);
+        updated += ops.length;
       }
 
       skip += limit;
@@ -124,6 +129,8 @@ export default class NormalizeEmails implements DatabasePatchInterface {
 ```
 
 **Caveat:** since the update in each page can change the very field being sorted/matched on, re-running `find({}, { skip, limit })` after a write can shift which documents land on the next page (some get skipped, others repeated). Where the collection has a stable insertion-order field (e.g. `_id`), page by filtering on it (`{ _id: { $gt: lastSeenId } }`) instead of by numeric `skip`, so already-processed documents can't re-enter a later page.
+
+**Caveat:** `bulkWrite` is ordered and stops at the first failing op — and on MySQL you can't always tell which op in the batch failed. Keep batch sizes reasonable (page-sized, as above) and expect an all-or-nothing failure per batch rather than partial success.
 
 ## Related Documentation
 
