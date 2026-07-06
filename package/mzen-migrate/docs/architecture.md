@@ -397,7 +397,7 @@ For migrations affecting many records:
 
 ```typescript
 // ❌ Bad: Load all records into memory
-const allUsers = await repo.findAll({});
+const allUsers = await repo.find({});
 for (const user of allUsers) {
   await repo.updateOne(
     {

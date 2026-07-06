@@ -615,6 +615,10 @@ for (const user of users) {
 await repo.updateMany({ status: "active" }, { status: { $exists: false } });
 ```
 
+**No mixed-operation batching:** `mzen-om` has no MongoDB-style `bulkWrite` — there is no way to submit a set of different `insertOne`/`updateOne`/`deleteOne` operations (each touching different documents with different values) as a single network round trip. `updateMany` only works when every matched document receives the _same_ update. If each document needs a distinct computed value, there is no way to avoid one `updateOne` round trip per document — the only lever available is pagination (`skip`/`limit`) to keep the working set bounded, not batching the writes themselves. See [Best Practices § Don't Load Large Datasets Into Memory](./best-practices.md#6-dont-load-large-datasets-into-memory) for the decision rule and a paginated example.
+
+**No pipeline updates, and `$mul`/`$min`/`$max` don't work on MySQL:** the update passed to `updateMany`/`updateOne` must be a plain object of operators (`$set`, `$inc`, `$unset`, `$push`, `$addToSet`, `$pop`, `$pull`, `$pullAll`, `$rename`) — not an aggregation pipeline array, so a computed update like `{ $set: { newField: { $multiply: ['$oldField', 2] } } }` is not supported. When the project's datasource is MySQL, only the operator list above is implemented; `$mul`, `$min`, and `$max` will throw `Unsupported operator`, even though they appear on `DataSourceInterface`'s TypeScript type. A same-value-for-every-document case (e.g. `{ $set: { status: 'active' } }`) is the only shape `updateMany` can express in one round trip; a per-document computed value (`newField = oldField * 2`) needs the paginated `find` + `updateOne` loop above.
+
 ### Index Creation Timing
 
 ```typescript

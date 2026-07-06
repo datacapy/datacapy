@@ -21,23 +21,23 @@ Migrations should be safe to run multiple times. Check if operation already appl
 
 ```typescript
 export default class IdempotentMigration implements DatabasePatchInterface {
-  version = '2024-02-05_1430'
-  description = 'Idempotent data seed'
-  dataSourceName = 'db'
+  version = "2024-02-05_1430";
+  description = "Idempotent data seed";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('subscription')
+    const repo = modelManager.getRepo("subscription");
 
     // Check if already seeded
-    const existingCount = await repo.count({})
+    const existingCount = await repo.count({});
     if (existingCount > 0) {
-      console.log(`⚠ Found ${existingCount} existing records, skipping seed`)
-      return
+      console.log(`⚠ Found ${existingCount} existing records, skipping seed`);
+      return;
     }
 
     // Safe to seed
     for (const data of SEED_DATA) {
-      await repo.create(data)
+      await repo.create(data);
     }
   }
 }
@@ -46,47 +46,47 @@ export default class IdempotentMigration implements DatabasePatchInterface {
 **Idempotency Patterns:**
 
 **Pattern 1: Check Before Create**
+
 ```typescript
-const existing = await repo.findOne({ code: 'FREE' })
+const existing = await repo.findOne({ code: "FREE" });
 if (existing) {
-  console.log('⚠ Already exists, skipping')
-  return
+  console.log("⚠ Already exists, skipping");
+  return;
 }
-await repo.create({ code: 'FREE', name: 'Free' })
+await repo.create({ code: "FREE", name: "Free" });
 ```
 
 **Pattern 2: Count Check**
+
 ```typescript
-const count = await repo.count({ type: 'admin' })
+const count = await repo.count({ type: "admin" });
 if (count > 0) {
-  console.log(`⚠ Found ${count} existing records, skipping`)
-  return
+  console.log(`⚠ Found ${count} existing records, skipping`);
+  return;
 }
 // Seed data
 ```
 
 **Pattern 3: Try-Catch**
+
 ```typescript
 try {
-  await repo.createIndexes()
+  await repo.createIndexes();
 } catch (error) {
-  if (error.message.includes('already exists')) {
-    console.log('⚠ Indexes already exist')
+  if (error.message.includes("already exists")) {
+    console.log("⚠ Indexes already exist");
   } else {
-    throw error
+    throw error;
   }
 }
 ```
 
 **Pattern 4: Upsert**
+
 ```typescript
 // Update if exists, insert if not
 for (const data of seedData) {
-  await repo.updateOne(
-    data,
-    { code: data.code },
-    { upsert: true }
-  )
+  await repo.updateOne(data, { code: data.code }, { upsert: true });
 }
 ```
 
@@ -95,21 +95,21 @@ for (const data of seedData) {
 ```typescript
 // ✅ Good
 export default class AddUserRoles implements DatabasePatchInterface {
-  version = '2024-02-05_1430'
-  description = 'Add user roles table and seed default roles'
-  dataSourceName = 'db'
+  version = "2024-02-05_1430";
+  description = "Add user roles table and seed default roles";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    console.log('Creating user roles...')
+    console.log("Creating user roles...");
     // Migration logic
   }
 }
 
 // ❌ Bad
 export default class Update implements DatabasePatchInterface {
-  version = '2024-02-05_1430'
-  description = 'Update'
-  dataSourceName = 'db'
+  version = "2024-02-05_1430";
+  description = "Update";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
     // No logging or comments
@@ -118,6 +118,7 @@ export default class Update implements DatabasePatchInterface {
 ```
 
 **File Naming:**
+
 ```
 ✓ 2024-02-05_1430_add-user-roles.ts
 ✓ 2024-02-06_1000_add-user-email-index.ts
@@ -136,7 +137,7 @@ async update(modelManager: ModelManager): Promise<void> {
 
   console.log('Starting user migration...')
 
-  const users = await repo.findAll({})
+  const users = await repo.find({})
   console.log(`Found ${users.length} users to update`)
 
   let updated = 0
@@ -178,8 +179,12 @@ async update(modelManager: ModelManager): Promise<void> {
 
 ```typescript
 // Use actual date/time when creating
-const now = new Date()
-const version = now.toISOString().slice(0, 16).replace('T', '_').replace(':', '')
+const now = new Date();
+const version = now
+  .toISOString()
+  .slice(0, 16)
+  .replace("T", "_")
+  .replace(":", "");
 // Results in: 2024-02-05_1430
 ```
 
@@ -192,32 +197,36 @@ Each patch should do one thing and be reversible if needed:
 ```typescript
 // ✅ Good - Single, clear purpose
 export default class AddUserEmailIndex implements DatabasePatchInterface {
-  version = '2024-02-10_1000'
-  description = 'Add index on users.email for faster lookups'
-  dataSourceName = 'db'
+  version = "2024-02-10_1000";
+  description = "Add index on users.email for faster lookups";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const db = modelManager.getDataSource('db')
-    await db.createIndex('users', { email: 1 }, {
-      name: 'idx_users_email',
-      unique: true
-    })
+    const db = modelManager.getDataSource("db");
+    await db.createIndex(
+      "users",
+      { email: 1 },
+      {
+        name: "idx_users_email",
+        unique: true,
+      },
+    );
   }
 }
 
 // ❌ Bad - Multiple unrelated changes
 export default class MiscChanges implements DatabasePatchInterface {
-  version = '2024-02-10_1100'
-  description = 'Add indexes, update roles, and seed data'
-  dataSourceName = 'db'
+  version = "2024-02-10_1100";
+  description = "Add indexes, update roles, and seed data";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
     // Creating indexes
-    await createIndexes()
+    await createIndexes();
     // Updating roles
-    await updateRoles()
+    await updateRoles();
     // Seeding data
-    await seedData()
+    await seedData();
     // Too much in one patch!
   }
 }
@@ -226,6 +235,7 @@ export default class MiscChanges implements DatabasePatchInterface {
 #### 8. Commit Patches to Version Control
 
 Patches should be committed to Git for:
+
 - Team coordination
 - Deployment automation
 - Audit trail
@@ -239,23 +249,23 @@ Patches should be committed to Git for:
 // ❌ Bad - Modifying existing migration
 // File: 2024-02-05_1000_init-indexes.ts (already applied in production)
 export default class InitIndexes implements DatabasePatchInterface {
-  version = '2024-02-05_1000'
-  description = 'Initialize indexes'
+  version = "2024-02-05_1000";
+  description = "Initialize indexes";
 
   async update(modelManager: ModelManager): Promise<void> {
     // Adding new logic to already-applied migration
-    await createNewIndexes() // ❌ Don't do this!
+    await createNewIndexes(); // ❌ Don't do this!
   }
 }
 
 // ✅ Good - Create new migration
 // File: 2024-02-06_1000_add-additional-indexes.ts
 export default class AddAdditionalIndexes implements DatabasePatchInterface {
-  version = '2024-02-06_1000'
-  description = 'Add additional indexes'
+  version = "2024-02-06_1000";
+  description = "Add additional indexes";
 
   async update(modelManager: ModelManager): Promise<void> {
-    await createNewIndexes() // ✅ New migration
+    await createNewIndexes(); // ✅ New migration
   }
 }
 ```
@@ -266,12 +276,12 @@ export default class AddAdditionalIndexes implements DatabasePatchInterface {
 
 ```typescript
 // ❌ Bad
-version = '001'
-version = '002'
+version = "001";
+version = "002";
 
 // ✅ Good
-version = '2024-02-05_1000'
-version = '2024-02-05_1001'
+version = "2024-02-05_1000";
+version = "2024-02-05_1001";
 ```
 
 **Why?** Timestamps eliminate merge conflicts and provide chronological context.
@@ -347,19 +357,19 @@ async update(modelManager: ModelManager): Promise<void> {
 ```typescript
 // ❌ Bad
 await repo.create({
-  email: 'admin@example.com',
-  password: 'password123',  // ❌ Hardcoded password
-  apiKey: 'sk_live_abc123'  // ❌ Hardcoded API key
-})
+  email: "admin@example.com",
+  password: "password123", // ❌ Hardcoded password
+  apiKey: "sk_live_abc123", // ❌ Hardcoded API key
+});
 
 // ✅ Good
-import { hashPassword } from '../utils/crypto'
+import { hashPassword } from "../utils/crypto";
 
 await repo.create({
-  email: 'admin@example.com',
+  email: "admin@example.com",
   password: await hashPassword(process.env.ADMIN_PASSWORD),
-  apiKey: process.env.API_KEY
-})
+  apiKey: process.env.API_KEY,
+});
 ```
 
 #### 6. Don't Load Large Datasets Into Memory
@@ -368,7 +378,7 @@ await repo.create({
 // ❌ Bad - Loads all records into memory
 async update(modelManager: ModelManager): Promise<void> {
   const repo = modelManager.getRepo('user')
-  const allUsers = await repo.findAll({}) // Could be millions!
+  const allUsers = await repo.find({}) // Could be millions!
 
   for (const user of allUsers) {
     await repo.updateOne({ newField: 'value' }, { _id: user._id })
@@ -403,46 +413,52 @@ async update(modelManager: ModelManager): Promise<void> {
 }
 ```
 
+**Which option to use:**
+
+- **Every matched document gets the same value** (a static field, or an update built entirely from operators like `$set`/`$inc`/`$unset`) → use a single `repo.updateMany(update, filter)` call. This runs entirely on the database server: no documents cross the network, and there's only one round trip regardless of collection size.
+- **Each document needs a different, computed value** (e.g. normalizing per-document text, or logic that depends on external data) → there's no bulk-write escape hatch for this. `mzen-om` has no `bulkWrite`-style batched-heterogeneous-ops call and no cursor object — `find()` always resolves the full page into memory, so pagination is only via `skip`/`limit`. Page through with a bounded `limit`, and expect one `updateOne` network round trip per changed document. See [Data Transformation](#pattern-data-transformation) below for a worked example, including how to bound the damage when that round-trip count is large.
+- **Never** call `repo.find({})` with no `limit` on a collection that isn't known to be small — see the `find()` API reference in [`README.md`](../README.md#writing-patches) for the `skip`/`limit` options.
+
 ## Testing Migrations
 
 ### Unit Testing
 
 ```typescript
 // __tests__/migrations/2024-02-05_1000.test.ts
-import AddUsersTable from '../migrate/2024/02/2024-02-05_1000_add-users-table'
-import { DataSourceMock } from 'mzen-om'
+import AddUsersTable from "../migrate/2024/02/2024-02-05_1000_add-users-table";
+import { DataSourceMock } from "mzen-om";
 
-describe('AddUsersTable Migration', () => {
-  it('should have correct version', () => {
-    const migration = new AddUsersTable()
-    expect(migration.version).toBe('2024-02-05_1000')
-  })
+describe("AddUsersTable Migration", () => {
+  it("should have correct version", () => {
+    const migration = new AddUsersTable();
+    expect(migration.version).toBe("2024-02-05_1000");
+  });
 
-  it('should create users table', async () => {
-    const mockDS = new DataSourceMock({})
-    const mockMM = createMockModelManager(mockDS)
+  it("should create users table", async () => {
+    const mockDS = new DataSourceMock({});
+    const mockMM = createMockModelManager(mockDS);
 
-    const migration = new AddUsersTable()
-    await migration.update(mockMM)
+    const migration = new AddUsersTable();
+    await migration.update(mockMM);
 
-    expect(mockDS.dataInsert).toHaveLength(1)
-    expect(mockDS.dataInsert[0].collection).toBe('users')
-  })
+    expect(mockDS.dataInsert).toHaveLength(1);
+    expect(mockDS.dataInsert[0].collection).toBe("users");
+  });
 
-  it('should be idempotent', async () => {
-    const mockDS = new DataSourceMock({})
-    const mockMM = createMockModelManager(mockDS)
+  it("should be idempotent", async () => {
+    const mockDS = new DataSourceMock({});
+    const mockMM = createMockModelManager(mockDS);
 
-    const migration = new AddUsersTable()
+    const migration = new AddUsersTable();
 
     // Run twice
-    await migration.update(mockMM)
-    await migration.update(mockMM)
+    await migration.update(mockMM);
+    await migration.update(mockMM);
 
     // Should handle gracefully
-    expect(mockDS.dataInsert).toHaveLength(1)
-  })
-})
+    expect(mockDS.dataInsert).toHaveLength(1);
+  });
+});
 ```
 
 ### Integration Testing
@@ -489,28 +505,28 @@ mysql -u user -p database < backup_20240205_143000.sql
 ```typescript
 // Original: 2024-02-05_1430_add-user-roles.ts
 export default class AddUserRoles implements DatabasePatchInterface {
-  version = '2024-02-05_1430'
-  description = 'Add user roles'
-  dataSourceName = 'db'
+  version = "2024-02-05_1430";
+  description = "Add user roles";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('role')
+    const repo = modelManager.getRepo("role");
     await repo.insertMany([
-      { name: 'admin', permissions: ['*'] },
-      { name: 'editor', permissions: ['read', 'write'] }
-    ])
+      { name: "admin", permissions: ["*"] },
+      { name: "editor", permissions: ["read", "write"] },
+    ]);
   }
 }
 
 // Reverse: 2024-02-05_1600_remove-user-roles.ts
 export default class RemoveUserRoles implements DatabasePatchInterface {
-  version = '2024-02-05_1600'
-  description = 'Remove user roles (rollback of 1430)'
-  dataSourceName = 'db'
+  version = "2024-02-05_1600";
+  description = "Remove user roles (rollback of 1430)";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('role')
-    await repo.deleteMany({ name: { $in: ['admin', 'editor'] } })
+    const repo = modelManager.getRepo("role");
+    await repo.deleteMany({ name: { $in: ["admin", "editor"] } });
   }
 }
 ```
@@ -534,24 +550,24 @@ Before running migrations in production:
 
 ```typescript
 export default class InitIndexes implements DatabasePatchInterface {
-  version = '2024-02-05_1000'
-  description = 'Initialize indexes for all repositories'
-  dataSourceName = 'db'
+  version = "2024-02-05_1000";
+  description = "Initialize indexes for all repositories";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repoNames = ['user', 'project', 'subscription']
+    const repoNames = ["user", "project", "subscription"];
 
     for (const repoName of repoNames) {
       try {
-        const repo = modelManager.getRepo(repoName)
-        console.log(`Creating indexes for ${repoName}...`)
-        await repo.createIndexes()
-        console.log(`✓ Indexes created for ${repoName}`)
+        const repo = modelManager.getRepo(repoName);
+        console.log(`Creating indexes for ${repoName}...`);
+        await repo.createIndexes();
+        console.log(`✓ Indexes created for ${repoName}`);
       } catch (error) {
-        if (error.message.includes('already exists')) {
-          console.log(`⚠ Some indexes for ${repoName} already exist`)
+        if (error.message.includes("already exists")) {
+          console.log(`⚠ Some indexes for ${repoName} already exist`);
         } else {
-          throw error
+          throw error;
         }
       }
     }
@@ -562,28 +578,28 @@ export default class InitIndexes implements DatabasePatchInterface {
 ### Pattern: Data Seed with Constants
 
 ```typescript
-import { INITIAL_SUBSCRIPTIONS } from '../constants'
+import { INITIAL_SUBSCRIPTIONS } from "../constants";
 
 export default class SeedSubscriptions implements DatabasePatchInterface {
-  version = '2024-02-05_1001'
-  description = 'Seed initial subscription tiers'
-  dataSourceName = 'db'
+  version = "2024-02-05_1001";
+  description = "Seed initial subscription tiers";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('subscription')
+    const repo = modelManager.getRepo("subscription");
 
     // Check if already seeded
-    const count = await repo.count({})
+    const count = await repo.count({});
     if (count > 0) {
-      console.log(`⚠ Found ${count} existing subscriptions, skipping`)
-      return
+      console.log(`⚠ Found ${count} existing subscriptions, skipping`);
+      return;
     }
 
     // Seed data
-    console.log(`Seeding ${INITIAL_SUBSCRIPTIONS.length} subscriptions...`)
+    console.log(`Seeding ${INITIAL_SUBSCRIPTIONS.length} subscriptions...`);
     for (const data of INITIAL_SUBSCRIPTIONS) {
-      await repo.create(data)
-      console.log(`✓ Created: ${data.code}`)
+      await repo.create(data);
+      console.log(`✓ Created: ${data.code}`);
     }
   }
 }
@@ -593,59 +609,67 @@ export default class SeedSubscriptions implements DatabasePatchInterface {
 
 ```typescript
 export default class AddUserPreferences implements DatabasePatchInterface {
-  version = '2024-02-05_1600'
-  description = 'Add preferences field to existing users'
-  dataSourceName = 'db'
+  version = "2024-02-05_1600";
+  description = "Add preferences field to existing users";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('user')
+    const repo = modelManager.getRepo("user");
 
     // Count users without preferences
-    const count = await repo.count({ preferences: { $exists: false } })
-    console.log(`Adding preferences to ${count} users...`)
+    const count = await repo.count({ preferences: { $exists: false } });
+    console.log(`Adding preferences to ${count} users...`);
 
     // Update all users without preferences
     const result = await repo.updateMany(
-      { preferences: { theme: 'light', notifications: true } },
-      { preferences: { $exists: false } }
-    )
+      { preferences: { theme: "light", notifications: true } },
+      { preferences: { $exists: false } },
+    );
 
-    console.log(`✓ Added preferences to ${result.modifiedCount} users`)
+    console.log(`✓ Added preferences to ${result.modifiedCount} users`);
   }
 }
 ```
 
 ### Pattern: Data Transformation
 
+Each user's normalized email is a different computed value, so `updateMany` can't do this in one call — `mzen-om` has no batched multi-op write, so this means one `updateOne` round trip per changed document. Page through with `skip`/`limit` so the working set stays bounded, rather than loading the whole collection at once:
+
 ```typescript
 export default class NormalizeEmails implements DatabasePatchInterface {
-  version = '2024-02-05_1700'
-  description = 'Normalize email addresses to lowercase'
-  dataSourceName = 'db'
+  version = "2024-02-05_1700";
+  description = "Normalize email addresses to lowercase";
+  dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repo = modelManager.getRepo('user')
+    const repo = modelManager.getRepo("user");
 
-    // Find users with uppercase emails
-    const users = await repo.findAll({})
+    let updated = 0;
+    let skip = 0;
+    const limit = 1000;
 
-    let updated = 0
-    for (const user of users) {
-      const normalizedEmail = user.email.toLowerCase()
+    while (true) {
+      const batch = await repo.find({}, { skip, limit });
+      if (batch.length === 0) break;
 
-      if (user.email !== normalizedEmail) {
-        await repo.updateOne(
-          { email: normalizedEmail },
-          { _id: user._id }
-        )
-        updated++
+      for (const user of batch) {
+        const normalizedEmail = user.email.toLowerCase();
+
+        if (user.email !== normalizedEmail) {
+          await repo.updateOne({ email: normalizedEmail }, { _id: user._id });
+          updated++;
+        }
       }
+
+      skip += limit;
     }
 
-    console.log(`✓ Normalized ${updated} email addresses`)
+    console.log(`✓ Normalized ${updated} email addresses`);
   }
 }
 ```
+
+**Caveat:** since the update in each page can change the very field being sorted/matched on, re-running `find({}, { skip, limit })` after a write can shift which documents land on the next page (some get skipped, others repeated). Where the collection has a stable insertion-order field (e.g. `_id`), page by filtering on it (`{ _id: { $gt: lastSeenId } }`) instead of by numeric `skip`, so already-processed documents can't re-enter a later page.
 
 ## Summary
 
@@ -663,6 +687,7 @@ Follow these best practices to create safe, maintainable migrations:
 10. ❌ Don't hardcode sensitive data
 
 For more information, see:
+
 - [Architecture Documentation](./architecture.md)
 - [Advanced Usage](./advanced-usage.md)
 - [Main README](../README.md)
