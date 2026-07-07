@@ -31,10 +31,12 @@ describe('Repo#transaction', () => {
     const { repo, dataSource } = makeRepoAndDataSource(lease)
     const context = new DataSourceContext()
 
-    const result = await repo.transaction(context, async (tx) => {
+    const result = await repo.transaction(context, async (txContext, tx) => {
       expect(tx).toBe(lease)
-      // The lease must be bound onto the context for nested repo.xxx({ context }) calls.
-      expect(context.getActiveDataSource(dataSourceName)).toBe(lease)
+      // The lease must be bound onto the context handed to fn, for nested
+      // repo.xxx({ context }) calls - without mutating the caller's own context.
+      expect(txContext.getActiveDataSource(dataSourceName)).toBe(lease)
+      expect(context.getActiveDataSource(dataSourceName)).toBeUndefined()
       return 'ok'
     })
 
@@ -60,7 +62,7 @@ describe('Repo#transaction', () => {
     expect(lease.transactionCommit).not.toHaveBeenCalled()
   })
 
-  it('always clears the active-datasource slot and releases the registry ref', async () => {
+  it('never mutates the caller-supplied context, and always releases the registry ref', async () => {
     const lease = makeLease()
     const { repo } = makeRepoAndDataSource(lease)
     const context = new DataSourceContext()

@@ -341,17 +341,19 @@ export class Repo<T> {
    * it:
    *
    * 1. Acquires the initial registry ref via getDataSource(context).
-   * 2. Calls transactionStart() on it to obtain an exclusive lease, and binds that lease onto
-   *    `context` via setActiveDataSource() so every nested repo.xxx({ context }) call inside `fn`
-   *    resolves the same lease (see getDataSource()).
-   * 3. Runs fn(lease).
+   * 2. Calls transactionStart() on it to obtain an exclusive lease, and derives a new context
+   *    with that lease bound via context.withActiveDataSource() - the caller's own `context` is
+   *    never mutated. `fn` is given this new context so every nested repo.xxx({ context }) call
+   *    inside `fn` resolves the same lease (see getDataSource()), as long as it uses the context
+   *    passed to `fn` rather than the outer one.
+   * 3. Runs fn(txContext, lease).
    * 4. Commits on success; rolls back and rethrows on error.
-   * 5. Always clears the active-datasource slot on `context` and releases the initial registry ref,
-   *    in a finally block - regardless of whether fn/commit/rollback threw.
+   * 5. Always releases the initial registry ref in a finally block - regardless of whether
+   *    fn/commit/rollback threw.
    */
   async transaction<R>(
     context: DataSourceContext,
-    fn: (tx: DataSourceInterface) => Promise<R>
+    fn: (context: DataSourceContext, tx: DataSourceInterface) => Promise<R>
   ): Promise<R> {
     if (!this.config.dataSource) {
       throw new Error(`No dataSource configured for repo: ${this.getName()}`)
@@ -362,10 +364,10 @@ export class Repo<T> {
 
     try {
       const lease = await dataSource.transactionStart()
-      context.setActiveDataSource(dataSourceName, lease)
+      const txContext = context.withActiveDataSource(dataSourceName, lease)
 
       try {
-        const result = await fn(lease)
+        const result = await fn(txContext, lease)
         await lease.transactionCommit()
         return result
       } catch (error) {
@@ -373,7 +375,6 @@ export class Repo<T> {
         throw error
       }
     } finally {
-      context.clearActiveDataSource(dataSourceName)
       this.releaseDataSource(context)
     }
   }

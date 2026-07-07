@@ -500,14 +500,16 @@ describe('Repo', () => {
       repo.dataSource = new DataSourceDynamic()
 
       const lease = new MockDataSource({})
-      const context = new DataSourceContext()
-      context.setActiveDataSource('project', lease)
+      const context = new DataSourceContext().withActiveDataSource(
+        'project',
+        lease
+      )
 
       const resolved = await repo.getDataSource(context)
       expect(resolved).toBe(lease)
     })
 
-    it('falls through to registry resolution once the active datasource is cleared', async () => {
+    it('falls through to registry resolution when no active datasource is bound', async () => {
       const { DataSourceContext } = require('data-source/context')
 
       const repo = new Repo({ name: 'r1' })
@@ -515,9 +517,6 @@ describe('Repo', () => {
       repo.dataSource = dataSource
 
       const context = new DataSourceContext()
-      const lease = new MockDataSource({})
-      context.setActiveDataSource('project', lease)
-      context.clearActiveDataSource('project')
 
       const resolved = await repo.getDataSource(context)
       expect(resolved).toBe(dataSource)

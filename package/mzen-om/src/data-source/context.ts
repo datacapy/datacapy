@@ -41,27 +41,30 @@ export type DataSourceContextOptions = Record<string, DataSourceContextEntry>
 
 export class DataSourceContext {
   private readonly dataSourceContexts: DataSourceContextOptions
+  private readonly activeDataSources: Record<string, DataSourceInterface>
 
-  // Deliberate exception to this class's otherwise immutable-by-convention design: the same
-  // context instance is threaded by reference through every nested `repo.xxx({ context })` call
-  // within one transaction() block, so mutating this slot in place lets every nested call
-  // resolve the same lease without reassigning `context` at each call site.
-  private activeDataSources: Record<string, DataSourceInterface> = {}
-
-  constructor(options: DataSourceContextOptions = {}) {
+  constructor(
+    options: DataSourceContextOptions = {},
+    activeDataSources: Record<string, DataSourceInterface> = {}
+  ) {
     this.dataSourceContexts = { ...options }
+    this.activeDataSources = { ...activeDataSources }
   }
 
   /**
-   * Bind an active (already-resolved) datasource - typically a transaction lease - for a given
-   * datasource name. While set, Repo#getDataSource() returns it directly instead of resolving
-   * via the registry.
+   * Create a new context with an active (already-resolved) datasource - typically a transaction
+   * lease - bound for a given datasource name. While set, Repo#getDataSource() returns it directly
+   * instead of resolving via the registry. Used by Repo#transaction() to hand a transaction-scoped
+   * context to its callback without mutating the caller's own context.
    */
-  setActiveDataSource(
+  withActiveDataSource(
     dataSourceName: string,
     dataSource: DataSourceInterface
-  ): void {
-    this.activeDataSources[dataSourceName] = dataSource
+  ): DataSourceContext {
+    return new DataSourceContext(this.dataSourceContexts, {
+      ...this.activeDataSources,
+      [dataSourceName]: dataSource,
+    })
   }
 
   /**
@@ -69,13 +72,6 @@ export class DataSourceContext {
    */
   getActiveDataSource(dataSourceName: string): DataSourceInterface | undefined {
     return this.activeDataSources[dataSourceName]
-  }
-
-  /**
-   * Clear the active datasource bound for a given datasource name.
-   */
-  clearActiveDataSource(dataSourceName: string): void {
-    delete this.activeDataSources[dataSourceName]
   }
 
   /**
