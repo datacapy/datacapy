@@ -39,6 +39,18 @@ describe('MysqlSqlBuilder - UPDATE operations', () => {
 
       expect(result.sql).toContain('LIMIT 1')
     })
+
+    it('should build UPDATE query with no WHERE clause when querySelect is empty', async () => {
+      const result = await sqlBuilder.buildUpdateQuery(
+        'users',
+        {},
+        { $unset: { name: true } }
+      )
+
+      expect(result.sql).not.toContain('WHERE')
+      expect(result.sql).toContain('UPDATE `users`')
+      expect(result.sql).toContain('SET')
+    })
   })
 
   describe('buildSetClause', () => {

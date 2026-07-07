@@ -102,15 +102,16 @@ export class MysqlSqlBuilder {
   ) {
     const sanitizedTableName = sanitizeIdentifier(tableName, true)
 
-    const { clause: whereClause, params: whereParams } =
+    const { clause, params: whereParams } =
       await this.whereBuilder.buildWhereClause(querySelect)
+    const whereClause = clause ? `WHERE ${clause}` : ''
     const { clause: setClause, params: setParams } =
       this.buildSetClause(queryUpdate)
 
     const sql = stripWhitespace(`
       UPDATE ${sanitizedTableName}
       SET ${setClause}
-      WHERE ${whereClause}
+      ${whereClause}
       ${limitOne ? 'LIMIT 1' : ''}
     `)
 
