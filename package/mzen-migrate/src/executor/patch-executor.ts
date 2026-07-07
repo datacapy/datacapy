@@ -54,13 +54,12 @@ export class PatchExecutor {
       return result;
     }
 
-    let transactionStarted = false;
+    let transactionLease: DataSourceInterface | undefined;
 
     try {
       // Start transaction on meta datasource
       try {
-        await this.metaDataSource.transactionStart();
-        transactionStarted = true;
+        transactionLease = await this.metaDataSource.transactionStart();
       } catch (error) {
         // Some datasources (like Mock) don't support transactions
         // Log warning but continue
@@ -74,8 +73,8 @@ export class PatchExecutor {
       await patch.update(this.modelManager);
 
       // Commit transaction if started
-      if (transactionStarted) {
-        await this.metaDataSource.transactionCommit();
+      if (transactionLease) {
+        await transactionLease.transactionCommit();
       }
 
       result.status = "success";
@@ -84,9 +83,9 @@ export class PatchExecutor {
       this.logger.logPatchSuccess(patch.version, result.duration);
     } catch (error) {
       // Rollback transaction if started
-      if (transactionStarted) {
+      if (transactionLease) {
         try {
-          await this.metaDataSource.transactionRollback();
+          await transactionLease.transactionRollback();
           this.logger.verboseLog(
             `Transaction rolled back for patch ${patch.version}`,
           );

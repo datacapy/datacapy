@@ -51,6 +51,17 @@ class MockDataSourceWithTransactions implements DataSourceInterface {
   async deleteMany(): Promise<any> {
     return { count: 0 };
   }
+  async bulkWrite(): Promise<any> {
+    return {
+      insertedCount: 0,
+      matchedCount: 0,
+      modifiedCount: 0,
+      deletedCount: 0,
+      upsertedCount: 0,
+      insertedIds: {},
+      upsertedIds: {},
+    };
+  }
   async drop(): Promise<any> {
     return true;
   }
@@ -65,8 +76,9 @@ class MockDataSourceWithTransactions implements DataSourceInterface {
   }
   async close(): Promise<void> {}
 
-  async transactionStart(): Promise<void> {
+  async transactionStart(): Promise<DataSourceInterface> {
     this.transactionStartCalled = true;
+    return this;
   }
 
   async transactionCommit(): Promise<void> {
@@ -128,6 +140,17 @@ class MockDataSourceNoTransactions implements DataSourceInterface {
   async deleteMany(): Promise<any> {
     return { count: 0 };
   }
+  async bulkWrite(): Promise<any> {
+    return {
+      insertedCount: 0,
+      matchedCount: 0,
+      modifiedCount: 0,
+      deletedCount: 0,
+      upsertedCount: 0,
+      insertedIds: {},
+      upsertedIds: {},
+    };
+  }
   async drop(): Promise<any> {
     return true;
   }
@@ -142,7 +165,7 @@ class MockDataSourceNoTransactions implements DataSourceInterface {
   }
   async close(): Promise<void> {}
 
-  async transactionStart(): Promise<void> {
+  async transactionStart(): Promise<DataSourceInterface> {
     throw new Error("Transactions not supported in this data source");
   }
 
