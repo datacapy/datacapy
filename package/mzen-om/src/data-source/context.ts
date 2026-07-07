@@ -1,3 +1,5 @@
+import { DataSourceInterface } from './interface'
+
 /**
  * DataSourceContext
  *
@@ -40,8 +42,40 @@ export type DataSourceContextOptions = Record<string, DataSourceContextEntry>
 export class DataSourceContext {
   private readonly dataSourceContexts: DataSourceContextOptions
 
+  // Deliberate exception to this class's otherwise immutable-by-convention design: the same
+  // context instance is threaded by reference through every nested `repo.xxx({ context })` call
+  // within one withTransaction() block, so mutating this slot in place lets every nested call
+  // resolve the same lease without reassigning `context` at each call site.
+  private activeDataSources: Record<string, DataSourceInterface> = {}
+
   constructor(options: DataSourceContextOptions = {}) {
     this.dataSourceContexts = { ...options }
+  }
+
+  /**
+   * Bind an active (already-resolved) datasource - typically a transaction lease - for a given
+   * datasource name. While set, Repo#getDataSource() returns it directly instead of resolving
+   * via the registry.
+   */
+  setActiveDataSource(
+    dataSourceName: string,
+    dataSource: DataSourceInterface
+  ): void {
+    this.activeDataSources[dataSourceName] = dataSource
+  }
+
+  /**
+   * Get the active datasource bound for a given datasource name, if any.
+   */
+  getActiveDataSource(dataSourceName: string): DataSourceInterface | undefined {
+    return this.activeDataSources[dataSourceName]
+  }
+
+  /**
+   * Clear the active datasource bound for a given datasource name.
+   */
+  clearActiveDataSource(dataSourceName: string): void {
+    delete this.activeDataSources[dataSourceName]
   }
 
   /**

@@ -329,7 +329,7 @@ export class DataSourceMock implements DataSourceInterface {
     return true
   }
 
-  async transactionStart(): Promise<void> {
+  async transactionStart(): Promise<DataSourceInterface> {
     throw new Error('Transactions not supported in this data source')
   }
 

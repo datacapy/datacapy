@@ -404,12 +404,17 @@ export class DataSourceMongodb implements DataSourceInterface {
     return this.session ? collection.withSession(this.session) : collection
   }
 
-  async transactionStart(): Promise<void> {
+  // Compatibility shim only: mongodb still shares a single session across every concurrent
+  // caller of this instance (the same class of race the mysql lease refactor fixes) - not
+  // addressed here, tracked separately. Returns `this` to satisfy the widened
+  // DataSourceInterface#transactionStart() signature without changing behaviour.
+  async transactionStart(): Promise<DataSourceInterface> {
     if (this.session) {
       throw new Error('Transaction already in progress')
     }
     this.session = await this.client.startSession()
     this.session.startTransaction()
+    return this
   }
 
   async transactionCommit(): Promise<void> {

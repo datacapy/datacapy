@@ -489,6 +489,41 @@ describe('Repo', () => {
     })
   })
 
+  describe('getDataSource()', () => {
+    it('returns the active datasource bound on the context, bypassing the registry', async () => {
+      const { DataSourceContext } = require('data-source/context')
+      const { DataSourceDynamic } = require('data-source/dynamic')
+
+      const repo = new Repo({ name: 'r1', dataSource: 'project' })
+      // Mark the repo's static datasource as dynamic so a registry lookup would normally be
+      // attempted - but no modelManager is wired up, so any registry-path resolution would throw.
+      repo.dataSource = new DataSourceDynamic()
+
+      const lease = new MockDataSource({})
+      const context = new DataSourceContext()
+      context.setActiveDataSource('project', lease)
+
+      const resolved = await repo.getDataSource(context)
+      expect(resolved).toBe(lease)
+    })
+
+    it('falls through to registry resolution once the active datasource is cleared', async () => {
+      const { DataSourceContext } = require('data-source/context')
+
+      const repo = new Repo({ name: 'r1' })
+      const dataSource = new MockDataSource({})
+      repo.dataSource = dataSource
+
+      const context = new DataSourceContext()
+      const lease = new MockDataSource({})
+      context.setActiveDataSource('project', lease)
+      context.clearActiveDataSource('project')
+
+      const resolved = await repo.getDataSource(context)
+      expect(resolved).toBe(dataSource)
+    })
+  })
+
   require('./find.test')
   require('./find-one.test')
   require('./insert-many.test')

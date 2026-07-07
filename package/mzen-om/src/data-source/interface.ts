@@ -240,9 +240,14 @@ export interface DataSourceInterface {
 
   dropIndexes(collectionName: string): Promise<any>
 
-  transactionStart(): Promise<void>
+  // Returns the DataSourceInterface to perform the transaction's queries against. Implementations
+  // that scope transaction state per-caller (e.g. MysqlTransactionLease) return a dedicated
+  // instance; implementations with a single shared session (mongodb, redis) return `this`.
+  transactionStart(): Promise<DataSourceInterface>
   transactionCommit(): Promise<void>
   transactionRollback(): Promise<void>
+
+  hasActiveLeases?(): boolean
 
   close(): Promise<void>
 }

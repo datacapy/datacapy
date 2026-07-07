@@ -242,7 +242,7 @@ export class DataSourceDynamic implements DataSourceInterface {
     )
   }
 
-  async transactionStart(): Promise<void> {
+  async transactionStart(): Promise<DataSourceInterface> {
     throw new Error(
       `Cannot start transactions on dynamic datasource directly. Use repo methods with DataSourceContext`
     )

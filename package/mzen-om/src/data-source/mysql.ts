@@ -33,6 +33,428 @@ export interface DataSourceMysqlConfig extends PoolOptions {
   ensureDatabase?: boolean
 }
 
+// Dependencies injected into MysqlQueryOperations so the same CRUD method bodies can run
+// against either the shared pool (DataSourceMysql) or a single leased connection
+// (MysqlTransactionLease). tableExists/columnExists/createTable are always delegated back to
+// DataSourceMysql - table/column existence caches and CREATE TABLE (DDL, which MySQL commits
+// implicitly regardless of any open transaction) are cheap-to-keep shared resources, not
+// per-caller state.
+interface MysqlQueryOperationsDeps {
+  query(sql: string, values?: any[]): Promise<any>
+  tableExists(tableName: string): Promise<boolean>
+  columnExists(tableName: string, columnName: string): Promise<boolean>
+  createTable(tableName: string): Promise<void>
+  sqlBuilder: MysqlSqlBuilder
+}
+
+// Holds the CRUD method bodies shared between DataSourceMysql (queries routed to the shared
+// pool) and MysqlTransactionLease (queries routed to a single leased PoolConnection). Extracted
+// so transaction leases do not duplicate this logic - see the "Checkout/Lease Semantics" design.
+class MysqlQueryOperations {
+  constructor(private deps: MysqlQueryOperationsDeps) {}
+
+  async find<Type>(
+    tableName: string,
+    query?: QuerySelection,
+    options?: QuerySelectionOptions
+  ): Promise<Type[]> {
+    if (!(await this.deps.tableExists(tableName))) {
+      return []
+    }
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildSelectQuery(
+      tableName,
+      query,
+      options
+    )
+
+    const [rows] = await this.deps.query(sql, values)
+    let result = rows.map((row) => row[JSON_DOCUMENT_COLUMN_NAME]) as Type[]
+
+    // Apply field filtering if options.fields is provided
+    if (options?.fields) {
+      result = result.map((row) => this.filterFields(row, options.fields))
+    }
+
+    return result
+  }
+
+  async findOne<Type>(
+    tableName: string,
+    query?: QuerySelection,
+    options?: QuerySelectionOptions
+  ): Promise<Type | null> {
+    if (!(await this.deps.tableExists(tableName))) {
+      return null
+    }
+    const results = await this.find<Type>(tableName, query, {
+      ...options,
+      limit: 1,
+    })
+
+    if (results.length === 0) {
+      return null
+    }
+
+    let result = results[0]
+    return result
+  }
+
+  async count(
+    tableName: string,
+    query?: QuerySelection,
+    options?: QuerySelectionOptions
+  ): Promise<number> {
+    if (!(await this.deps.tableExists(tableName))) {
+      return 0
+    }
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildCountQuery(
+      tableName,
+      query
+    )
+    const [rows] = await this.deps.query(sql, values)
+    return rows[0]?.count || 0
+  }
+
+  async insertMany<Type>(
+    tableName: string,
+    objects: Type[],
+    options?: any
+  ): Promise<QueryPersistResultInsertMany> {
+    if (!(await this.deps.tableExists(tableName))) {
+      await this.deps.createTable(tableName)
+    }
+
+    const { sql, values } = this.deps.sqlBuilder.buildInsertManyQuery(
+      tableName,
+      objects
+    )
+
+    const [result]: [{ affectedRows: number; insertId: number }] =
+      await this.deps.query(sql, values)
+    return {
+      count: result.affectedRows,
+      ids: result.insertId
+        ? Array.from(
+            { length: result.affectedRows },
+            (_, i) => result.insertId + i
+          )
+        : [],
+    }
+  }
+
+  async insertOne<Type>(
+    tableName: string,
+    object: Type,
+    options?: any
+  ): Promise<QueryPersistResultInsertOne> {
+    if (!(await this.deps.tableExists(tableName))) {
+      await this.deps.createTable(tableName)
+    }
+
+    const { sql, values } = this.deps.sqlBuilder.buildInsertOneQuery(
+      tableName,
+      object
+    )
+
+    const [result]: [{ affectedRows: number; insertId: number }] =
+      await this.deps.query(sql, values)
+    return {
+      count: result.affectedRows,
+      id: result.insertId,
+    }
+  }
+
+  async updateMany(
+    tableName: string,
+    querySelect: QuerySelection,
+    queryUpdate: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    if (!(await this.deps.tableExists(tableName))) {
+      return { count: 0 }
+    }
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildUpdateQuery(
+      tableName,
+      querySelect,
+      queryUpdate
+    )
+    const [result]: [{ affectedRows: number }] = await this.deps.query(
+      sql,
+      values
+    )
+    return { count: result.affectedRows }
+  }
+
+  async updateOne(
+    tableName: string,
+    querySelect: QuerySelection,
+    queryUpdate: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    if (!(await this.deps.tableExists(tableName))) {
+      return { count: 0 }
+    }
+
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildUpdateQuery(
+      tableName,
+      querySelect,
+      queryUpdate,
+      true
+    )
+    const [result]: [{ affectedRows: number }] = await this.deps.query(
+      sql,
+      values
+    )
+    return { count: result.affectedRows }
+  }
+
+  async upsertMany(
+    tableName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    if (!(await this.deps.tableExists(tableName))) {
+      await this.deps.createTable(tableName)
+    }
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildUpdateQuery(
+      tableName,
+      filter,
+      update
+    )
+    const [result]: [{ affectedRows: number }] = await this.deps.query(
+      sql,
+      values
+    )
+    if (result.affectedRows > 0) {
+      return { count: result.affectedRows, upsertedCount: 0 }
+    }
+    const insertDoc = {
+      ...this._extractEqualityFields(filter),
+      ...(update.$set ?? {}),
+      ...(update.$setOnInsert ?? {}),
+    }
+    const insertResult = await this.insertOne(tableName, insertDoc, options)
+    return {
+      count: insertResult.count,
+      upsertedCount: insertResult.count,
+      upsertedId: insertResult.id,
+    }
+  }
+
+  async upsertOne(
+    tableName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    if (!(await this.deps.tableExists(tableName))) {
+      await this.deps.createTable(tableName)
+    }
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildUpdateQuery(
+      tableName,
+      filter,
+      update,
+      true
+    )
+    const [result]: [{ affectedRows: number }] = await this.deps.query(
+      sql,
+      values
+    )
+    if (result.affectedRows > 0) {
+      return { count: result.affectedRows, upsertedCount: 0 }
+    }
+    const insertDoc = {
+      ...this._extractEqualityFields(filter),
+      ...(update.$set ?? {}),
+      ...(update.$setOnInsert ?? {}),
+    }
+    const insertResult = await this.insertOne(tableName, insertDoc, options)
+    return {
+      count: insertResult.count,
+      upsertedCount: insertResult.count,
+      upsertedId: insertResult.id,
+    }
+  }
+
+  async deleteMany(
+    tableName: string,
+    query: QuerySelection,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    if (!(await this.deps.tableExists(tableName))) {
+      return { count: 0 }
+    }
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildDeleteQuery(
+      tableName,
+      query
+    )
+    const [result]: [{ affectedRows: number }] = await this.deps.query(
+      sql,
+      values
+    )
+    return { count: result.affectedRows }
+  }
+
+  async deleteOne(
+    tableName: string,
+    query: QuerySelection,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    if (!(await this.deps.tableExists(tableName))) {
+      return { count: 0 }
+    }
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildDeleteQuery(
+      tableName,
+      query,
+      true
+    )
+    const [result]: [{ affectedRows: number }] = await this.deps.query(
+      sql,
+      values
+    )
+    return { count: result.affectedRows }
+  }
+
+  async findGroup<Type>(
+    tableName: string,
+    groupFields: string[],
+    query?: QuerySelection
+  ): Promise<Type[]> {
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildFindGroupQuery(
+      tableName,
+      groupFields,
+      query
+    )
+    const [rows] = await this.deps.query(sql, values)
+    return rows as Type[]
+  }
+
+  async groupCount(
+    tableName: string,
+    groupFields: string[],
+    query?: QuerySelection
+  ): Promise<Array<{ _id: any; count: number }>> {
+    this.deps.sqlBuilder.setColumnExistsChecker(
+      (table, column) => this.deps.columnExists(table, column),
+      tableName
+    )
+    const { sql, values } = await this.deps.sqlBuilder.buildGroupCountQuery(
+      tableName,
+      groupFields,
+      query
+    )
+    const [rows] = await this.deps.query(sql, values)
+
+    // Transform rows to include _id as an object with group fields
+    const result = rows.map((row: any) => {
+      const _id = groupFields.reduce((acc, field) => {
+        acc[field] = row[field]
+        return acc
+      }, {} as any)
+      return { _id, count: row.count }
+    })
+
+    return result
+  }
+
+  private _extractEqualityFields(filter: QuerySelection): Record<string, any> {
+    const doc: Record<string, any> = {}
+    for (const [key, val] of Object.entries(filter)) {
+      if (val !== null && typeof val === 'object' && !Array.isArray(val))
+        continue
+      doc[key] = val
+    }
+    return doc
+  }
+
+  private filterFields(row: any, fields: Record<string, number>): any {
+    const includeMode = Object.values(fields).some((v) => v === 1)
+    const excludeMode = Object.values(fields).some((v) => v === 0)
+
+    if (includeMode && excludeMode) {
+      throw new Error('Cannot mix include (1) and exclude (0) in fields option')
+    }
+
+    const pathsToRemove: string[] = []
+
+    if (includeMode) {
+      // Convert include mode to exclude mode
+      this.collectPathsToRemove(row, '', fields, pathsToRemove)
+    } else {
+      // Exclude mode: collect paths to remove
+      for (const [path, exclude] of Object.entries(fields)) {
+        if (exclude === 0) {
+          pathsToRemove.push(path)
+        }
+      }
+    }
+
+    // Remove paths
+    for (const path of pathsToRemove) {
+      ObjectPathAccessor.unsetPath(path, row)
+    }
+
+    return row
+  }
+
+  private collectPathsToRemove(
+    obj: any,
+    currentPath: string,
+    fields: Record<string, number>,
+    pathsToRemove: string[]
+  ): void {
+    if (typeof obj !== 'object' || obj === null) {
+      return
+    }
+
+    for (const key in obj) {
+      const newPath = currentPath ? `${currentPath}.${key}` : key
+      if (fields[newPath] !== 1) {
+        pathsToRemove.push(newPath)
+      } else if (typeof obj[key] === 'object') {
+        this.collectPathsToRemove(obj[key], newPath, fields, pathsToRemove)
+      }
+    }
+  }
+}
+
 export class DataSourceMysql implements DataSourceInterface {
   private pool: Pool
   private config: DataSourceMysqlConfig
@@ -40,13 +462,25 @@ export class DataSourceMysql implements DataSourceInterface {
   private columnExistsCache: Map<string, boolean> = new Map()
   private indexExistsCache: Map<string, boolean> = new Map()
   private tableExistsCache: Map<string, boolean> = new Map()
-  private connection: PoolConnection | null = null
   private bulkPool: Pool | null = null
+  private queryOps: MysqlQueryOperations
+  // Count of currently outstanding MysqlTransactionLease instances issued by transactionStart().
+  // DataSourceRegistry consults hasActiveLeases() before closing this instance's pool so an
+  // in-progress lease on another concurrent caller is never torn out from under it.
+  private activeLeaseCount = 0
 
   constructor(config: DataSourceMysqlConfig) {
     this.config = config
     this.pool = createPool(this.config)
     this.sqlBuilder = new MysqlSqlBuilder()
+    this.queryOps = new MysqlQueryOperations({
+      query: (sql, values) => this.pool.query(sql, values),
+      tableExists: (tableName) => this.tableExists(tableName),
+      columnExists: (tableName, columnName) =>
+        this.columnExists(tableName, columnName),
+      createTable: (tableName) => this.createTable(tableName),
+      sqlBuilder: new MysqlSqlBuilder(),
+    })
   }
 
   async connect(): Promise<DataSourceInterface> {
@@ -103,28 +537,7 @@ export class DataSourceMysql implements DataSourceInterface {
     query?: QuerySelection,
     options?: QuerySelectionOptions
   ): Promise<Type[]> {
-    if (!(await this.tableExists(tableName))) {
-      return []
-    }
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildSelectQuery(
-      tableName,
-      query,
-      options
-    )
-
-    const [rows] = await this.query(sql, values)
-    let result = rows.map((row) => row[JSON_DOCUMENT_COLUMN_NAME]) as Type[]
-
-    // Apply field filtering if options.fields is provided
-    if (options?.fields) {
-      result = result.map((row) => this.filterFields(row, options.fields))
-    }
-
-    return result
+    return this.queryOps.find<Type>(tableName, query, options)
   }
 
   async findOne<Type>(
@@ -132,20 +545,7 @@ export class DataSourceMysql implements DataSourceInterface {
     query?: QuerySelection,
     options?: QuerySelectionOptions
   ): Promise<Type | null> {
-    if (!(await this.tableExists(tableName))) {
-      return null
-    }
-    const results = await this.find<Type>(tableName, query, {
-      ...options,
-      limit: 1,
-    })
-
-    if (results.length === 0) {
-      return null
-    }
-
-    let result = results[0]
-    return result
+    return this.queryOps.findOne<Type>(tableName, query, options)
   }
 
   async count(
@@ -153,19 +553,7 @@ export class DataSourceMysql implements DataSourceInterface {
     query?: QuerySelection,
     options?: QuerySelectionOptions
   ): Promise<number> {
-    if (!(await this.tableExists(tableName))) {
-      return 0
-    }
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildCountQuery(
-      tableName,
-      query
-    )
-    const [rows] = await this.query(sql, values)
-    return rows[0]?.count || 0
+    return this.queryOps.count(tableName, query, options)
   }
 
   async insertMany<Type>(
@@ -173,26 +561,7 @@ export class DataSourceMysql implements DataSourceInterface {
     objects: Type[],
     options?: any
   ): Promise<QueryPersistResultInsertMany> {
-    if (!(await this.tableExists(tableName))) {
-      await this.createTable(tableName)
-    }
-
-    const { sql, values } = this.sqlBuilder.buildInsertManyQuery(
-      tableName,
-      objects
-    )
-
-    const [result]: [{ affectedRows: number; insertId: number }] =
-      await this.query(sql, values)
-    return {
-      count: result.affectedRows,
-      ids: result.insertId
-        ? Array.from(
-            { length: result.affectedRows },
-            (_, i) => result.insertId + i
-          )
-        : [],
-    }
+    return this.queryOps.insertMany<Type>(tableName, objects, options)
   }
 
   async insertOne<Type>(
@@ -200,21 +569,7 @@ export class DataSourceMysql implements DataSourceInterface {
     object: Type,
     options?: any
   ): Promise<QueryPersistResultInsertOne> {
-    if (!(await this.tableExists(tableName))) {
-      await this.createTable(tableName)
-    }
-
-    const { sql, values } = this.sqlBuilder.buildInsertOneQuery(
-      tableName,
-      object
-    )
-
-    const [result]: [{ affectedRows: number; insertId: number }] =
-      await this.query(sql, values)
-    return {
-      count: result.affectedRows,
-      id: result.insertId,
-    }
+    return this.queryOps.insertOne<Type>(tableName, object, options)
   }
 
   async updateMany(
@@ -223,44 +578,21 @@ export class DataSourceMysql implements DataSourceInterface {
     queryUpdate: QueryUpdate,
     options?: any
   ): Promise<QueryPersistResult> {
-    if (!(await this.tableExists(tableName))) {
-      return { count: 0 }
-    }
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildUpdateQuery(
+    return this.queryOps.updateMany(
       tableName,
       querySelect,
-      queryUpdate
+      queryUpdate,
+      options
     )
-    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
-    return { count: result.affectedRows }
   }
 
   async updateOne(
     tableName: string,
     querySelect: QuerySelection,
     queryUpdate: QueryUpdate,
-    options: any
+    options?: any
   ): Promise<QueryPersistResult> {
-    if (!(await this.tableExists(tableName))) {
-      return { count: 0 }
-    }
-
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildUpdateQuery(
-      tableName,
-      querySelect,
-      queryUpdate,
-      true
-    )
-    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
-    return { count: result.affectedRows }
+    return this.queryOps.updateOne(tableName, querySelect, queryUpdate, options)
   }
 
   async upsertMany(
@@ -269,33 +601,7 @@ export class DataSourceMysql implements DataSourceInterface {
     update: QueryUpdate,
     options?: any
   ): Promise<QueryPersistResultUpsert> {
-    if (!(await this.tableExists(tableName))) {
-      await this.createTable(tableName)
-    }
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildUpdateQuery(
-      tableName,
-      filter,
-      update
-    )
-    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
-    if (result.affectedRows > 0) {
-      return { count: result.affectedRows, upsertedCount: 0 }
-    }
-    const insertDoc = {
-      ...this._extractEqualityFields(filter),
-      ...(update.$set ?? {}),
-      ...(update.$setOnInsert ?? {}),
-    }
-    const insertResult = await this.insertOne(tableName, insertDoc, options)
-    return {
-      count: insertResult.count,
-      upsertedCount: insertResult.count,
-      upsertedId: insertResult.id,
-    }
+    return this.queryOps.upsertMany(tableName, filter, update, options)
   }
 
   async upsertOne(
@@ -304,44 +610,7 @@ export class DataSourceMysql implements DataSourceInterface {
     update: QueryUpdate,
     options?: any
   ): Promise<QueryPersistResultUpsert> {
-    if (!(await this.tableExists(tableName))) {
-      await this.createTable(tableName)
-    }
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildUpdateQuery(
-      tableName,
-      filter,
-      update,
-      true
-    )
-    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
-    if (result.affectedRows > 0) {
-      return { count: result.affectedRows, upsertedCount: 0 }
-    }
-    const insertDoc = {
-      ...this._extractEqualityFields(filter),
-      ...(update.$set ?? {}),
-      ...(update.$setOnInsert ?? {}),
-    }
-    const insertResult = await this.insertOne(tableName, insertDoc, options)
-    return {
-      count: insertResult.count,
-      upsertedCount: insertResult.count,
-      upsertedId: insertResult.id,
-    }
-  }
-
-  private _extractEqualityFields(filter: QuerySelection): Record<string, any> {
-    const doc: Record<string, any> = {}
-    for (const [key, val] of Object.entries(filter)) {
-      if (val !== null && typeof val === 'object' && !Array.isArray(val))
-        continue
-      doc[key] = val
-    }
-    return doc
+    return this.queryOps.upsertOne(tableName, filter, update, options)
   }
 
   async deleteMany(
@@ -349,19 +618,7 @@ export class DataSourceMysql implements DataSourceInterface {
     query: QuerySelection,
     options?: any
   ): Promise<QueryPersistResult> {
-    if (!(await this.tableExists(tableName))) {
-      return { count: 0 }
-    }
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildDeleteQuery(
-      tableName,
-      query
-    )
-    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
-    return { count: result.affectedRows }
+    return this.queryOps.deleteMany(tableName, query, options)
   }
 
   async deleteOne(
@@ -369,20 +626,23 @@ export class DataSourceMysql implements DataSourceInterface {
     query: QuerySelection,
     options?: any
   ): Promise<QueryPersistResult> {
-    if (!(await this.tableExists(tableName))) {
-      return { count: 0 }
-    }
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildDeleteQuery(
-      tableName,
-      query,
-      true
-    )
-    const [result]: [{ affectedRows: number }] = await this.query(sql, values)
-    return { count: result.affectedRows }
+    return this.queryOps.deleteOne(tableName, query, options)
+  }
+
+  async findGroup<Type>(
+    tableName: string,
+    groupFields: string[],
+    query?: QuerySelection
+  ): Promise<Type[]> {
+    return this.queryOps.findGroup<Type>(tableName, groupFields, query)
+  }
+
+  async groupCount(
+    tableName: string,
+    groupFields: string[],
+    query?: QuerySelection
+  ): Promise<Array<{ _id: any; count: number }>> {
+    return this.queryOps.groupCount(tableName, groupFields, query)
   }
 
   async bulkWrite(
@@ -517,7 +777,8 @@ export class DataSourceMysql implements DataSourceInterface {
   // risk. Created once and cached (not per-call) to avoid the cost of establishing and tearing
   // down a pool on every bulkWrite call; closed alongside the main pool in close(). This also
   // means bulkWrite never participates in an already-open transactionStart()/transactionCommit()
-  // pair on this instance - it is always its own atomic unit on its own connection.
+  // pair - it is always its own atomic unit on its own connection, on both DataSourceMysql and
+  // any MysqlTransactionLease (which delegates bulkWrite straight back to this method).
   private getBulkPool(): Pool {
     if (!this.bulkPool) {
       this.bulkPool = createPool({ ...this.config, multipleStatements: true })
@@ -530,10 +791,7 @@ export class DataSourceMysql implements DataSourceInterface {
     await this.query(sql)
   }
 
-  private async columnExists(
-    tableName: string,
-    columnName: string
-  ): Promise<boolean> {
+  async columnExists(tableName: string, columnName: string): Promise<boolean> {
     const cacheKey = `${tableName}.${columnName}`
     if (this.columnExistsCache.has(cacheKey)) {
       return this.columnExistsCache.get(cacheKey)!
@@ -646,56 +904,7 @@ export class DataSourceMysql implements DataSourceInterface {
     }
   }
 
-  async findGroup<Type>(
-    tableName: string,
-    groupFields: string[],
-    query?: QuerySelection
-  ): Promise<Type[]> {
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildFindGroupQuery(
-      tableName,
-      groupFields,
-      query
-    )
-    const [rows] = await this.query(sql, values)
-    return rows as Type[]
-  }
-
-  async groupCount(
-    tableName: string,
-    groupFields: string[],
-    query?: QuerySelection
-  ): Promise<Array<{ _id: any; count: number }>> {
-    this.sqlBuilder.setColumnExistsChecker(
-      (table, column) => this.columnExists(table, column),
-      tableName
-    )
-    const { sql, values } = await this.sqlBuilder.buildGroupCountQuery(
-      tableName,
-      groupFields,
-      query
-    )
-    const [rows] = await this.query(sql, values)
-
-    // Transform rows to include _id as an object with group fields
-    const result = rows.map((row: any) => {
-      const _id = groupFields.reduce((acc, field) => {
-        acc[field] = row[field]
-        return acc
-      }, {} as any)
-      return { _id, count: row.count }
-    })
-
-    return result
-  }
-
   async close(): Promise<void> {
-    if (this.connection) {
-      await this.connection.release()
-    }
     await this.pool.end()
     if (this.bulkPool) {
       await this.bulkPool.end()
@@ -730,92 +939,286 @@ export class DataSourceMysql implements DataSourceInterface {
     this.tableExistsCache.set(tableName, true)
   }
 
-  async transactionStart(): Promise<void> {
-    if (this.connection) {
-      throw new Error('Transaction already in progress')
-    }
-    this.connection = await this.pool.getConnection()
-    await this.connection.beginTransaction()
+  // Acquires a dedicated PoolConnection and returns an exclusive MysqlTransactionLease bound to
+  // it. Unlike the previous single shared `this.connection` field, concurrent callers each get
+  // their own independent lease - no "Transaction already in progress" guard is needed here
+  // because there is no shared transaction state left to guard.
+  async transactionStart(): Promise<DataSourceInterface> {
+    const connection = await this.pool.getConnection()
+    await connection.beginTransaction()
+    this.activeLeaseCount++
+    return new MysqlTransactionLease(this, connection)
   }
 
   async transactionCommit(): Promise<void> {
-    if (!this.connection) {
-      throw new Error('No transaction in progress')
-    }
-    await this.connection.commit()
-    this.connection.release()
-    this.connection = null
+    throw new Error(
+      'No transaction in progress on this datasource. transactionStart() returns a dedicated ' +
+        'lease - call transactionCommit() on that lease, not on the shared datasource instance.'
+    )
   }
 
   async transactionRollback(): Promise<void> {
-    if (!this.connection) {
-      throw new Error('No transaction in progress')
-    }
-    await this.connection.rollback()
-    this.connection.release()
-    this.connection = null
+    throw new Error(
+      'No transaction in progress on this datasource. transactionStart() returns a dedicated ' +
+        'lease - call transactionRollback() on that lease, not on the shared datasource instance.'
+    )
+  }
+
+  hasActiveLeases(): boolean {
+    return this.activeLeaseCount > 0
+  }
+
+  // Called by MysqlTransactionLease on commit/rollback. Not part of DataSourceInterface -
+  // internal bookkeeping only, exposed publicly because TypeScript has no "friend class"
+  // mechanism to share it privately between DataSourceMysql and MysqlTransactionLease.
+  releaseLease(): void {
+    this.activeLeaseCount = Math.max(0, this.activeLeaseCount - 1)
   }
 
   private async query(sql: string, values?: any[]): Promise<any> {
-    if (this.connection) {
-      return this.connection.query(sql, values)
-    } else {
-      return this.pool.query(sql, values)
-    }
+    return this.pool.query(sql, values)
   }
 
   private formatNestedColumnName(field: string): string {
     return field.replace(/\./g, '_')
   }
+}
 
-  private filterFields(row: any, fields: Record<string, number>): any {
-    const includeMode = Object.values(fields).some((v) => v === 1)
-    const excludeMode = Object.values(fields).some((v) => v === 0)
+// Exclusive lease over a single PoolConnection with its own open transaction, issued by
+// DataSourceMysql.transactionStart(). Every plain query issued through a lease routes onto that
+// dedicated connection; concurrent callers on the same DataSourceMysql instance never see each
+// other's transaction state (the bug this class exists to fix). Schema-existence caches and DDL
+// (createTable/createIndex/etc) are delegated back to the parent - they are cheap-to-keep shared
+// resources, and MySQL commits DDL implicitly regardless of any open application transaction.
+class MysqlTransactionLease implements DataSourceInterface {
+  private closed = false
+  private queryOps: MysqlQueryOperations
 
-    if (includeMode && excludeMode) {
-      throw new Error('Cannot mix include (1) and exclude (0) in fields option')
-    }
-
-    const pathsToRemove: string[] = []
-
-    if (includeMode) {
-      // Convert include mode to exclude mode
-      this.collectPathsToRemove(row, '', fields, pathsToRemove)
-    } else {
-      // Exclude mode: collect paths to remove
-      for (const [path, exclude] of Object.entries(fields)) {
-        if (exclude === 0) {
-          pathsToRemove.push(path)
-        }
-      }
-    }
-
-    // Remove paths
-    for (const path of pathsToRemove) {
-      ObjectPathAccessor.unsetPath(path, row)
-    }
-
-    return row
+  constructor(
+    private parent: DataSourceMysql,
+    private connection: PoolConnection
+  ) {
+    this.queryOps = new MysqlQueryOperations({
+      query: (sql, values) => connection.query(sql, values),
+      tableExists: (tableName) => parent.tableExists(tableName),
+      columnExists: (tableName, columnName) =>
+        parent.columnExists(tableName, columnName),
+      createTable: (tableName) => parent.createTable(tableName),
+      sqlBuilder: new MysqlSqlBuilder(),
+    })
   }
 
-  private collectPathsToRemove(
-    obj: any,
-    currentPath: string,
-    fields: Record<string, number>,
-    pathsToRemove: string[]
-  ): void {
-    if (typeof obj !== 'object' || obj === null) {
-      return
+  private assertOpen(): void {
+    if (this.closed) {
+      throw new Error(
+        'This transaction lease has already been committed or rolled back'
+      )
     }
+  }
 
-    for (const key in obj) {
-      const newPath = currentPath ? `${currentPath}.${key}` : key
-      if (fields[newPath] !== 1) {
-        pathsToRemove.push(newPath)
-      } else if (typeof obj[key] === 'object') {
-        this.collectPathsToRemove(obj[key], newPath, fields, pathsToRemove)
-      }
-    }
+  async connect(): Promise<DataSourceInterface> {
+    return this
+  }
+
+  async createDatabase(databaseName: string, options?: any): Promise<void> {
+    return this.parent.createDatabase(databaseName, options)
+  }
+
+  async dropDatabase(databaseName: string, options?: any): Promise<void> {
+    return this.parent.dropDatabase(databaseName, options)
+  }
+
+  async execute(sql: string, values?: any[]): Promise<any> {
+    this.assertOpen()
+    return this.connection.query(sql, values)
+  }
+
+  async find<Type>(
+    tableName: string,
+    query?: QuerySelection,
+    options?: QuerySelectionOptions
+  ): Promise<Type[]> {
+    this.assertOpen()
+    return this.queryOps.find<Type>(tableName, query, options)
+  }
+
+  async findOne<Type>(
+    tableName: string,
+    query?: QuerySelection,
+    options?: QuerySelectionOptions
+  ): Promise<Type | null> {
+    this.assertOpen()
+    return this.queryOps.findOne<Type>(tableName, query, options)
+  }
+
+  async count(
+    tableName: string,
+    query?: QuerySelection,
+    options?: QuerySelectionOptions
+  ): Promise<number> {
+    this.assertOpen()
+    return this.queryOps.count(tableName, query, options)
+  }
+
+  async insertMany<Type>(
+    tableName: string,
+    objects: Type[],
+    options?: any
+  ): Promise<QueryPersistResultInsertMany> {
+    this.assertOpen()
+    return this.queryOps.insertMany<Type>(tableName, objects, options)
+  }
+
+  async insertOne<Type>(
+    tableName: string,
+    object: Type,
+    options?: any
+  ): Promise<QueryPersistResultInsertOne> {
+    this.assertOpen()
+    return this.queryOps.insertOne<Type>(tableName, object, options)
+  }
+
+  async updateMany(
+    tableName: string,
+    querySelect: QuerySelection,
+    queryUpdate: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    this.assertOpen()
+    return this.queryOps.updateMany(
+      tableName,
+      querySelect,
+      queryUpdate,
+      options
+    )
+  }
+
+  async updateOne(
+    tableName: string,
+    querySelect: QuerySelection,
+    queryUpdate: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    this.assertOpen()
+    return this.queryOps.updateOne(tableName, querySelect, queryUpdate, options)
+  }
+
+  async upsertMany(
+    tableName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    this.assertOpen()
+    return this.queryOps.upsertMany(tableName, filter, update, options)
+  }
+
+  async upsertOne(
+    tableName: string,
+    filter: QuerySelection,
+    update: QueryUpdate,
+    options?: any
+  ): Promise<QueryPersistResultUpsert> {
+    this.assertOpen()
+    return this.queryOps.upsertOne(tableName, filter, update, options)
+  }
+
+  async deleteMany(
+    tableName: string,
+    query: QuerySelection,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    this.assertOpen()
+    return this.queryOps.deleteMany(tableName, query, options)
+  }
+
+  async deleteOne(
+    tableName: string,
+    query: QuerySelection,
+    options?: any
+  ): Promise<QueryPersistResult> {
+    this.assertOpen()
+    return this.queryOps.deleteOne(tableName, query, options)
+  }
+
+  async findGroup<Type>(
+    tableName: string,
+    groupFields: string[],
+    query?: QuerySelection
+  ): Promise<Type[]> {
+    this.assertOpen()
+    return this.queryOps.findGroup<Type>(tableName, groupFields, query)
+  }
+
+  async groupCount(
+    tableName: string,
+    groupFields: string[],
+    query?: QuerySelection
+  ): Promise<Array<{ _id: any; count: number }>> {
+    this.assertOpen()
+    return this.queryOps.groupCount(tableName, groupFields, query)
+  }
+
+  async bulkWrite(
+    tableName: string,
+    ops: BulkWriteOp[],
+    options?: any
+  ): Promise<QueryPersistResultBulk> {
+    // bulkWrite is always its own atomic unit on the dedicated bulkPool - see the comment on
+    // DataSourceMysql.getBulkPool(). It never participates in this lease's transaction.
+    return this.parent.bulkWrite(tableName, ops, options)
+  }
+
+  async drop(tableName: string): Promise<any> {
+    return this.parent.drop(tableName)
+  }
+
+  async createIndex(
+    tableName: string,
+    indexSpec: IndexSpec | string,
+    options?: IndexOptions
+  ): Promise<any> {
+    return this.parent.createIndex(tableName, indexSpec, options)
+  }
+
+  async dropIndex(tableName: string, indexName: string): Promise<any> {
+    return this.parent.dropIndex(tableName, indexName)
+  }
+
+  async dropIndexes(tableName: string): Promise<any> {
+    return this.parent.dropIndexes(tableName)
+  }
+
+  async transactionStart(): Promise<DataSourceInterface> {
+    throw new Error(
+      'This datasource instance is already a transaction lease - nested transactions are not supported'
+    )
+  }
+
+  async transactionCommit(): Promise<void> {
+    this.assertOpen()
+    await this.connection.commit()
+    this.connection.release()
+    this.closed = true
+    this.parent.releaseLease()
+  }
+
+  async transactionRollback(): Promise<void> {
+    this.assertOpen()
+    await this.connection.rollback()
+    this.connection.release()
+    this.closed = true
+    this.parent.releaseLease()
+  }
+
+  async close(): Promise<void> {
+    // Some generic code paths call close() defensively on any DataSourceInterface. A lease is
+    // closed via transactionCommit()/transactionRollback(), not close() - warn rather than throw
+    // so those defensive callers don't blow up.
+    console.warn(
+      '[MysqlTransactionLease] close() called - leases are closed via transactionCommit()/' +
+        'transactionRollback(). Ignoring.'
+    )
   }
 }
 

@@ -166,16 +166,19 @@ export class DataSourceRegistry {
       return
     }
 
-    // Wait for active queries to complete
+    // Wait for active queries and active transaction leases to complete
     const maxWaitTime = 30000 // 30 seconds
     const startTime = Date.now()
-    while (entry.refCount > 0 && Date.now() - startTime < maxWaitTime) {
+    while (
+      (entry.refCount > 0 || this.hasActiveLeases(entry)) &&
+      Date.now() - startTime < maxWaitTime
+    ) {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
 
-    if (entry.refCount > 0) {
+    if (entry.refCount > 0 || this.hasActiveLeases(entry)) {
       this.config.logger.warn(
-        `[DataSourceRegistry] Force closing datasource with active references: ${key}`
+        `[DataSourceRegistry] Force closing datasource with active references or leases: ${key}`
       )
     }
 
@@ -197,15 +200,27 @@ export class DataSourceRegistry {
   }
 
   /**
+   * Whether the given entry's datasource has an outstanding transaction lease. Datasources that
+   * don't implement leases (e.g. mongodb, redis) always report false here.
+   */
+  private hasActiveLeases(entry: DataSourceEntry): boolean {
+    return !!entry.dataSource.hasActiveLeases?.()
+  }
+
+  /**
    * Evict the least recently used datasource
    */
   private async evictLRU(): Promise<void> {
     let lruKey: string | null = null
     let lruTime = Infinity
 
-    // Find LRU datasource with no active references
+    // Find LRU datasource with no active references and no active transaction leases
     for (const [key, entry] of this.registry.entries()) {
-      if (entry.refCount === 0 && entry.lastAccessed < lruTime) {
+      if (
+        entry.refCount === 0 &&
+        !this.hasActiveLeases(entry) &&
+        entry.lastAccessed < lruTime
+      ) {
         lruKey = key
         lruTime = entry.lastAccessed
       }
@@ -230,7 +245,11 @@ export class DataSourceRegistry {
 
     for (const [key, entry] of this.registry.entries()) {
       const idleTime = now - entry.lastAccessed
-      if (entry.refCount === 0 && idleTime > this.config.idleTimeout) {
+      if (
+        entry.refCount === 0 &&
+        !this.hasActiveLeases(entry) &&
+        idleTime > this.config.idleTimeout
+      ) {
         keysToRemove.push(key)
       }
     }

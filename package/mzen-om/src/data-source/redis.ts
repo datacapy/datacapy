@@ -900,9 +900,14 @@ export class DataSourceRedis implements DataSourceInterface {
 
   // ─── Transactions ─────────────────────────────────────────────────────────
 
-  async transactionStart(): Promise<void> {
+  // Compatibility shim only: redis still shares a single pipeline across every concurrent
+  // caller of this instance (the same class of race the mysql lease refactor fixes) - not
+  // addressed here, tracked separately. Returns `this` to satisfy the widened
+  // DataSourceInterface#transactionStart() signature without changing behaviour.
+  async transactionStart(): Promise<DataSourceInterface> {
     if (this.pipeline) throw new Error('Transaction already in progress')
     this.pipeline = this.client.multi()
+    return this
   }
 
   async transactionCommit(): Promise<void> {

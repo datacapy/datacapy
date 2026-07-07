@@ -848,4 +848,125 @@ describe('DataSourceMysql', () => {
       expect(statements[3].toUpperCase()).not.toContain('LIMIT 1')
     })
   })
+
+  describe('transaction leases', () => {
+    type MockConn = {
+      query: jest.Mock
+      beginTransaction: jest.Mock
+      commit: jest.Mock
+      rollback: jest.Mock
+      release: jest.Mock
+    }
+
+    const makeMockConn = (): MockConn => ({
+      query: jest.fn().mockResolvedValue([[], []]),
+      beginTransaction: jest.fn().mockResolvedValue(undefined),
+      commit: jest.fn().mockResolvedValue(undefined),
+      rollback: jest.fn().mockResolvedValue(undefined),
+      release: jest.fn(),
+    })
+
+    let mockConn: MockConn
+    let mockGetConnection: jest.Mock
+
+    beforeEach(() => {
+      mockConn = makeMockConn()
+      mockGetConnection = jest.fn().mockResolvedValue(mockConn)
+
+      const createPool = mysqlCreatePool as jest.Mock
+      createPool.mockReturnValue({
+        query: mockQuery,
+        getConnection: mockGetConnection,
+      })
+
+      // The outer beforeEach constructs `dataSource` against a pool mock with no
+      // getConnection() - reconstruct against the pool mock configured above so
+      // transactionStart() has a getConnection() to call.
+      dataSource = new DataSourceMysql({
+        host: 'localhost',
+        user: 'test',
+        password: 'test',
+        database: 'testdb',
+      })
+    })
+
+    it('gives two concurrent transactionStart() calls independent leases on independent connections', async () => {
+      const connA = makeMockConn()
+      const connB = makeMockConn()
+      mockGetConnection
+        .mockResolvedValueOnce(connA)
+        .mockResolvedValueOnce(connB)
+
+      const [leaseA, leaseB] = await Promise.all([
+        dataSource.transactionStart(),
+        dataSource.transactionStart(),
+      ])
+
+      expect(leaseA).not.toBe(leaseB)
+      expect(connA.beginTransaction).toHaveBeenCalledTimes(1)
+      expect(connB.beginTransaction).toHaveBeenCalledTimes(1)
+      expect(dataSource.hasActiveLeases()).toBe(true)
+    })
+
+    it('does not throw "Transaction already in progress" for concurrent transactionStart() calls', async () => {
+      await expect(
+        Promise.all([
+          dataSource.transactionStart(),
+          dataSource.transactionStart(),
+        ])
+      ).resolves.toBeDefined()
+    })
+
+    it('routes a plain find() concurrent with an open lease through the pool, not the lease connection', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      await dataSource.transactionStart()
+      mockQuery.mockResolvedValue([[], []])
+
+      await dataSource.find('users', {})
+
+      expect(mockQuery).toHaveBeenCalled()
+      expect(mockConn.query).not.toHaveBeenCalled()
+    })
+
+    it('commit releases the connection and clears the lease from the active count', async () => {
+      const lease = await dataSource.transactionStart()
+
+      await lease.transactionCommit()
+
+      expect(mockConn.commit).toHaveBeenCalledTimes(1)
+      expect(mockConn.release).toHaveBeenCalledTimes(1)
+      expect(dataSource.hasActiveLeases()).toBe(false)
+    })
+
+    it('rollback releases the connection and clears the lease from the active count', async () => {
+      const lease = await dataSource.transactionStart()
+
+      await lease.transactionRollback()
+
+      expect(mockConn.rollback).toHaveBeenCalledTimes(1)
+      expect(mockConn.release).toHaveBeenCalledTimes(1)
+      expect(dataSource.hasActiveLeases()).toBe(false)
+    })
+
+    it('throws a clear error on post-commit lease use', async () => {
+      const lease = await dataSource.transactionStart()
+      await lease.transactionCommit()
+
+      await expect(lease.transactionCommit()).rejects.toThrow(
+        /already been committed or rolled back/
+      )
+      await expect(lease.find('users', {})).rejects.toThrow(
+        /already been committed or rolled back/
+      )
+    })
+
+    it('throws a clear error on post-rollback lease use', async () => {
+      const lease = await dataSource.transactionStart()
+      await lease.transactionRollback()
+
+      await expect(lease.transactionRollback()).rejects.toThrow(
+        /already been committed or rolled back/
+      )
+    })
+  })
 })
