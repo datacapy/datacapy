@@ -2,15 +2,20 @@
 
 ## Overview
 
-The DataSourceContext system enables dynamic datasource routing at runtime. This is essential for multi-tenant architectures where different entities route to different databases based on request context.
+The DataSourceContext system enables dynamic datasource routing at runtime. This
+is essential for multi-tenant architectures where different entities route to
+different databases based on request context.
 
 ## Core Concepts
 
-**DataSourceContext** - Carries routing information for dynamic datasource resolution. Flows from request → service → repo → datasource.
+**DataSourceContext** - Carries routing information for dynamic datasource
+resolution. Flows from request → service → repo → datasource.
 
-**DataSourceLookup** - Interface for resolving datasource connection details based on a lookup key (e.g., projectId, tenantId).
+**DataSourceLookup** - Interface for resolving datasource connection details
+based on a lookup key (e.g., projectId, tenantId).
 
-**DataSourceRegistry** - Manages a pool of dynamically-created datasource instances with LRU eviction and health checks.
+**DataSourceRegistry** - Manages a pool of dynamically-created datasource
+instances with LRU eviction and health checks.
 
 ## API
 
@@ -23,13 +28,13 @@ import { DataSourceContext } from 'mzen-om'
 
 // Single datasource
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }
+  project: { lookupKey: projectId },
 })
 
 // Multiple datasources
 const context = DataSourceContext.fromDataSources({
   project: { lookupKey: projectId },
-  tenant: { lookupKey: tenantId }
+  tenant: { lookupKey: tenantId },
 })
 ```
 
@@ -80,8 +85,8 @@ class ProjectLookup implements DataSourceLookup {
       type: 'mongodb',
       config: {
         uri: project.databaseUri,
-        database: project.databaseName
-      }
+        database: project.databaseName,
+      },
     }
   }
 }
@@ -92,10 +97,13 @@ class ProjectLookup implements DataSourceLookup {
 1. **Service creates context** with explicit datasource names and lookup keys
 2. **Repo receives context** in query options
 3. **Repo resolves datasource** by calling `getDataSource(context)`
-4. **DataSourceManager gets entry** from context for repo's configured datasource name
+4. **DataSourceManager gets entry** from context for repo's configured
+   datasource name
 5. **DataSourceManager checks lookup** registry for that datasource name
-6. **If lookup exists**, calls `lookup(dataSourceName, lookupKey)` to get connection details
-7. **DataSourceRegistry** creates or reuses connection pool for that specific database
+6. **If lookup exists**, calls `lookup(dataSourceName, lookupKey)` to get
+   connection details
+7. **DataSourceRegistry** creates or reuses connection pool for that specific
+   database
 8. **Query executes** on the resolved datasource
 
 ## Repository Configuration
@@ -144,36 +152,42 @@ async getAll({ projectId, ...params }) {
 // Survey (project datasource) has relation to Tenant (tenant datasource)
 const context = DataSourceContext.fromDataSources({
   project: { lookupKey: projectId },
-  tenant: { lookupKey: tenantId }
+  tenant: { lookupKey: tenantId },
 })
 
 await repoSurvey.findOne(surveyId, {
   context,
   populate: {
-    tenant: true // Automatically uses 'tenant' context
-  }
+    tenant: true, // Automatically uses 'tenant' context
+  },
 })
 ```
 
 ### Transactions
 
+Each transactional caller gets its own dedicated connection lease — never call
+`transactionStart()`/`transactionCommit()`/`transactionRollback()` directly on a
+shared datasource; use `repo.transaction()` instead:
+
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }
+  project: { lookupKey: projectId },
 })
 
 const repo = this.getRepo('survey')
-const dataSource = await repo.getDataSource(context)
-
-try {
-  await dataSource.transactionStart()
-  await repo.deleteOne({ _id: surveyId }, { context })
-  await dataSource.transactionCommit()
-} catch (error) {
-  await dataSource.transactionRollback()
-  throw error
-}
+await repo.transaction(context, async (txContext) => {
+  await repo.deleteOne({ _id: surveyId }, { context: txContext })
+})
 ```
+
+`repo.transaction()` checks out a dedicated connection lease, runs the callback,
+then commits on success or rolls back on error — always releasing the lease
+afterwards.
+
+**The callback receives a new tx-scoped context (`txContext`), not the original
+`context`.** Every nested repo call made inside the transaction must be passed
+`txContext`, not the outer `context` — otherwise that call silently resolves to
+a non-transactional datasource instead of erroring.
 
 ## Error Handling
 
@@ -185,6 +199,7 @@ Available datasources: tenant, customer
 ```
 
 **Solution:** Register the lookup:
+
 ```typescript
 modelManager.setDataSourceLookup('project', lookup)
 ```
@@ -197,25 +212,31 @@ Provide context with lookupKey or dataSourceKey in query options.
 ```
 
 **Solution:** Create and pass context:
+
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }
+  project: { lookupKey: projectId },
 })
 await repo.find(query, { context })
 ```
 
 ## Design Decisions
 
-1. **Explicit Datasource Names** - All contexts require explicit datasource names (no wildcard fallback)
+1. **Explicit Datasource Names** - All contexts require explicit datasource
+   names (no wildcard fallback)
    - Rationale: Clear intent, easier debugging, prevents accidental misrouting
 
-2. **Per-Datasource Lookup Registration** - Each datasource has its own lookup implementation
-   - Rationale: Supports future scenarios with multiple dynamic datasources (e.g., project + tenant)
+2. **Per-Datasource Lookup Registration** - Each datasource has its own lookup
+   implementation
+   - Rationale: Supports future scenarios with multiple dynamic datasources
+     (e.g., project + tenant)
 
-3. **Map-Based Lookup Storage** - `dataSourceLookups: Map<string, DataSourceLookup>`
+3. **Map-Based Lookup Storage** -
+   `dataSourceLookups: Map<string, DataSourceLookup>`
    - Rationale: O(1) lookup, clear separation, easy to extend
 
-4. **Error Messages Include Available Datasources** - When lookup missing, shows what's configured
+4. **Error Messages Include Available Datasources** - When lookup missing, shows
+   what's configured
    - Rationale: Helps developers quickly identify configuration issues
 
 ## Performance Considerations
@@ -271,7 +292,8 @@ class CachedProjectLookup implements DataSourceLookup {
 When testing code that uses dynamic datasources:
 
 1. **Mock the lookup** by implementing DataSourceLookup interface
-2. **Register the mock** with `modelManager.setDataSourceLookup(name, mockLookup)`
+2. **Register the mock** with
+   `modelManager.setDataSourceLookup(name, mockLookup)`
 3. **Create context** with test lookup keys
 4. **Verify queries** execute on correct datasource
 
@@ -282,15 +304,15 @@ const mockLookup: DataSourceLookup = {
   async lookup(dataSourceName, lookupKey) {
     return {
       type: 'mysql',
-      config: { database: `test_${lookupKey}` }
+      config: { database: `test_${lookupKey}` },
     }
-  }
+  },
 }
 
 modelManager.setDataSourceLookup('project', mockLookup)
 
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: 'proj123' }
+  project: { lookupKey: 'proj123' },
 })
 
 await repo.find({}, { context })
@@ -300,16 +322,22 @@ See [Testing](testing.md) for more details.
 
 ## Related Files
 
-- **[src/data-source/context.ts](../src/data-source/context.ts)** - DataSourceContext implementation
-- **[src/data-source-manager.ts](../src/data-source-manager.ts)** - Lookup registration and resolution
+- **[src/data-source/context.ts](../src/data-source/context.ts)** -
+  DataSourceContext implementation
+- **[src/data-source-manager.ts](../src/data-source-manager.ts)** - Lookup
+  registration and resolution
 - **[src/model-manager.ts](../src/model-manager.ts)** - Public API delegation
-- **[src/data-source/registry.ts](../src/data-source/registry.ts)** - Connection pool management
-- **[src/data-source/index.ts](../src/data-source/index.ts)** - DataSourceLookup interface
+- **[src/data-source/registry.ts](../src/data-source/registry.ts)** - Connection
+  pool management
+- **[src/data-source/index.ts](../src/data-source/index.ts)** - DataSourceLookup
+  interface
 
 ## See Also
 
-- [Multiple Dynamic DataSources](dynamic-datasource-multiple.md) - Using multiple datasources simultaneously
-- [Dynamic DataSources - Advanced](dynamic-datasource-advanced.md) - BaseDataSourceLookup, DataSourceRegistry internals
+- [Multiple Dynamic DataSources](dynamic-datasource-multiple.md) - Using
+  multiple datasources simultaneously
+- [Dynamic DataSources - Advanced](dynamic-datasource-advanced.md) -
+  BaseDataSourceLookup, DataSourceRegistry internals
 - [Architecture](architecture.md) - Overall system design
 - [Testing](testing.md) - Testing with dynamic datasources
 - [Performance](performance.md) - Optimization strategies

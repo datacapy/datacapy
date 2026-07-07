@@ -61,6 +61,19 @@ Additional features:
 
 See [DataSource Context](dynamic-datasource.md) for detailed information.
 
+## Transactions
+
+MySQL datasources use checkout/lease semantics: `repo.transaction(context, fn)`
+checks out a dedicated connection lease for the duration of `fn`, rather than
+sharing transaction state on a cached datasource instance. This means concurrent
+callers against the same registry-cached datasource never clobber each other's
+transactions, and the registry will not evict or close a pool that still has an
+active lease (`hasActiveLeases()`).
+
+See the "Transactions" section in [DataSource Context](dynamic-datasource.md)
+for the call pattern, and `src/repo/repo.ts` (`transaction()`) and
+`src/data-source/mysql.ts` (`MysqlTransactionLease`) for the implementation.
+
 ## Class Hierarchy
 
 ### Relation System
