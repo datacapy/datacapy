@@ -13,6 +13,5 @@ export {
 export { RepoIndexConfig } from './index-config'
 export { RepoQueryOptions } from './query-options'
 export { Repo, RepoConfig } from './repo'
-export { withTransaction } from './with-transaction'
 
 export { Repo as default } from './repo'

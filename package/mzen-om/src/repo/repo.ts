@@ -1,5 +1,6 @@
 import clone = require('clone')
 import { ModelManagerConfig, Logger } from 'model-manager'
+import { DataSourceContext } from 'data-source/context'
 import {
   DataSourceInterface,
   QuerySelection,
@@ -271,7 +272,7 @@ export class Repo<T> {
   async getDataSource(
     context?: import('data-source/context').DataSourceContext
   ): Promise<DataSourceInterface> {
-    // An active datasource (typically a transaction lease bound via withTransaction()) always
+    // An active datasource (typically a transaction lease bound via transaction()) always
     // takes precedence - this is what lets every nested repo.xxx({ context }) call within one
     // transaction resolve the same lease, bypassing the registry entirely and with no extra
     // ref-count churn.
@@ -317,7 +318,7 @@ export class Repo<T> {
 
   /**
    * Release a registry reference acquired via getDataSource(), if this repo's datasource is
-   * dynamic. Safe to call unconditionally after every CRUD call and from withTransaction()'s
+   * dynamic. Safe to call unconditionally after every CRUD call and from transaction()'s
    * cleanup - it is a no-op for static (non-registry) datasources.
    */
   releaseDataSource(
@@ -331,6 +332,49 @@ export class Repo<T> {
       this.modelManager?.dataSourceRegistry?.release(
         `${this.config.dataSource}:${lookupKey}`
       )
+    }
+  }
+
+  /**
+   * Runs `fn` inside a transaction on this repo's datasource, handling the full
+   * acquire/lease/release/commit/rollback sequence in one place so no call site has to hand-roll
+   * it:
+   *
+   * 1. Acquires the initial registry ref via getDataSource(context).
+   * 2. Calls transactionStart() on it to obtain an exclusive lease, and binds that lease onto
+   *    `context` via setActiveDataSource() so every nested repo.xxx({ context }) call inside `fn`
+   *    resolves the same lease (see getDataSource()).
+   * 3. Runs fn(lease).
+   * 4. Commits on success; rolls back and rethrows on error.
+   * 5. Always clears the active-datasource slot on `context` and releases the initial registry ref,
+   *    in a finally block - regardless of whether fn/commit/rollback threw.
+   */
+  async transaction<R>(
+    context: DataSourceContext,
+    fn: (tx: DataSourceInterface) => Promise<R>
+  ): Promise<R> {
+    if (!this.config.dataSource) {
+      throw new Error(`No dataSource configured for repo: ${this.getName()}`)
+    }
+    const dataSourceName = this.config.dataSource
+
+    const dataSource = await this.getDataSource(context)
+
+    try {
+      const lease = await dataSource.transactionStart()
+      context.setActiveDataSource(dataSourceName, lease)
+
+      try {
+        const result = await fn(lease)
+        await lease.transactionCommit()
+        return result
+      } catch (error) {
+        await lease.transactionRollback()
+        throw error
+      }
+    } finally {
+      context.clearActiveDataSource(dataSourceName)
+      this.releaseDataSource(context)
     }
   }
 

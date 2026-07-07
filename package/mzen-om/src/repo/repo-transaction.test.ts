@@ -1,5 +1,4 @@
 import { Repo } from './repo'
-import { withTransaction } from './with-transaction'
 import { DataSourceContext } from 'data-source/context'
 import { DataSourceInterface } from 'data-source/interface'
 
@@ -12,7 +11,7 @@ function makeLease(): jest.Mocked<
   }
 }
 
-describe('withTransaction', () => {
+describe('Repo#transaction', () => {
   const dataSourceName = 'project'
 
   function makeRepoAndDataSource(lease: any) {
@@ -32,17 +31,12 @@ describe('withTransaction', () => {
     const { repo, dataSource } = makeRepoAndDataSource(lease)
     const context = new DataSourceContext()
 
-    const result = await withTransaction(
-      repo,
-      context,
-      dataSourceName,
-      async (tx) => {
-        expect(tx).toBe(lease)
-        // The lease must be bound onto the context for nested repo.xxx({ context }) calls.
-        expect(context.getActiveDataSource(dataSourceName)).toBe(lease)
-        return 'ok'
-      }
-    )
+    const result = await repo.transaction(context, async (tx) => {
+      expect(tx).toBe(lease)
+      // The lease must be bound onto the context for nested repo.xxx({ context }) calls.
+      expect(context.getActiveDataSource(dataSourceName)).toBe(lease)
+      return 'ok'
+    })
 
     expect(result).toBe('ok')
     expect(dataSource.transactionStart).toHaveBeenCalledTimes(1)
@@ -57,7 +51,7 @@ describe('withTransaction', () => {
     const error = new Error('boom')
 
     await expect(
-      withTransaction(repo, context, dataSourceName, async () => {
+      repo.transaction(context, async () => {
         throw error
       })
     ).rejects.toThrow('boom')
@@ -71,13 +65,13 @@ describe('withTransaction', () => {
     const { repo } = makeRepoAndDataSource(lease)
     const context = new DataSourceContext()
 
-    await withTransaction(repo, context, dataSourceName, async () => 'ok')
+    await repo.transaction(context, async () => 'ok')
     expect(context.getActiveDataSource(dataSourceName)).toBeUndefined()
     expect(repo.releaseDataSource).toHaveBeenCalledWith(context)
     ;(repo.releaseDataSource as jest.Mock).mockClear()
 
     await expect(
-      withTransaction(repo, context, dataSourceName, async () => {
+      repo.transaction(context, async () => {
         throw new Error('boom')
       })
     ).rejects.toThrow('boom')

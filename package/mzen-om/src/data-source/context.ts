@@ -44,7 +44,7 @@ export class DataSourceContext {
 
   // Deliberate exception to this class's otherwise immutable-by-convention design: the same
   // context instance is threaded by reference through every nested `repo.xxx({ context })` call
-  // within one withTransaction() block, so mutating this slot in place lets every nested call
+  // within one transaction() block, so mutating this slot in place lets every nested call
   // resolve the same lease without reassigning `context` at each call site.
   private activeDataSources: Record<string, DataSourceInterface> = {}
 
