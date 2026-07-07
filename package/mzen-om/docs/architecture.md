@@ -63,16 +63,26 @@ See [DataSource Context](dynamic-datasource.md) for detailed information.
 
 ## Transactions
 
-MySQL datasources use checkout/lease semantics: `repo.transaction(context, fn)`
-checks out a dedicated connection lease for the duration of `fn`, rather than
-sharing transaction state on a cached datasource instance. This means concurrent
-callers against the same registry-cached datasource never clobber each other's
-transactions, and the registry will not evict or close a pool that still has an
-active lease (`hasActiveLeases()`).
+Every datasource (MySQL, MongoDB, Redis) uses checkout/lease semantics:
+`repo.transaction(context, fn)` checks out a dedicated transaction lease for the
+duration of `fn`, rather than sharing transaction state on a cached datasource
+instance. This means concurrent callers against the same registry-cached
+datasource never clobber each other's transactions, and the registry will not
+evict or close a pool/connection that still has an active lease
+(`hasActiveLeases()`).
+
+Each lease's shape follows its own driver's actual semantics rather than a
+forced common base class: `MysqlTransactionLease` binds a dedicated
+`PoolConnection`, `MongodbTransactionLease` binds a dedicated `ClientSession`,
+and `RedisTransactionLease` binds a dedicated pipeline. Across all three, DDL
+(`drop`/`createIndex`/`dropIndex`/`dropIndexes`) always delegates straight back
+to the parent, unscoped — DDL never participates in a transaction.
 
 See the "Transactions" section in [DataSource Context](dynamic-datasource.md)
-for the call pattern, and `src/repo/repo.ts` (`transaction()`) and
-`src/data-source/mysql.ts` (`MysqlTransactionLease`) for the implementation.
+for the call pattern, and `src/repo/repo.ts` (`transaction()`),
+`src/data-source/mysql.ts` (`MysqlTransactionLease`),
+`src/data-source/mongodb.ts` (`MongodbTransactionLease`), and
+`src/data-source/redis.ts` (`RedisTransactionLease`) for the implementation.
 
 ## Class Hierarchy
 

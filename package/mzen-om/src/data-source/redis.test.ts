@@ -379,11 +379,11 @@ describe('DataSourceRedis', () => {
     it('calls EXPIRE via pipeline during a transaction', async () => {
       const ds = await buildConnectedDataSource()
       await ds.createIndex('sessions', { _id: 1 }, { expireAfterSeconds: 30 })
-      await ds.transactionStart()
-      await ds.insertOne('sessions', { _id: 'tx1', data: 'y' })
+      const lease = await ds.transactionStart()
+      await lease.insertOne('sessions', { _id: 'tx1', data: 'y' })
       const pipeline = store.multi.mock.results[0].value
       expect(pipeline.expire).toHaveBeenCalledWith('sessions:doc:tx1', 30)
-      await ds.transactionCommit()
+      await lease.transactionCommit()
     })
   })
 
@@ -1345,56 +1345,101 @@ describe('DataSourceRedis', () => {
   // ── Transactions ─────────────────────────────────────────────────────────────
 
   describe('transactions', () => {
-    it('transactionStart throws if already in progress', async () => {
+    it('transactionStart returns a lease distinct from the datasource instance', async () => {
       const ds = await buildConnectedDataSource()
-      await ds.transactionStart()
-      await expect(ds.transactionStart()).rejects.toThrow(
-        'Transaction already in progress'
+      const lease = await ds.transactionStart()
+      expect(lease).not.toBe(ds)
+    })
+
+    it('two concurrent transactionStart() calls succeed independently with distinct pipelines', async () => {
+      const ds = await buildConnectedDataSource()
+      const leaseA = await ds.transactionStart()
+      const leaseB = await ds.transactionStart()
+
+      expect(leaseA).not.toBe(leaseB)
+      expect(store.multi).toHaveBeenCalledTimes(2)
+      const pipelineA = store.multi.mock.results[0].value
+      const pipelineB = store.multi.mock.results[1].value
+      expect(pipelineA).not.toBe(pipelineB)
+    })
+
+    it('writes through a lease hit that lease own pipeline, not the client or another lease pipeline', async () => {
+      const ds = await buildConnectedDataSource()
+      const leaseA = await ds.transactionStart()
+      const leaseB = await ds.transactionStart()
+      const pipelineA = store.multi.mock.results[0].value
+      const pipelineB = store.multi.mock.results[1].value
+
+      await leaseA.insertOne('things', { _id: 'a1', value: 1 })
+
+      expect(pipelineA.set).toHaveBeenCalledWith(
+        'things:doc:a1',
+        JSON.stringify({ _id: 'a1', value: 1 })
+      )
+      expect(pipelineB.set).not.toHaveBeenCalled()
+      expect(store.set).not.toHaveBeenCalled()
+    })
+
+    it('commit calls exec() and flips hasActiveLeases()', async () => {
+      const ds = await buildConnectedDataSource()
+      const lease = await ds.transactionStart()
+      expect(ds.hasActiveLeases()).toBe(true)
+
+      await lease.insertOne('things', { _id: 't1', value: 1 })
+      await lease.transactionCommit()
+
+      expect(store.data.has('things:doc:t1')).toBe(true)
+      expect(ds.hasActiveLeases()).toBe(false)
+    })
+
+    it('rollback calls discard() and flips hasActiveLeases() without applying writes', async () => {
+      const ds = await buildConnectedDataSource()
+      const lease = await ds.transactionStart()
+
+      await lease.insertOne('things', { _id: 'discard-me', value: 99 })
+      await lease.transactionRollback()
+
+      expect(store.data.has('things:doc:discard-me')).toBe(false)
+      expect(ds.hasActiveLeases()).toBe(false)
+    })
+
+    it('throws the closed-lease message when used after commit', async () => {
+      const ds = await buildConnectedDataSource()
+      const lease = await ds.transactionStart()
+      await lease.transactionCommit()
+
+      await expect(lease.insertOne('things', { _id: 'x' })).rejects.toThrow(
+        'This transaction lease has already been committed or rolled back'
       )
     })
 
-    it('transactionCommit executes the pipeline', async () => {
+    it('throws the closed-lease message when used after rollback', async () => {
       const ds = await buildConnectedDataSource()
-      await ds.transactionStart()
-      await ds.insertOne('things', { _id: 't1', value: 1 })
-      await ds.transactionCommit()
-      expect(store.data.has('things:doc:t1')).toBe(true)
+      const lease = await ds.transactionStart()
+      await lease.transactionRollback()
+
+      await expect(lease.insertOne('things', { _id: 'x' })).rejects.toThrow(
+        'This transaction lease has already been committed or rolled back'
+      )
     })
 
-    it('transactionRollback discards the pipeline without applying writes', async () => {
-      const ds = await buildConnectedDataSource()
-      await seed(ds, 'album', [albums[0]])
-      await ds.transactionStart()
-      await ds.insertOne('things', { _id: 'discard-me', value: 99 })
-      await ds.transactionRollback()
-      expect(store.data.has('things:doc:discard-me')).toBe(false)
-    })
-
-    it('transactionCommit throws when no transaction is active', async () => {
+    it('calling transactionCommit directly on the shared instance (no lease) throws', async () => {
       const ds = await buildConnectedDataSource()
       await expect(ds.transactionCommit()).rejects.toThrow(
-        'No transaction in progress'
+        'transactionStart() returns a dedicated'
       )
     })
 
-    it('transactionRollback throws when no transaction is active', async () => {
+    it('calling transactionRollback directly on the shared instance (no lease) throws', async () => {
       const ds = await buildConnectedDataSource()
       await expect(ds.transactionRollback()).rejects.toThrow(
-        'No transaction in progress'
+        'transactionStart() returns a dedicated'
       )
-    })
-
-    it('write calls during transaction are routed to the pipeline', async () => {
-      const ds = await buildConnectedDataSource()
-      await ds.transactionStart()
-      // After transactionStart, multi() should have been called once
-      expect(store.multi).toHaveBeenCalledTimes(1)
-      await ds.transactionCommit()
     })
   })
 
   describe('bulkWrite()', () => {
-    it('opens and commits its own transaction when none is ambient', async () => {
+    it('opens and commits its own lease on success', async () => {
       const ds = await buildConnectedDataSource()
       const result = await ds.bulkWrite('album', [
         { insertOne: { document: { _id: 'a1', name: 'New Album' } } },
@@ -1404,27 +1449,10 @@ describe('DataSourceRedis', () => {
       expect(store.data.has('album:doc:a1')).toBe(true)
       expect(result.insertedCount).toBe(1)
       expect(result.insertedIds).toEqual({ 0: 'a1' })
+      expect(ds.hasActiveLeases()).toBe(false)
     })
 
-    it('reuses an already-open ambient transaction without committing/discarding it itself', async () => {
-      const ds = await buildConnectedDataSource()
-      await ds.transactionStart()
-      expect(store.multi).toHaveBeenCalledTimes(1)
-
-      await ds.bulkWrite('album', [
-        { insertOne: { document: { _id: 'a2', name: 'Another Album' } } },
-      ])
-
-      // bulkWrite must not have opened a second, nested transaction
-      expect(store.multi).toHaveBeenCalledTimes(1)
-      // and must not have committed the ambient transaction itself - not yet visible
-      expect(store.data.has('album:doc:a2')).toBe(false)
-
-      await ds.transactionCommit()
-      expect(store.data.has('album:doc:a2')).toBe(true)
-    })
-
-    it('rolls back and rethrows when an op fails mid-batch, with no ambient transaction', async () => {
+    it('opens, rolls back, and rethrows when an op fails mid-batch', async () => {
       const ds = await buildConnectedDataSource()
       await seed(ds, 'album', [albums[0]])
 
@@ -1441,6 +1469,24 @@ describe('DataSourceRedis', () => {
 
       // the insert queued before the failing op must not have been applied
       expect(store.data.has('album:doc:a3')).toBe(false)
+      expect(ds.hasActiveLeases()).toBe(false)
+    })
+
+    it("a lease's own bulkWrite() queues onto its pipeline but does not exec/discard itself", async () => {
+      const ds = await buildConnectedDataSource()
+      const lease = await ds.transactionStart()
+      const pipeline = store.multi.mock.results[0].value
+
+      await lease.bulkWrite('album', [
+        { insertOne: { document: { _id: 'a4', name: 'Queued Album' } } },
+      ])
+
+      expect(pipeline.exec).not.toHaveBeenCalled()
+      expect(pipeline.discard).not.toHaveBeenCalled()
+      expect(store.data.has('album:doc:a4')).toBe(false)
+
+      await lease.transactionCommit()
+      expect(store.data.has('album:doc:a4')).toBe(true)
     })
   })
 
