@@ -147,13 +147,13 @@ export class MigrationManager {
       // Step 7: Execute patches
       const executor = new PatchExecutor(
         this.config.modelManager,
-        targetDataSource,
         this.logger,
         this.config.dryRun,
       );
 
       const patchResults = await executor.executePatches(
         patchesToApply,
+        dsContext ?? new DataSourceContext(),
         this.config.stopOnError,
       );
 

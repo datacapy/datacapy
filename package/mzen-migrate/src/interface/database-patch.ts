@@ -1,4 +1,4 @@
-import { ModelManager } from "mzen-om";
+import { ModelManager, DataSourceContext } from "mzen-om";
 
 /**
  * DatabasePatchInterface
@@ -30,7 +30,10 @@ export interface DatabasePatchInterface {
    * Execute the migration patch
    *
    * @param modelManager - ModelManager instance providing access to datasources, repos, and services
-   * @throws Error if patch execution fails (will trigger transaction rollback)
+   * @param context - DataSourceContext for the target datasource. Pass this to
+   *   `repo.transaction(context, fn)` if the patch needs its repo calls wrapped
+   *   in a transaction - PatchExecutor does not provide transaction protection itself.
+   * @throws Error if patch execution fails
    */
-  update(modelManager: ModelManager): Promise<void>;
+  update(modelManager: ModelManager, context: DataSourceContext): Promise<void>;
 }

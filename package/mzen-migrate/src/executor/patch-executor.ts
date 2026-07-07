@@ -1,39 +1,48 @@
 import { DatabasePatchInterface } from "../interface/database-patch";
 import { PatchResult } from "../interface/migration-result";
-import { ModelManager, DataSourceInterface } from "mzen-om";
+import { ModelManager, DataSourceContext } from "mzen-om";
 import { MigrationLogger } from "../logger/migration-logger";
 
 /**
  * PatchExecutor
  *
- * Executes migration patches with transaction safety.
- * Each patch is wrapped in a transaction with automatic rollback on failure.
+ * Executes migration patches and records their outcome.
+ *
+ * Transaction safety is the patch's own responsibility: a patch that needs
+ * atomicity across its repo calls must wrap them with `repo.transaction(context, fn)`
+ * itself (see mzen-om's Repo#transaction). PatchExecutor cannot provide this
+ * generically - transactionStart() returns a dedicated lease scoped to whichever
+ * repo/datasource requested it, and repo calls that aren't explicitly handed that
+ * lease's context bypass it entirely, so no datasource-level wrapping here would
+ * actually cover a patch's writes.
  */
 export class PatchExecutor {
   private modelManager: ModelManager;
-  private metaDataSource: DataSourceInterface;
   private logger: MigrationLogger;
   private dryRun: boolean;
 
   constructor(
     modelManager: ModelManager,
-    metaDataSource: DataSourceInterface,
     logger: MigrationLogger,
     dryRun: boolean = false,
   ) {
     this.modelManager = modelManager;
-    this.metaDataSource = metaDataSource;
     this.logger = logger;
     this.dryRun = dryRun;
   }
 
   /**
-   * Execute a single patch with transaction protection
+   * Execute a single patch
    *
    * @param patch - Patch to execute
+   * @param context - DataSourceContext for dynamic datasource routing; also passed to the
+   *                  patch so it can call `repo.transaction(context, fn)` for atomicity
    * @returns PatchResult with status, duration, and error details
    */
-  async executePatch(patch: DatabasePatchInterface): Promise<PatchResult> {
+  async executePatch(
+    patch: DatabasePatchInterface,
+    context: DataSourceContext,
+  ): Promise<PatchResult> {
     const startTime = Date.now();
     const result: PatchResult = {
       version: patch.version,
@@ -54,48 +63,17 @@ export class PatchExecutor {
       return result;
     }
 
-    let transactionLease: DataSourceInterface | undefined;
-
     try {
-      // Start transaction on meta datasource
-      try {
-        transactionLease = await this.metaDataSource.transactionStart();
-      } catch (error) {
-        // Some datasources (like Mock) don't support transactions
-        // Log warning but continue
-        this.logger.verboseLog(
-          `Transaction not supported on meta datasource, continuing without transaction protection`,
-        );
-      }
-
-      // Execute the patch
-      // Pass ModelManager to give patch access to all datasources, repos, and services
-      await patch.update(this.modelManager);
-
-      // Commit transaction if started
-      if (transactionLease) {
-        await transactionLease.transactionCommit();
-      }
+      // Pass ModelManager to give patch access to all datasources, repos, and services;
+      // pass context so the patch can wrap its own repo calls in a transaction via
+      // repo.transaction(context, fn) where atomicity is required
+      await patch.update(this.modelManager, context);
 
       result.status = "success";
       result.duration = Date.now() - startTime;
 
       this.logger.logPatchSuccess(patch.version, result.duration);
     } catch (error) {
-      // Rollback transaction if started
-      if (transactionLease) {
-        try {
-          await transactionLease.transactionRollback();
-          this.logger.verboseLog(
-            `Transaction rolled back for patch ${patch.version}`,
-          );
-        } catch (rollbackError) {
-          this.logger.error(
-            `Failed to rollback transaction for patch ${patch.version}: ${rollbackError}`,
-          );
-        }
-      }
-
       result.status = "failed";
       result.duration = Date.now() - startTime;
       result.error = {
@@ -116,17 +94,19 @@ export class PatchExecutor {
    * Execute multiple patches sequentially
    *
    * @param patches - Array of patches to execute
+   * @param context - DataSourceContext threaded through to each patch
    * @param stopOnError - Stop execution on first error (default: true)
    * @returns Array of patch results
    */
   async executePatches(
     patches: DatabasePatchInterface[],
+    context: DataSourceContext,
     stopOnError: boolean = true,
   ): Promise<PatchResult[]> {
     const results: PatchResult[] = [];
 
     for (const patch of patches) {
-      const result = await this.executePatch(patch);
+      const result = await this.executePatch(patch, context);
       results.push(result);
 
       // Stop if patch failed and stopOnError is true
