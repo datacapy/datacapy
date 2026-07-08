@@ -109,13 +109,13 @@ export class Repo<T> {
   }
 
   // Init creates indexes
-  async init() {
+  async init(context?: import('data-source/context').DataSourceContext) {
     if (!this.initialised) {
       var promises: Promise<any>[] = []
       if (!this.schema) {
         this.initSchema()
         if (this.config.autoIndex && this.hasIndexes())
-          promises.push(this.createIndexes())
+          promises.push(this.createIndexes(context))
       }
       await Promise.all(promises)
       this.initialised = true
@@ -392,7 +392,9 @@ export class Repo<T> {
     return !!this.config.indexes && Object.keys(this.config.indexes).length > 0
   }
 
-  async createIndexes() {
+  async createIndexes(
+    context?: import('data-source/context').DataSourceContext
+  ) {
     if (!this.hasIndexes()) {
       throw new Error(
         `Repo "${this.config.collectionName}" has no indexes configured`
@@ -406,43 +408,57 @@ export class Repo<T> {
       } else {
         index.options.name = indexName
       }
-      await this.createIndex(index.spec, index.options)
+      await this.createIndex(index.spec, index.options, context)
     }
     return true
   }
 
-  async createIndex(fieldOrSpec: IndexSpec | string, options?) {
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
+  async createIndex(
+    fieldOrSpec: IndexSpec | string,
+    options?,
+    context?: import('data-source/context').DataSourceContext
+  ) {
+    const dataSource = await this.getDataSource(context)
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
-    return this.dataSource.createIndex(
-      this.config.collectionName,
-      fieldOrSpec,
-      options
-    )
+    try {
+      return await dataSource.createIndex(
+        this.config.collectionName,
+        fieldOrSpec,
+        options
+      )
+    } finally {
+      this.releaseDataSource(context)
+    }
   }
 
-  async dropIndex(indexName: string, _options?) {
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
+  async dropIndex(
+    indexName: string,
+    _options?,
+    context?: import('data-source/context').DataSourceContext
+  ) {
+    const dataSource = await this.getDataSource(context)
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
-    return this.dataSource.dropIndex(this.config.collectionName, indexName)
+    try {
+      return await dataSource.dropIndex(this.config.collectionName, indexName)
+    } finally {
+      this.releaseDataSource(context)
+    }
   }
 
-  async dropIndexes() {
-    if (this.dataSource == undefined) {
-      throw new Error('No data source provided')
-    }
+  async dropIndexes(context?: import('data-source/context').DataSourceContext) {
+    const dataSource = await this.getDataSource(context)
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
-    return this.dataSource.dropIndexes(this.config.collectionName)
+    try {
+      return await dataSource.dropIndexes(this.config.collectionName)
+    } finally {
+      this.releaseDataSource(context)
+    }
   }
 
   async find(query?: QuerySelection, options?: RepoQueryOptions): Promise<T[]> {

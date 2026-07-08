@@ -22,7 +22,7 @@ type RepoLike = {
   }
   getName(): string
   dataSource?: DataSourceInterface
-  init(): Promise<void>
+  init(context?: DataSourceContext): Promise<void>
 }
 
 /**
@@ -240,32 +240,11 @@ export class DataSourceManager {
       throw new Error(`Repo not found: ${repoName}`)
     }
 
-    const entry = context.getForDataSource(repo.config.dataSource)
-    const actualDS = await this.getDataSourceDynamic(
-      repo.config.dataSource,
-      entry
+    await repo.init(context)
+
+    this.logger.log(
+      `[DataSourceManager] Initialized dynamic repo: ${repoName} for datasource: ${repo.config.dataSource}`
     )
-
-    try {
-      // Wire repo to the real datasource so all repo methods work correctly
-      repo.dataSource = actualDS
-
-      // Delegate initialisation to repo — respects autoIndex, avoids duplicated logic
-      await repo.init()
-
-      this.logger.log(
-        `[DataSourceManager] Initialized dynamic repo: ${repoName} for datasource: ${repo.config.dataSource}`
-      )
-    } finally {
-      // The datasource is only needed transiently to wire and init the repo —
-      // later repo operations re-acquire fresh via repo.getDataSource(), so
-      // release immediately rather than leaking a reference for the process lifetime.
-      if (entry?.lookupKey) {
-        this.dataSourceRegistry?.release(
-          DataSourceRegistry.makeKey(repo.config.dataSource, entry.lookupKey)
-        )
-      }
-    }
   }
 
   /**
