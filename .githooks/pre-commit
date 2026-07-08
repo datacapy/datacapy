@@ -9,7 +9,7 @@ pnpm exec lint-staged
 # Spell-check staged source files
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 if [ -n "$STAGED_FILES" ]; then
-    if ! echo "$STAGED_FILES" | pnpm exec cspell lint --config cspell.json --no-progress --no-summary --file-list stdin; then
+    if ! echo "$STAGED_FILES" | pnpm exec cspell lint --config cspell.json --no-progress --no-summary --no-must-find-files --file-list stdin; then
         echo ""
         echo "Spell check failed. Fix typos above or add words to .cspell-words.txt"
         echo "To bypass: git commit --no-verify"
