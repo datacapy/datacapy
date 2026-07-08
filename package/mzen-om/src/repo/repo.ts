@@ -257,9 +257,13 @@ export class Repo<T> {
     servicesArray.forEach((service) => this.addService(service))
   }
 
-  drop() {
-    if (this.config.collectionName) {
-      return this.dataSource?.drop(this.config.collectionName)
+  async drop(context?: import('data-source/context').DataSourceContext) {
+    if (!this.config.collectionName) return
+    const dataSource = await this.getDataSource(context)
+    try {
+      return await dataSource.drop(this.config.collectionName)
+    } finally {
+      this.releaseDataSource(context)
     }
   }
 
@@ -380,11 +384,11 @@ export class Repo<T> {
     }
   }
 
-  async reset() {
+  async reset(context?: import('data-source/context').DataSourceContext) {
     // This method drops the collection and re-creates it with indexes if any are defined
-    await this.drop()
+    await this.drop(context)
     if (this.config.autoIndex && this.hasIndexes()) {
-      await this.createIndexes()
+      await this.createIndexes(context)
     }
   }
 
