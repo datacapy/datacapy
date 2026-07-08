@@ -459,20 +459,24 @@ export class Repo<T> {
 
     const optionsAll = this.normalizeFindOptions(options ? options : {})
     const optionsPropagate = this.getPropagateOptions(optionsAll)
-    const optionsQuery = this.getQueryOptions(optionsAll)
 
-    query = query ? query : {}
-    let errors = await this.validateQuery(query, options)
-    if (errors) throw new RepoErrorValidation(errors)
+    var docs
+    try {
+      const optionsQuery = this.getQueryOptions(optionsAll)
 
-    var docs = await dataSource.find(
-      this.config.collectionName,
-      query,
-      optionsQuery
-    )
+      query = query ? query : {}
+      let errors = await this.validateQuery(query, options)
+      if (errors) throw new RepoErrorValidation(errors)
 
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+      docs = await dataSource.find(
+        this.config.collectionName,
+        query,
+        optionsQuery
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return this.findPopulate(docs, optionsPropagate)
   }
@@ -492,20 +496,24 @@ export class Repo<T> {
 
     const optionsAll = this.normalizeFindOptions(options ? options : {})
     const optionsPropagate = this.getPropagateOptions(optionsAll)
-    const optionsQuery = this.getQueryOptions(optionsAll)
 
-    query = query ? query : {}
-    let errors = await this.validateQuery(query, options)
-    if (errors) throw new RepoErrorValidation(errors)
+    var docs
+    try {
+      const optionsQuery = this.getQueryOptions(optionsAll)
 
-    var docs = await dataSource.findOne(
-      this.config.collectionName,
-      query,
-      optionsQuery
-    )
+      query = query ? query : {}
+      let errors = await this.validateQuery(query, options)
+      if (errors) throw new RepoErrorValidation(errors)
 
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+      docs = await dataSource.findOne(
+        this.config.collectionName,
+        query,
+        optionsQuery
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return this.findPopulate(docs, optionsPropagate)
   }
@@ -523,18 +531,21 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    query = query ? query : {}
-    let errors = await this.validateQuery(query, options)
-    if (errors) throw new RepoErrorValidation(errors)
+    let result
+    try {
+      query = query ? query : {}
+      let errors = await this.validateQuery(query, options)
+      if (errors) throw new RepoErrorValidation(errors)
 
-    const result = await dataSource.count(
-      this.config.collectionName,
-      query,
-      options
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+      result = await dataSource.count(
+        this.config.collectionName,
+        query,
+        options
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -553,15 +564,18 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    query = query ? query : {}
-    const result = await dataSource.groupCount(
-      this.config.collectionName,
-      groupFields,
-      query
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      query = query ? query : {}
+      result = await dataSource.groupCount(
+        this.config.collectionName,
+        groupFields,
+        query
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -580,15 +594,18 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    query = query ? query : {}
-    const result = await dataSource.findGroup(
-      this.config.collectionName,
-      groupFields,
-      query
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      query = query ? query : {}
+      result = await dataSource.findGroup(
+        this.config.collectionName,
+        groupFields,
+        query
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -663,28 +680,31 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    docs = Array.prototype.slice.call(docs) // We use Array.slice() to make a copy of the original args
-    docs = this.stripTransients(docs)
+    let result
+    try {
+      docs = Array.prototype.slice.call(docs) // We use Array.slice() to make a copy of the original args
+      docs = this.stripTransients(docs)
 
-    if (options && options.filterPrivate) {
-      docs = this.schema.filterPrivate(docs, 'write')
+      if (options && options.filterPrivate) {
+        docs = this.schema.filterPrivate(docs, 'write')
+      }
+
+      docs = await this.schema.applyEncrypt(docs)
+
+      var validateResult = await this.schema.validate(docs)
+      if (!validateResult.isValid) {
+        throw new RepoErrorValidation(validateResult.errors)
+      }
+
+      result = await dataSource.insertMany(
+        this.config.collectionName,
+        docs,
+        options
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
     }
-
-    docs = await this.schema.applyEncrypt(docs)
-
-    var validateResult = await this.schema.validate(docs)
-    if (!validateResult.isValid) {
-      throw new RepoErrorValidation(validateResult.errors)
-    }
-
-    const result = await dataSource.insertMany(
-      this.config.collectionName,
-      docs,
-      options
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
 
     return result
   }
@@ -705,16 +725,19 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    doc = await this._insertOnePrepare(doc, options)
+    let result
+    try {
+      doc = await this._insertOnePrepare(doc, options)
 
-    const result = await dataSource.insertOne(
-      this.config.collectionName,
-      doc,
-      options
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+      result = await dataSource.insertOne(
+        this.config.collectionName,
+        doc,
+        options
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -852,16 +875,14 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    const { f, u, o } = await this._updatePrepare(filter, update, options)
-    const result = await dataSource.updateMany(
-      this.config.collectionName,
-      f,
-      u,
-      o
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      const { f, u, o } = await this._updatePrepare(filter, update, options)
+      result = await dataSource.updateMany(this.config.collectionName, f, u, o)
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -878,16 +899,14 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    const { f, u, o } = await this._updatePrepare(filter, update, options)
-    const result = await dataSource.updateOne(
-      this.config.collectionName,
-      f,
-      u,
-      o
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      const { f, u, o } = await this._updatePrepare(filter, update, options)
+      result = await dataSource.updateOne(this.config.collectionName, f, u, o)
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -903,15 +922,13 @@ export class Repo<T> {
 
     const dataSource = await this.getDataSource(options?.context)
 
-    const { f, u, o } = await this._updatePrepare(filter, update, options)
-    const result = await dataSource.upsertMany(
-      this.config.collectionName,
-      f,
-      u,
-      o
-    )
-
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      const { f, u, o } = await this._updatePrepare(filter, update, options)
+      result = await dataSource.upsertMany(this.config.collectionName, f, u, o)
+    } finally {
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -927,15 +944,13 @@ export class Repo<T> {
 
     const dataSource = await this.getDataSource(options?.context)
 
-    const { f, u, o } = await this._updatePrepare(filter, update, options)
-    const result = await dataSource.upsertOne(
-      this.config.collectionName,
-      f,
-      u,
-      o
-    )
-
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      const { f, u, o } = await this._updatePrepare(filter, update, options)
+      result = await dataSource.upsertOne(this.config.collectionName, f, u, o)
+    } finally {
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -974,11 +989,14 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    const { f, o } = await this._deletePrepare(filter, options)
-    const result = await dataSource.deleteMany(this.config.collectionName, f, o)
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      const { f, o } = await this._deletePrepare(filter, options)
+      result = await dataSource.deleteMany(this.config.collectionName, f, o)
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -994,11 +1012,14 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    const { f, o } = await this._deletePrepare(filter, options)
-    const result = await dataSource.deleteOne(this.config.collectionName, f, o)
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+    let result
+    try {
+      const { f, o } = await this._deletePrepare(filter, options)
+      result = await dataSource.deleteOne(this.config.collectionName, f, o)
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
@@ -1057,16 +1078,19 @@ export class Repo<T> {
     // Resolve datasource (with dynamic support)
     const dataSource = await this.getDataSource(options?.context)
 
-    const preparedOps = await this._bulkWritePrepare(ops, options)
+    let result
+    try {
+      const preparedOps = await this._bulkWritePrepare(ops, options)
 
-    const result = await dataSource.bulkWrite(
-      this.config.collectionName,
-      preparedOps,
-      options
-    )
-
-    // Release registry ref acquired via getDataSource(), if any
-    this.releaseDataSource(options?.context)
+      result = await dataSource.bulkWrite(
+        this.config.collectionName,
+        preparedOps,
+        options
+      )
+    } finally {
+      // Release registry ref acquired via getDataSource(), if any
+      this.releaseDataSource(options?.context)
+    }
 
     return result
   }
