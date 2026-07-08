@@ -74,5 +74,24 @@ describe('DataSourceRegistry', () => {
 
       await registry.close()
     })
+
+    it('does not force-close a still-in-use datasource once the wait timeout elapses, and leaves it in the registry', async () => {
+      const registry = new DataSourceRegistry({
+        removeWaitTimeout: 100,
+        logger: console,
+      })
+
+      const dataSource = makeFakeDataSource(() => false) // no active leases
+      await registry.getOrCreate('a', async () => dataSource as any)
+      // Do NOT release - refCount stays 1, simulating an in-flight caller still using it.
+
+      await registry.remove('a', 'test')
+
+      expect(dataSource.close).not.toHaveBeenCalled()
+      expect(registry.has('a')).toBe(true)
+
+      registry.release('a')
+      await registry.close()
+    })
   })
 })

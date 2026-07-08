@@ -35,6 +35,13 @@ export interface DataSourceRegistryConfig {
    * Logger instance for logging events
    */
   logger?: Console
+
+  /**
+   * Maximum time (ms) remove() waits for an in-use datasource's refCount to reach 0 and any
+   * active transaction leases to clear before giving up on closing it this pass.
+   * Default: 30000 (30 seconds)
+   */
+  removeWaitTimeout?: number
 }
 
 /**
@@ -74,6 +81,7 @@ export class DataSourceRegistry {
       idleTimeout: config.idleTimeout ?? 30 * 60 * 1000, // 30 minutes
       healthCheckInterval: config.healthCheckInterval ?? 5 * 60 * 1000, // 5 minutes
       logger: config.logger ?? console,
+      removeWaitTimeout: config.removeWaitTimeout ?? 30000, // 30 seconds
     }
 
     this.startBackgroundTasks()
@@ -167,7 +175,7 @@ export class DataSourceRegistry {
     }
 
     // Wait for active queries and active transaction leases to complete
-    const maxWaitTime = 30000 // 30 seconds
+    const maxWaitTime = this.config.removeWaitTimeout
     const startTime = Date.now()
     while (
       (entry.refCount > 0 || this.hasActiveLeases(entry)) &&
@@ -177,9 +185,15 @@ export class DataSourceRegistry {
     }
 
     if (entry.refCount > 0 || this.hasActiveLeases(entry)) {
-      this.config.logger.warn(
-        `[DataSourceRegistry] Force closing datasource with active references or leases: ${key}`
+      // Never close a pool that's still in use - doing so breaks any in-flight caller with a
+      // "Pool is closed" error. Leave the entry in the registry; it will be reconsidered on a
+      // later eviction/idle-check pass once it actually goes idle. This is a soft, probabilistic
+      // constraint on registry.maxSize/idleTimeout, not a hard guarantee - see
+      // package/api/docs/project-databases.md.
+      this.config.logger.error(
+        `[DataSourceRegistry] Timed out waiting for active references/leases to clear, skipping close to avoid breaking in-flight callers: ${key}`
       )
+      return
     }
 
     // Remove from registry
