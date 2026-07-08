@@ -238,8 +238,14 @@ const dataSource = await registry.getOrCreate('project-123', async () => {
 
 - Returns existing datasource if found in registry
 - Creates new datasource using factory if not found
+- Concurrent calls for the same `key` with no cached entry yet share a single
+  in-flight `factory()` call instead of each creating their own datasource —
+  every caller (the one that triggered the creation and any that joined it) gets
+  the same instance and increments `refCount` exactly once
 - Updates `lastAccessed` timestamp and increments `refCount`
 - Evicts LRU datasource if `maxSize` exceeded before creation
+- If `factory()` rejects, all callers waiting on that creation reject with the
+  same error, and the key is cleared so the next call retries from scratch
 
 **`release(key): void`**
 

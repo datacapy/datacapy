@@ -94,4 +94,63 @@ describe('DataSourceRegistry', () => {
       await registry.close()
     })
   })
+
+  describe('concurrent getOrCreate', () => {
+    it('dedupes concurrent creations for the same key into a single factory call', async () => {
+      const registry = new DataSourceRegistry({ logger: console })
+
+      const dataSource = makeFakeDataSource(() => false)
+      const factory = jest.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        return dataSource as any
+      })
+
+      const [first, second] = await Promise.all([
+        registry.getOrCreate('a', factory),
+        registry.getOrCreate('a', factory),
+      ])
+
+      expect(factory).toHaveBeenCalledTimes(1)
+      expect(first).toBe(dataSource)
+      expect(second).toBe(dataSource)
+
+      // Both callers hold a reference - two releases should be needed to reach refCount 0.
+      registry.release('a')
+      expect(registry.getStats().entries[0].refCount).toBe(1)
+      registry.release('a')
+      expect(registry.getStats().entries[0].refCount).toBe(0)
+
+      await registry.close()
+    })
+
+    it('clears the in-flight entry on failure so a later call retries', async () => {
+      const registry = new DataSourceRegistry({ logger: console })
+
+      const error = new Error('connection failed')
+      const failingFactory = jest.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        throw error
+      })
+
+      await expect(
+        Promise.all([
+          registry.getOrCreate('a', failingFactory),
+          registry.getOrCreate('a', failingFactory),
+        ])
+      ).rejects.toThrow('connection failed')
+
+      expect(failingFactory).toHaveBeenCalledTimes(1)
+      expect(registry.has('a')).toBe(false)
+
+      const dataSource = makeFakeDataSource(() => false)
+      const succeedingFactory = jest.fn(async () => dataSource as any)
+      const result = await registry.getOrCreate('a', succeedingFactory)
+
+      expect(succeedingFactory).toHaveBeenCalledTimes(1)
+      expect(result).toBe(dataSource)
+
+      registry.release('a')
+      await registry.close()
+    })
+  })
 })

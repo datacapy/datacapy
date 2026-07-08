@@ -71,6 +71,7 @@ interface DataSourceEntry {
 export class DataSourceRegistry {
   private config: Required<DataSourceRegistryConfig>
   private registry: Map<string, DataSourceEntry> = new Map()
+  private pending: Map<string, Promise<DataSourceInterface>> = new Map()
   private healthCheckTimer?: NodeJS.Timeout
   private idleTimeoutTimer?: NodeJS.Timeout
   private shutdown: boolean = false
@@ -111,13 +112,28 @@ export class DataSourceRegistry {
       return entry.dataSource
     }
 
-    // Check if we need to evict before creating new
-    if (this.registry.size >= this.config.maxSize) {
-      await this.evictLRU()
+    // Join an in-flight creation for this key rather than racing a second factory() call -
+    // concurrent misses (first access, or right after an eviction) would otherwise each create
+    // their own datasource, with the last registry.set() silently orphaning the others (leaked
+    // connections, corrupted refCount bookkeeping). The check-and-set on `this.pending` below is
+    // synchronous (no await between the miss-check and the set), so no other call can interleave.
+    const pending = this.pending.get(key)
+    if (pending) {
+      const dataSource = await pending
+      const createdEntry = this.registry.get(key)
+      if (createdEntry) {
+        createdEntry.lastAccessed = Date.now()
+        createdEntry.refCount++
+      }
+      return dataSource
     }
 
-    // Create new datasource
-    try {
+    const creationPromise = (async (): Promise<DataSourceInterface> => {
+      // Check if we need to evict before creating new
+      if (this.registry.size >= this.config.maxSize) {
+        await this.evictLRU()
+      }
+
       const dataSource = await factory()
 
       // Store in registry
@@ -131,12 +147,19 @@ export class DataSourceRegistry {
       this.config.logger.log(`[DataSourceRegistry] Created datasource: ${key}`)
 
       return dataSource
+    })()
+    this.pending.set(key, creationPromise)
+
+    try {
+      return await creationPromise
     } catch (error) {
       this.config.logger.error(
         `[DataSourceRegistry] Failed to create datasource: ${key}`,
         error
       )
       throw error
+    } finally {
+      this.pending.delete(key)
     }
   }
 
