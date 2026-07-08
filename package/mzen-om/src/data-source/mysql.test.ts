@@ -93,6 +93,17 @@ describe('DataSourceMysql', () => {
     })
   })
 
+  describe('groupCount', () => {
+    it('should query and transform rows', async () => {
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(true)
+      mockQuery.mockResolvedValue([[{ surveyId: 'survey-1', count: 3 }]])
+
+      const result = await dataSource.groupCount('surveyResponse', ['surveyId'])
+
+      expect(result).toEqual([{ _id: { surveyId: 'survey-1' }, count: 3 }])
+    })
+  })
+
   describe('findOne', () => {
     it('should handle queries with null values (regression test for bug)', async () => {
       // This test reproduces the bug where findOne with stopped: null wasn't matching records
