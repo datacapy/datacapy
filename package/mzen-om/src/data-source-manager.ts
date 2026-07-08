@@ -97,25 +97,8 @@ export class DataSourceManager {
   }
 
   async initDataSource(name: string, dataSource) {
-    const waitMs = 500
-    const maxAttempts = 3
-    let attempt = 0
-    const attemptConnect = async () => {
-      attempt++
-      try {
-        await dataSource.connect()
-        this.addDataSource(name, dataSource)
-      } catch (error) {
-        if (attempt < maxAttempts) {
-          await new Promise((resolve) =>
-            setTimeout(() => resolve(attemptConnect()), waitMs)
-          )
-        } else {
-          throw error
-        }
-      }
-    }
-    await attemptConnect()
+    await DataSourceRegistry.connectWithRetry(dataSource)
+    this.addDataSource(name, dataSource)
 
     return dataSource
   }
@@ -169,7 +152,7 @@ export class DataSourceManager {
         )
       }
       try {
-        const registryKey = `${key}:${entry.lookupKey}`
+        const registryKey = DataSourceRegistry.makeKey(key, entry.lookupKey)
         const dataSource = await this.dataSourceRegistry.getOrCreate(
           registryKey,
           async () => {
@@ -279,7 +262,7 @@ export class DataSourceManager {
       // release immediately rather than leaking a reference for the process lifetime.
       if (entry?.lookupKey) {
         this.dataSourceRegistry?.release(
-          `${repo.config.dataSource}:${entry.lookupKey}`
+          DataSourceRegistry.makeKey(repo.config.dataSource, entry.lookupKey)
         )
       }
     }

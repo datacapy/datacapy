@@ -1,3 +1,4 @@
+// cspell:ignore Evictable
 import { DataSourceInterface } from './interface'
 import {
   DataSourceLookup,
@@ -23,13 +24,6 @@ export interface DataSourceRegistryConfig {
    * Default: 30 minutes
    */
   idleTimeout?: number
-
-  /**
-   * Health check interval in milliseconds.
-   * Periodic connection validation frequency.
-   * Default: 5 minutes
-   */
-  healthCheckInterval?: number
 
   /**
    * Logger instance for logging events
@@ -64,7 +58,6 @@ interface DataSourceEntry {
  * - Connection reuse: Pool and reuse existing datasource connections
  * - LRU eviction: Automatically close least-recently-used datasources when pool reaches limit
  * - Idle timeout: Close datasources after period of inactivity
- * - Health checks: Periodic connection validation
  * - Reference counting: Prevent closing during active queries
  * - Graceful shutdown: Close all connections cleanly
  */
@@ -72,7 +65,6 @@ export class DataSourceRegistry {
   private config: Required<DataSourceRegistryConfig>
   private registry: Map<string, DataSourceEntry> = new Map()
   private pending: Map<string, Promise<DataSourceInterface>> = new Map()
-  private healthCheckTimer?: NodeJS.Timeout
   private idleTimeoutTimer?: NodeJS.Timeout
   private shutdown: boolean = false
 
@@ -80,7 +72,6 @@ export class DataSourceRegistry {
     this.config = {
       maxSize: config.maxSize ?? 50,
       idleTimeout: config.idleTimeout ?? 30 * 60 * 1000, // 30 minutes
-      healthCheckInterval: config.healthCheckInterval ?? 5 * 60 * 1000, // 5 minutes
       logger: config.logger ?? console,
       removeWaitTimeout: config.removeWaitTimeout ?? 30000, // 30 seconds
     }
@@ -106,9 +97,7 @@ export class DataSourceRegistry {
     // Check if datasource exists
     const entry = this.registry.get(key)
     if (entry) {
-      // Update access time and increment reference count
-      entry.lastAccessed = Date.now()
-      entry.refCount++
+      this.touch(entry)
       return entry.dataSource
     }
 
@@ -122,8 +111,7 @@ export class DataSourceRegistry {
       const dataSource = await pending
       const createdEntry = this.registry.get(key)
       if (createdEntry) {
-        createdEntry.lastAccessed = Date.now()
-        createdEntry.refCount++
+        this.touch(createdEntry)
       }
       return dataSource
     }
@@ -245,6 +233,21 @@ export class DataSourceRegistry {
   }
 
   /**
+   * Whether an entry is safe to close: no active references and no active transaction leases.
+   */
+  private isEvictable(entry: DataSourceEntry): boolean {
+    return entry.refCount === 0 && !this.hasActiveLeases(entry)
+  }
+
+  /**
+   * Record access to an entry: bump its last-accessed time and reference count.
+   */
+  private touch(entry: DataSourceEntry): void {
+    entry.lastAccessed = Date.now()
+    entry.refCount++
+  }
+
+  /**
    * Evict the least recently used datasource
    */
   private async evictLRU(): Promise<void> {
@@ -253,11 +256,7 @@ export class DataSourceRegistry {
 
     // Find LRU datasource with no active references and no active transaction leases
     for (const [key, entry] of this.registry.entries()) {
-      if (
-        entry.refCount === 0 &&
-        !this.hasActiveLeases(entry) &&
-        entry.lastAccessed < lruTime
-      ) {
+      if (this.isEvictable(entry) && entry.lastAccessed < lruTime) {
         lruKey = key
         lruTime = entry.lastAccessed
       }
@@ -282,11 +281,7 @@ export class DataSourceRegistry {
 
     for (const [key, entry] of this.registry.entries()) {
       const idleTime = now - entry.lastAccessed
-      if (
-        entry.refCount === 0 &&
-        !this.hasActiveLeases(entry) &&
-        idleTime > this.config.idleTimeout
-      ) {
+      if (this.isEvictable(entry) && idleTime > this.config.idleTimeout) {
         keysToRemove.push(key)
       }
     }
@@ -297,35 +292,7 @@ export class DataSourceRegistry {
   }
 
   /**
-   * Perform health checks on all datasources
-   */
-  private async performHealthChecks(): Promise<void> {
-    const keysToRemove: string[] = []
-
-    for (const [key, entry] of this.registry.entries()) {
-      try {
-        // Simple health check: try to execute a basic query
-        // This is datasource-specific, so we'll use a generic approach
-        // For now, we'll just check if the datasource still exists
-        if (!entry.dataSource) {
-          keysToRemove.push(key)
-        }
-      } catch (error) {
-        this.config.logger.error(
-          `[DataSourceRegistry] Health check failed for: ${key}`,
-          error
-        )
-        keysToRemove.push(key)
-      }
-    }
-
-    for (const key of keysToRemove) {
-      await this.remove(key, 'health-check-failed')
-    }
-  }
-
-  /**
-   * Start background tasks (idle timeout, health checks)
+   * Start background tasks (idle timeout)
    */
   private startBackgroundTasks(): void {
     // Idle timeout check
@@ -342,18 +309,6 @@ export class DataSourceRegistry {
       },
       Math.min(this.config.idleTimeout / 2, 60000)
     ) // Check at half idle timeout, max 1 minute
-
-    // Health check
-    this.healthCheckTimer = setInterval(async () => {
-      try {
-        await this.performHealthChecks()
-      } catch (error) {
-        this.config.logger.error(
-          '[DataSourceRegistry] Error in health check',
-          error
-        )
-      }
-    }, this.config.healthCheckInterval)
   }
 
   /**
@@ -363,10 +318,6 @@ export class DataSourceRegistry {
     if (this.idleTimeoutTimer) {
       clearInterval(this.idleTimeoutTimer)
       this.idleTimeoutTimer = undefined
-    }
-    if (this.healthCheckTimer) {
-      clearInterval(this.healthCheckTimer)
-      this.healthCheckTimer = undefined
     }
   }
 
@@ -457,9 +408,35 @@ export class DataSourceRegistry {
         throw new Error(`Unsupported datasource type: ${details.type}`)
     }
 
-    // Connect with retry logic (similar to ModelManager.initDataSource)
-    const waitMs = 500
-    const maxAttempts = 3
+    return DataSourceRegistry.connectWithRetry(dataSource)
+  }
+
+  /**
+   * Build the registry key used to look up a dynamic datasource entry, given the datasource
+   * name (e.g. 'project') and the context lookup key (e.g. a projectId). Centralised here so
+   * every caller (DataSourceManager, Repo) constructs the same key format.
+   *
+   * @param dsName - Datasource name
+   * @param lookupKey - Context lookup key
+   * @returns Registry key
+   */
+  static makeKey(dsName: string, lookupKey: string): string {
+    return `${dsName}:${lookupKey}`
+  }
+
+  /**
+   * Connect a datasource, retrying on failure with a fixed delay between attempts.
+   *
+   * @param dataSource - DataSource instance to connect
+   * @param opts - Retry options
+   * @returns The connected datasource
+   */
+  static async connectWithRetry(
+    dataSource: DataSourceInterface,
+    opts: { maxAttempts?: number; waitMs?: number } = {}
+  ): Promise<DataSourceInterface> {
+    const maxAttempts = opts.maxAttempts ?? 3
+    const waitMs = opts.waitMs ?? 500
     let attempt = 0
 
     const attemptConnect = async (): Promise<DataSourceInterface> => {

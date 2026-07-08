@@ -1,6 +1,7 @@
 import clone = require('clone')
 import { ModelManagerConfig, Logger } from 'model-manager'
 import { DataSourceContext } from 'data-source/context'
+import { DataSourceRegistry } from 'data-source/registry'
 import {
   DataSourceInterface,
   QuerySelection,
@@ -330,7 +331,7 @@ export class Repo<T> {
     )?.lookupKey
     if (lookupKey) {
       this.modelManager?.dataSourceRegistry?.release(
-        `${this.config.dataSource}:${lookupKey}`
+        DataSourceRegistry.makeKey(this.config.dataSource, lookupKey)
       )
     }
   }

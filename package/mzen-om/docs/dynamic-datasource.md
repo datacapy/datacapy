@@ -15,7 +15,7 @@ resolution. Flows from request → service → repo → datasource.
 based on a lookup key (e.g., projectId, tenantId).
 
 **DataSourceRegistry** - Manages a pool of dynamically-created datasource
-instances with LRU eviction and health checks.
+instances with LRU eviction and idle timeout.
 
 ## API
 
@@ -246,7 +246,6 @@ await repo.find(query, { context })
 - Each resolved datasource maintains its own connection pool
 - Registry uses LRU eviction (default: 50 datasources)
 - Idle timeout: 30 minutes (configurable)
-- Health checks every 5 minutes (configurable)
 
 ### Lookup Caching
 
@@ -280,8 +279,7 @@ class CachedProjectLookup implements DataSourceLookup {
     enable: true,
     registry: {
       maxSize: 50,                    // Max datasources in pool
-      idleTimeout: 30 * 60 * 1000,   // 30 minutes
-      healthCheckInterval: 5 * 60 * 1000  // 5 minutes
+      idleTimeout: 30 * 60 * 1000    // 30 minutes
     }
   }
 }

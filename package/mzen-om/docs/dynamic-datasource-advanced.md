@@ -146,7 +146,6 @@ instances with automatic lifecycle management.
   pool reaches limit
 - **Reference counting** - Prevent closing datasources during active queries
 - **Idle timeout** - Close datasources after period of inactivity
-- **Health checks** - Periodic connection validation
 - **Graceful shutdown** - Close all connections cleanly
 
 ### Configuration
@@ -166,13 +165,6 @@ interface DataSourceRegistryConfig {
    * Default: 30 minutes (1800000ms)
    */
   idleTimeout?: number
-
-  /**
-   * Health check interval in milliseconds.
-   * Periodic connection validation frequency.
-   * Default: 5 minutes (300000ms)
-   */
-  healthCheckInterval?: number
 
   /**
    * Logger instance for logging events
@@ -206,17 +198,12 @@ The registry tracks how many active operations are using each datasource:
 
 ### Background Tasks
 
-The registry runs two background tasks:
+The registry runs one background task:
 
 **Idle Timeout Check** (runs every `idleTimeout / 2`, max 1 minute)
 
 - Finds datasources with `refCount === 0` and `idleTime > idleTimeout`
 - Closes and removes idle datasources
-
-**Health Check** (runs every `healthCheckInterval`)
-
-- Validates datasource connections
-- Removes datasources that fail health checks
 
 ### Key Methods
 

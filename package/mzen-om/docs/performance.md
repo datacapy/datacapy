@@ -2,7 +2,8 @@
 
 ## Database Indexing
 
-Proper indexing is critical for query performance, especially with composite keys.
+Proper indexing is critical for query performance, especially with composite
+keys.
 
 ### Composite Key Indexes
 
@@ -24,19 +25,22 @@ Order indexes with constant fields first, then variant fields:
 ```javascript
 // Optimal for queries where projectId and surveyId are constant
 db.responses.createIndex({
-  projectId: 1,      // Constant field
-  surveyId: 1,       // Constant field
-  participantId: 1   // Variant field
+  projectId: 1, // Constant field
+  surveyId: 1, // Constant field
+  participantId: 1, // Variant field
 })
 ```
 
-This ordering allows MongoDB's query planner to efficiently use the index with the optimized composite queries.
+This ordering allows MongoDB's query planner to efficiently use the index with
+the optimized composite queries.
 
 ### Index Best Practices
 
-1. **Cover all composite key fields** - Include all fields used in composite key matching
+1. **Cover all composite key fields** - Include all fields used in composite key
+   matching
 2. **Order by selectivity** - Most selective (unique) fields first
-3. **Monitor query performance** - Use database explain plans to verify index usage
+3. **Monitor query performance** - Use database explain plans to verify index
+   usage
 4. **Avoid over-indexing** - Each index has storage and write overhead
 
 ## Query Optimization
@@ -47,7 +51,9 @@ Single-key queries use the `$in` operator, which is the most optimal:
 
 ```javascript
 {
-  _id: { $in: ['p1', 'p2', 'p3'] }
+  _id: {
+    $in: ['p1', 'p2', 'p3']
+  }
 }
 ```
 
@@ -55,9 +61,11 @@ Single-key queries use the `$in` operator, which is the most optimal:
 
 ### Composite Key Optimization
 
-The system automatically optimizes composite key queries by detecting constant vs variant fields:
+The system automatically optimizes composite key queries by detecting constant
+vs variant fields:
 
 **Example:**
+
 - 100 documents with same `projectId` and `surveyId`, varying `participantId`
 - **Unoptimized:** 100 `$or` clauses
 - **Optimized:** 2 constant equality conditions + 1 `$in` with 100 values
@@ -104,7 +112,8 @@ Configure connection pools in your datasource config:
 
 ### Dynamic Datasources
 
-The DataSourceRegistry manages connection pools for dynamically-created datasources:
+The DataSourceRegistry manages connection pools for dynamically-created
+datasources:
 
 ```typescript
 {
@@ -112,17 +121,17 @@ The DataSourceRegistry manages connection pools for dynamically-created datasour
     enable: true,
     registry: {
       maxSize: 50,                    // Max datasources in pool
-      idleTimeout: 30 * 60 * 1000,   // 30 minutes
-      healthCheckInterval: 5 * 60 * 1000  // 5 minutes
+      idleTimeout: 30 * 60 * 1000    // 30 minutes
     }
   }
 }
 ```
 
 **Features:**
-- **LRU Eviction** - Least recently used datasources are removed when pool is full
+
+- **LRU Eviction** - Least recently used datasources are removed when pool is
+  full
 - **Idle Timeout** - Connections close after 30 minutes of inactivity
-- **Health Checks** - Verify connections every 5 minutes
 - **Per-Datasource Pools** - Each datasource maintains its own connection pool
 
 ## Lookup Caching
@@ -133,7 +142,7 @@ Implement caching in your DataSourceLookup to avoid repeated database queries:
 class CachedProjectLookup implements DataSourceLookup {
   private cache = new LRUCache<string, DataSourceDetails>({
     max: 100,
-    ttl: 10 * 60 * 1000  // 10 minutes
+    ttl: 10 * 60 * 1000, // 10 minutes
   })
 
   async lookup(dataSourceName: string, lookupKey: string) {
@@ -155,19 +164,21 @@ class CachedProjectLookup implements DataSourceLookup {
       type: 'mongodb',
       config: {
         uri: project.databaseUri,
-        database: project.databaseName
-      }
+        database: project.databaseName,
+      },
     }
   }
 }
 ```
 
 **Benefits:**
+
 - Reduces database queries for lookup configurations
 - Improves response times
 - Reduces load on configuration database
 
 **Considerations:**
+
 - Set appropriate TTL based on configuration change frequency
 - Implement cache invalidation if configurations change
 - Monitor cache hit/miss rates
@@ -192,6 +203,7 @@ console.log('Results:', relatedDocs.length)
 Use database-specific profiling tools:
 
 **MongoDB:**
+
 ```javascript
 // Enable profiling
 db.setProfilingLevel(2)
@@ -201,6 +213,7 @@ db.system.profile.find({ millis: { $gt: 100 } }).sort({ ts: -1 })
 ```
 
 **MySQL:**
+
 ```sql
 -- Enable slow query log
 SET GLOBAL slow_query_log = 'ON';
@@ -230,6 +243,7 @@ When optimizing performance:
 **Symptoms:** Queries with multiple composite keys are slow
 
 **Solutions:**
+
 1. Verify compound index exists on target collection
 2. Check index includes all composite key fields
 3. Verify constant field detection is working (check generated query)
@@ -240,6 +254,7 @@ When optimizing performance:
 **Symptoms:** Connection pool exhaustion errors
 
 **Solutions:**
+
 1. Increase `maxPoolSize` in datasource config
 2. Reduce `maxSize` in registry config (fewer dynamic datasources)
 3. Decrease `idleTimeout` to close idle connections faster
@@ -250,6 +265,7 @@ When optimizing performance:
 **Symptoms:** First query to a project is slow
 
 **Solutions:**
+
 1. Implement lookup caching
 2. Pre-warm frequently accessed datasources
 3. Increase cache TTL for stable configurations
@@ -258,6 +274,7 @@ When optimizing performance:
 ## See Also
 
 - [Composite Keys](composite-keys.md) - Query optimization strategies
-- [MySQL Indexes](mysql-indexes.md) - Generated columns and case-insensitive search indexes
+- [MySQL Indexes](mysql-indexes.md) - Generated columns and case-insensitive
+  search indexes
 - [DataSource Context](dynamic-datasource.md) - Connection pooling and registry
 - [Debugging](debugging.md) - Troubleshooting performance issues
