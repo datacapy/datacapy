@@ -13,7 +13,9 @@ describe('MysqlDdlBuilder', () => {
       const result = ddlBuilder.buildCreateTableQuery('users', '_id', 36)
       const stripped = stripWhitespace(result)
       expect(stripped).toContain('CREATE TABLE `users`')
-      expect(stripped).toContain('gen__id CHAR(36) CHARACTER SET ascii')
+      expect(stripped).toContain(
+        'gen__id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin'
+      )
       expect(stripped).toContain('PRIMARY KEY')
       expect(stripped).toContain('jdoc JSON')
     })

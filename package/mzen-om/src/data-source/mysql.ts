@@ -850,7 +850,7 @@ export class DataSourceMysql implements DataSourceInterface {
         const size = isIdField ? JDOC_ID_SIZE : COLUMN_SIZE_DEFAULT
         const typeHint = isIdField ? 'char' : options?.typeHint
         const collation = isIdField
-          ? 'CHARACTER SET ascii COLLATE ascii_general_ci'
+          ? 'CHARACTER SET ascii COLLATE ascii_bin'
           : ''
 
         const createColumnText = this.sqlBuilder.buildCreateColumnQuery(
