@@ -1,5 +1,9 @@
 # AGENT.md
 
+### Code Style
+
+- This codebase is written in an OOP style. Prefer methods on the relevant class over standalone/module-level helper functions, even for small utilities (e.g. a config-normalising helper used only within one class should be a private method on that class, not a free function above it).
+
 ### Committing Changes
 
 - `pnpm commit` - Interactive guided commit prompt (commitizen). Prompts for type, scope, and summary. `feat` and `fix` get additional prompts for body, breaking changes, and issue references.

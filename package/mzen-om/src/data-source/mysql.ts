@@ -33,6 +33,14 @@ export interface DataSourceMysqlConfig extends PoolOptions {
   ensureDatabase?: boolean
 }
 
+// Config keys that are consumed by DataSourceMysql itself and are not recognised by mysql2's
+// createPool() - must be stripped before the config is passed to createPool, otherwise mysql2
+// logs a deprecation warning now and will throw in a future version. Keep this list in sync with
+// the custom (non-PoolOptions) keys declared on DataSourceMysqlConfig above.
+const CUSTOM_CONFIG_KEYS: Array<keyof DataSourceMysqlConfig> = [
+  'ensureDatabase',
+]
+
 // Dependencies injected into MysqlQueryOperations so the same CRUD method bodies can run
 // against either the shared pool (DataSourceMysql) or a single leased connection
 // (MysqlTransactionLease). tableExists/columnExists/createTable are always delegated back to
@@ -471,7 +479,7 @@ export class DataSourceMysql implements DataSourceInterface {
 
   constructor(config: DataSourceMysqlConfig) {
     this.config = config
-    this.pool = createPool(this.config)
+    this.pool = createPool(this.toPoolOptions(this.config))
     this.sqlBuilder = new MysqlSqlBuilder()
     this.queryOps = new MysqlQueryOperations({
       query: (sql, values) => this.pool.query(sql, values),
@@ -485,7 +493,7 @@ export class DataSourceMysql implements DataSourceInterface {
 
   async connect(): Promise<DataSourceInterface> {
     if (this.config.ensureDatabase && this.config.database) {
-      const { database, ensureDatabase, ...rest } = this.config
+      const { database, ...rest } = this.toPoolOptions(this.config)
       const bootstrapPool = createPool(rest)
       try {
         const conn = await bootstrapPool.getConnection()
@@ -781,7 +789,10 @@ export class DataSourceMysql implements DataSourceInterface {
   // any MysqlTransactionLease (which delegates bulkWrite straight back to this method).
   private getBulkPool(): Pool {
     if (!this.bulkPool) {
-      this.bulkPool = createPool({ ...this.config, multipleStatements: true })
+      this.bulkPool = createPool({
+        ...this.toPoolOptions(this.config),
+        multipleStatements: true,
+      })
     }
     return this.bulkPool
   }
@@ -981,6 +992,16 @@ export class DataSourceMysql implements DataSourceInterface {
 
   private formatNestedColumnName(field: string): string {
     return field.replace(/\./g, '_')
+  }
+
+  // Strips config keys that DataSourceMysql itself consumes (e.g. ensureDatabase) but that
+  // mysql2's createPool() does not recognise - see the CUSTOM_CONFIG_KEYS comment above.
+  private toPoolOptions(config: DataSourceMysqlConfig): PoolOptions {
+    const poolConfig: DataSourceMysqlConfig = { ...config }
+    for (const key of CUSTOM_CONFIG_KEYS) {
+      delete poolConfig[key]
+    }
+    return poolConfig
   }
 }
 
