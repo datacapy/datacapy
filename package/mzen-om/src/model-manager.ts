@@ -310,10 +310,23 @@ export class ModelManager {
   }
 
   async initRepos() {
-    const dataSourceNames = Object.keys(this.dataSources)
-    // Find first non-dynamic datasource as default
+    // Find first non-dynamic datasource as default. Order must come from the
+    // declared config order (this.config.dataSources), not from
+    // Object.keys(this.dataSources) - datasources connect concurrently in
+    // loadDataSources() via Promise.all, so insertion order into
+    // this.dataSources is whichever connect() resolves first, not the order
+    // they were declared in. Falling back to declaration order for a name
+    // that never made it into this.dataSources (e.g. failed to connect) is
+    // fine here too, since the `else if` below re-checks with `!== undefined`.
+    const configuredDataSourceNames = (this.config.dataSources ?? [])
+      .map((ds) => ds.name)
+      .filter((name): name is string => name !== undefined)
+    const dataSourceNames =
+      configuredDataSourceNames.length > 0
+        ? configuredDataSourceNames
+        : Object.keys(this.dataSources)
     const defaultDataSourceName = dataSourceNames.find(
-      (name) => !this.dataSources[name].isDynamic?.()
+      (name) => !this.dataSources[name]?.isDynamic?.()
     )
 
     var promises: Promise<void>[] = []

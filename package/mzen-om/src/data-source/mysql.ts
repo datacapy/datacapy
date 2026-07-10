@@ -925,7 +925,7 @@ export class DataSourceMysql implements DataSourceInterface {
 
   async tableExists(tableName: string): Promise<boolean> {
     if (this.tableExistsCache.has(tableName)) {
-      return true
+      return this.tableExistsCache.get(tableName)!
     }
 
     const query = this.sqlBuilder.buildTableExistsQuery()
