@@ -25,41 +25,18 @@ export function base62Decode(str: string): bigint {
   return num;
 }
 
-export function uuidToBigInt(uuid: string): bigint {
-  const hexStr = uuid.replace(/-/g, "");
-  return BigInt(`0x${hexStr}`);
+export function hexToBigInt(hex: string): bigint {
+  return BigInt(`0x${hex}`);
 }
 
-export function bigIntToUuid(num: bigint): string {
-  const hex = num.toString(16).padStart(32, "0");
-  return (
-    hex.slice(0, 8) +
-    "-" +
-    hex.slice(8, 12) +
-    "-" +
-    hex.slice(12, 16) +
-    "-" +
-    hex.slice(16, 20) +
-    "-" +
-    hex.slice(20, 32)
-  );
+export function bigIntToHex(num: bigint, byteLength: number): string {
+  return num.toString(16).padStart(byteLength * 2, "0");
 }
 
-export function base62EncodeUuid(uuid: string): string {
-  const num = uuidToBigInt(uuid);
-  return base62Encode(num);
+export function base62EncodeBsonId(bsonId: string): string {
+  return base62Encode(hexToBigInt(bsonId));
 }
 
-export function base62DecodeUuid(base62Str: string): string {
-  const num = base62Decode(base62Str);
-  return bigIntToUuid(num);
+export function base62DecodeBsonId(base62Str: string): string {
+  return bigIntToHex(base62Decode(base62Str), 12);
 }
-
-// Example usage
-//const uuid = "123e4567-e89b-12d3-a456-426614174000";
-//const encoded = base62EncodeUuid(uuid);
-//const decoded = base62DecodeUuid(encoded);
-
-//console.log("UUID:", uuid);
-//console.log("Encoded base62:", encoded);
-//console.log("Decoded UUID:", decoded);

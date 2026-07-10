@@ -1,4 +1,4 @@
-import { genUniqueId } from "./uniqueId";
+import { genUniqueId, uniqueIdToBsonId, bsonIdToUniqueId } from "./uniqueId";
 
 describe("genUniqueId", () => {
   it("should generate unique IDs on multiple calls", () => {
@@ -30,5 +30,25 @@ describe("genUniqueId", () => {
     expect(sortedUniqueIds).toEqual(uniqueIds);
 
     jest.useRealTimers();
+  });
+});
+
+describe("uniqueId / bsonId conversion", () => {
+  it("should convert a uniqueId to a 24 character bsonId hex string", () => {
+    const uniqueId = genUniqueId();
+    const bsonId = uniqueIdToBsonId(uniqueId);
+    expect(bsonId).toMatch(/^[0-9a-f]{24}$/i);
+  });
+
+  it("should round-trip uniqueId -> bsonId -> uniqueId", () => {
+    const uniqueId = genUniqueId();
+    const bsonId = uniqueIdToBsonId(uniqueId);
+    expect(bsonIdToUniqueId(bsonId)).toBe(uniqueId);
+  });
+
+  it("should round-trip bsonId -> uniqueId -> bsonId", () => {
+    const bsonId = "507f1f77bcf86cd799439011";
+    const uniqueId = bsonIdToUniqueId(bsonId);
+    expect(uniqueIdToBsonId(uniqueId)).toBe(bsonId);
   });
 });

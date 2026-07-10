@@ -1,10 +1,10 @@
 import {
   base62Encode,
   base62Decode,
-  uuidToBigInt,
-  bigIntToUuid,
-  base62EncodeUuid,
-  base62DecodeUuid,
+  hexToBigInt,
+  bigIntToHex,
+  base62EncodeBsonId,
+  base62DecodeBsonId,
 } from "./base62";
 
 describe("base62 encoding and decoding", () => {
@@ -26,34 +26,40 @@ describe("base62 encoding and decoding", () => {
   });
 });
 
-describe("UUID to BigInt conversion", () => {
-  test("uuidToBigInt should convert UUID to BigInt correctly", () => {
-    const uuid = "123e4567-e89b-12d3-a456-426614174000";
-    const expectedBigInt = BigInt("0x123e4567e89b12d3a456426614174000");
-    const result = uuidToBigInt(uuid);
+describe("hex to BigInt conversion", () => {
+  test("hexToBigInt should convert hex to BigInt correctly", () => {
+    const hex = "507f1f77bcf86cd799439011";
+    const expectedBigInt = BigInt("0x507f1f77bcf86cd799439011");
+    const result = hexToBigInt(hex);
     expect(result).toBe(expectedBigInt);
   });
 
-  test("bigIntToUuid should convert BigInt to UUID correctly", () => {
-    const bigInt = BigInt("0x123e4567e89b12d3a456426614174000");
-    const expectedUuid = "123e4567-e89b-12d3-a456-426614174000";
-    const result = bigIntToUuid(bigInt);
-    expect(result).toBe(expectedUuid);
+  test("bigIntToHex should convert BigInt to hex correctly", () => {
+    const bigInt = BigInt("0x507f1f77bcf86cd799439011");
+    const expectedHex = "507f1f77bcf86cd799439011";
+    const result = bigIntToHex(bigInt, 12);
+    expect(result).toBe(expectedHex);
   });
 
-  test("uuidToBigInt and bigIntToUuid should be inverses", () => {
-    const uuid = "123e4567-e89b-12d3-a456-426614174000";
-    const bigInt = uuidToBigInt(uuid);
-    const convertedUuid = bigIntToUuid(bigInt);
-    expect(convertedUuid).toBe(uuid);
+  test("bigIntToHex should pad to the requested byte length", () => {
+    const bigInt = BigInt("0x1");
+    const result = bigIntToHex(bigInt, 12);
+    expect(result).toBe("000000000000000000000001");
+  });
+
+  test("hexToBigInt and bigIntToHex should be inverses", () => {
+    const hex = "507f1f77bcf86cd799439011";
+    const bigInt = hexToBigInt(hex);
+    const convertedHex = bigIntToHex(bigInt, 12);
+    expect(convertedHex).toBe(hex);
   });
 });
 
-describe("UUID conversion", () => {
-  test("encodeUuid and decodeUuid should be inverses", () => {
-    const uuid = "123e4567-e89b-12d3-a456-426614174000";
-    const encoded = base62EncodeUuid(uuid);
-    const decoded = base62DecodeUuid(encoded);
-    expect(decoded).toBe(uuid);
+describe("BSON id conversion", () => {
+  test("base62EncodeBsonId and base62DecodeBsonId should be inverses", () => {
+    const bsonId = "507f1f77bcf86cd799439011";
+    const encoded = base62EncodeBsonId(bsonId);
+    const decoded = base62DecodeBsonId(encoded);
+    expect(decoded).toBe(bsonId);
   });
 });

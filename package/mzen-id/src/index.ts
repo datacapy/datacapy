@@ -1,6 +1,6 @@
 export * from "./base62";
 export * from "./uniqueId";
-export * from "./uuid";
+export * from "./bsonId";
 
 import genUniqueId from "./uniqueId";
 

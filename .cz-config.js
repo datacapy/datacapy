@@ -17,6 +17,7 @@ module.exports = {
     { name: "schema" },
     { name: "server" },
     { name: "migrate" },
+    { name: "id" },
     { name: "deps" },
     { name: "tooling" },
     { name: "hooks" },
