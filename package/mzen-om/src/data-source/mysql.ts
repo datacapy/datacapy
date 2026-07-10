@@ -857,9 +857,15 @@ export class DataSourceMysql implements DataSourceInterface {
       columns[generatedColumnName] = order
 
       if (!(await this.columnExists(sanitizedTableName, generatedColumnName))) {
-        const isIdField = /id$/i.test(field)
+        const explicitTypeHint =
+          typeof options?.typeHint === 'object'
+            ? options.typeHint[field]
+            : options?.typeHint
+        // Fields ending in "id" default to the internal generated-id sizing, but an
+        // explicit typeHint (e.g. for external ids like a Stripe customer id) opts out
+        const isIdField = !explicitTypeHint && /id$/i.test(field)
         const size = isIdField ? JDOC_ID_SIZE : COLUMN_SIZE_DEFAULT
-        const typeHint = isIdField ? 'char' : options?.typeHint
+        const typeHint = isIdField ? 'char' : explicitTypeHint
         const collation = isIdField
           ? 'CHARACTER SET ascii COLLATE ascii_bin'
           : ''
@@ -870,7 +876,7 @@ export class DataSourceMysql implements DataSourceInterface {
           field,
           size,
           collation,
-          typeof typeHint === 'object' ? typeHint[field] : typeHint,
+          typeHint,
           options?.lowercase
         )
         await this.query(createColumnText)
