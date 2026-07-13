@@ -1159,16 +1159,21 @@ export class Repo<T> {
   // unless the caller passed `includeDeleted` or the query already targets `deleted` explicitly.
   // Merged as a sibling top-level key (implicit AND, matching both DataSourceMock and Mongo
   // query semantics) rather than wrapped in `$and` - DataSourceMock has no `$and` support.
-  // Uses `$in: [null]` rather than `$exists: false` - `deleted` is schema-defaulted to null so
-  // it is never actually absent, and `$in` (unlike `$exists`) matches both missing and
-  // explicit-null values against DataSourceMock as well as real Mongo-style datasources.
+  // Matches documents where `deleted` is explicitly null OR the field is entirely absent
+  // (pre-existing documents from before soft delete was enabled on this repo). `$in: [null]`
+  // looks equivalent but is NOT: the MySQL JSON datasource translates it to a JSON_TYPE check
+  // that only matches an explicit null, not a missing key, which silently excludes every
+  // pre-existing row the first time softDelete is turned on for a repo with existing data.
   private applySoftDeleteFilter(
     query: QuerySelection,
     options?: RepoQueryOptions
   ): QuerySelection {
     if (!this.config.softDelete || options?.includeDeleted) return query
     if (Object.prototype.hasOwnProperty.call(query, 'deleted')) return query
-    return { ...query, deleted: { $in: [null] } }
+    return {
+      ...query,
+      $or: [{ deleted: null }, { deleted: { $exists: false } }],
+    }
   }
 
   async validateQuery(query?: QuerySelection, options?: RepoQueryOptions) {

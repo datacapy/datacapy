@@ -126,20 +126,37 @@ export class DataSourceMock implements DataSourceInterface {
   private matchesQuery(doc: any, query?: QuerySelection): boolean {
     if (!query) return true
 
-    // Handle $or operator
-    if (query['$or']) {
-      const orConditions = query['$or']
-      return orConditions.some((condition) => this.matchesQuery(doc, condition))
-    }
-
-    // Handle regular field matching
     for (var key in query) {
       if (!query.hasOwnProperty(key)) continue
-      if (key === '$or') continue // Already handled above
+
+      // $or is combined via implicit AND with any sibling keys, matching Mongo/MySQL semantics
+      if (key === '$or') {
+        const orConditions = query[key]
+        const orMatches = orConditions.some((condition) =>
+          this.matchesQuery(doc, condition)
+        )
+        if (!orMatches) return false
+        continue
+      }
 
       var queryValue = query[key]
-      if (Array.isArray(queryValue['$in'])) {
+      if (
+        queryValue &&
+        typeof queryValue === 'object' &&
+        Array.isArray(queryValue['$in'])
+      ) {
         if (queryValue['$in'].indexOf(doc[key]) === -1) {
+          return false
+        }
+      } else if (
+        queryValue &&
+        typeof queryValue === 'object' &&
+        '$exists' in queryValue
+      ) {
+        const exists =
+          Object.prototype.hasOwnProperty.call(doc, key) &&
+          doc[key] !== undefined
+        if (exists !== !!queryValue['$exists']) {
           return false
         }
       } else {

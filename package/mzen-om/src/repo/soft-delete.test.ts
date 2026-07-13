@@ -90,8 +90,21 @@ describe('soft delete', () => {
 
     expect(spy.mock.calls[0][1]).toEqual({
       name: 'Kevin',
-      deleted: { $in: [null] },
+      $or: [{ deleted: null }, { deleted: { $exists: false } }],
     })
+  })
+
+  it('includes docs where the deleted field is entirely missing (pre-existing docs)', async () => {
+    const { repo } = buildSoftDeleteRepo({
+      user: [
+        { _id: '1', name: 'Kevin' } as User, // no `deleted` key at all
+        { _id: '2', name: 'Tom', deleted: new Date() },
+      ],
+    })
+
+    const docs = await repo.find()
+    expect(docs.length).toBe(1)
+    expect(docs[0].name).toBe('Kevin')
   })
 
   it('deleteOne() performs a soft delete (update) instead of removing the document', async () => {
