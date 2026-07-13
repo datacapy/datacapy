@@ -41,6 +41,10 @@ export interface RepoConfig {
   schemas?: { [key: string]: Schema } | Array<Schema>
   repos?: { [key: string]: Repo<any> } | Array<Repo<any>>
   services?: { [key: string]: Service } | Array<Service>
+  // When enabled, standard find/count/update calls exclude documents with a non null `deleted`
+  // field, and deleteOne/deleteMany/bulk delete ops become an update setting `deleted` to now
+  // rather than removing the document. The repo's schema must declare `deleted: sb.date().default(null)`.
+  softDelete?: boolean
 }
 
 export class Repo<T> {
@@ -82,6 +86,9 @@ export class Repo<T> {
       ? this.config.constructors
       : {}
     this.config.services = this.config.services ? this.config.services : {}
+    this.config.softDelete = this.config.softDelete
+      ? this.config.softDelete
+      : false
 
     this.logger = console
 
@@ -486,6 +493,7 @@ export class Repo<T> {
       const optionsQuery = this.getQueryOptions(optionsAll)
 
       query = query ? query : {}
+      query = this.applySoftDeleteFilter(query, options)
       let errors = await this.validateQuery(query, options)
       if (errors) throw new RepoErrorValidation(errors)
 
@@ -523,6 +531,7 @@ export class Repo<T> {
       const optionsQuery = this.getQueryOptions(optionsAll)
 
       query = query ? query : {}
+      query = this.applySoftDeleteFilter(query, options)
       let errors = await this.validateQuery(query, options)
       if (errors) throw new RepoErrorValidation(errors)
 
@@ -555,6 +564,7 @@ export class Repo<T> {
     let result
     try {
       query = query ? query : {}
+      query = this.applySoftDeleteFilter(query, options)
       let errors = await this.validateQuery(query, options)
       if (errors) throw new RepoErrorValidation(errors)
 
@@ -588,6 +598,7 @@ export class Repo<T> {
     let result
     try {
       query = query ? query : {}
+      query = this.applySoftDeleteFilter(query, options)
       result = await dataSource.groupCount(
         this.config.collectionName,
         groupFields,
@@ -618,6 +629,7 @@ export class Repo<T> {
     let result
     try {
       query = query ? query : {}
+      query = this.applySoftDeleteFilter(query, options)
       result = await dataSource.findGroup(
         this.config.collectionName,
         groupFields,
@@ -803,6 +815,7 @@ export class Repo<T> {
     var validateResultQuery = {}
     var validateResultUpdate = {}
     filter = filter ? filter : {}
+    filter = this.applySoftDeleteFilter(filter, options)
 
     if (update && update.$set) {
       update.$set = this.stripTransients(
@@ -1003,6 +1016,10 @@ export class Repo<T> {
     filter: QuerySelection,
     options?
   ): Promise<QueryPersistResult> {
+    if (this.config.softDelete && !options?.forceHardDelete) {
+      return this.updateMany(filter, { $set: { deleted: new Date() } }, options)
+    }
+
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
@@ -1026,6 +1043,10 @@ export class Repo<T> {
     filter: QuerySelection,
     options?
   ): Promise<QueryPersistResult> {
+    if (this.config.softDelete && !options?.forceHardDelete) {
+      return this.updateOne(filter, { $set: { deleted: new Date() } }, options)
+    }
+
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
@@ -1076,11 +1097,29 @@ export class Repo<T> {
         )
         preparedOps.push({ updateMany: { filter: f, update: u } })
       } else if ('deleteOne' in op) {
-        const { f } = await this._deletePrepare(op.deleteOne.filter, options)
-        preparedOps.push({ deleteOne: { filter: f } })
+        if (this.config.softDelete && !options?.forceHardDelete) {
+          const { f, u } = await this._updatePrepare(
+            op.deleteOne.filter,
+            { $set: { deleted: new Date() } },
+            options
+          )
+          preparedOps.push({ updateOne: { filter: f, update: u } })
+        } else {
+          const { f } = await this._deletePrepare(op.deleteOne.filter, options)
+          preparedOps.push({ deleteOne: { filter: f } })
+        }
       } else if ('deleteMany' in op) {
-        const { f } = await this._deletePrepare(op.deleteMany.filter, options)
-        preparedOps.push({ deleteMany: { filter: f } })
+        if (this.config.softDelete && !options?.forceHardDelete) {
+          const { f, u } = await this._updatePrepare(
+            op.deleteMany.filter,
+            { $set: { deleted: new Date() } },
+            options
+          )
+          preparedOps.push({ updateMany: { filter: f, update: u } })
+        } else {
+          const { f } = await this._deletePrepare(op.deleteMany.filter, options)
+          preparedOps.push({ deleteMany: { filter: f } })
+        }
       } else {
         throw new Error('Unsupported bulkWrite operation')
       }
@@ -1114,6 +1153,22 @@ export class Repo<T> {
     }
 
     return result
+  }
+
+  // Merges a `deleted` exclusion condition into `query` when this repo has soft delete enabled,
+  // unless the caller passed `includeDeleted` or the query already targets `deleted` explicitly.
+  // Merged as a sibling top-level key (implicit AND, matching both DataSourceMock and Mongo
+  // query semantics) rather than wrapped in `$and` - DataSourceMock has no `$and` support.
+  // Uses `$in: [null]` rather than `$exists: false` - `deleted` is schema-defaulted to null so
+  // it is never actually absent, and `$in` (unlike `$exists`) matches both missing and
+  // explicit-null values against DataSourceMock as well as real Mongo-style datasources.
+  private applySoftDeleteFilter(
+    query: QuerySelection,
+    options?: RepoQueryOptions
+  ): QuerySelection {
+    if (!this.config.softDelete || options?.includeDeleted) return query
+    if (Object.prototype.hasOwnProperty.call(query, 'deleted')) return query
+    return { ...query, deleted: { $in: [null] } }
   }
 
   async validateQuery(query?: QuerySelection, options?: RepoQueryOptions) {
