@@ -56,9 +56,11 @@ describe('DataSourceManager', () => {
       .entries.find((e) => e.key === registryKey)
     expect(entry?.refCount).toBe(1)
 
-    // Every repo should have been wired to the resolved datasource.
+    // repo.dataSource must stay unset - wiring it directly (the pre-a33a58a9
+    // behaviour) let one project's resolved datasource leak onto the shared
+    // repo singleton and silently misroute every other project's queries.
     Object.values(repos).forEach((repo) => {
-      expect(repo.dataSource).toBeDefined()
+      expect(repo.dataSource).toBeUndefined()
     })
   })
 
