@@ -47,7 +47,11 @@ export class SchemaUtility {
   }
 
   static canValidateQueryOperator(fieldName) {
-    var cantValidateOperators = ['$near']
+    // These operators take an operand that is not itself a value of the
+    // field's type (e.g. $exists takes a boolean regardless of whether the
+    // field is a Date, string, etc.) so their operand should not be
+    // type-validated against the field's schema.
+    var cantValidateOperators = ['$near', '$exists']
     return cantValidateOperators.indexOf(fieldName) == -1
   }
 }
