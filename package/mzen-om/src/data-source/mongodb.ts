@@ -316,6 +316,25 @@ export class DataSourceMongodb implements DataSourceInterface {
     return { count: response.deletedCount }
   }
 
+  async getNextValue(
+    collectionName: string,
+    counterName: string,
+    options?: any,
+    session?: ClientSession
+  ): Promise<number> {
+    options = options ? options : {}
+    const collection = this.getCollection(collectionName, session)
+    const result = await collection.findOneAndUpdate(
+      { _id: counterName },
+      { $inc: { seq: 1 } },
+      { ...options, upsert: true, returnDocument: 'after' }
+    )
+    // Driver v6 returns the document directly by default; the `.value` fallback guards against
+    // an `includeResultMetadata: true` caller-supplied option wrapping the response in
+    // { value: <doc> }, matching how bulkWrite (above) normalizes driver-shape differences.
+    return (result?.value ?? result).seq
+  }
+
   async bulkWrite(
     collectionName: string,
     ops: BulkWriteOp[],
@@ -634,6 +653,20 @@ class MongodbTransactionLease implements DataSourceInterface {
       collectionName,
       filter,
       update,
+      options,
+      this.session
+    )
+  }
+
+  async getNextValue(
+    collectionName: string,
+    counterName: string,
+    options?: any
+  ): Promise<number> {
+    this.assertOpen()
+    return this.parent.getNextValue(
+      collectionName,
+      counterName,
       options,
       this.session
     )

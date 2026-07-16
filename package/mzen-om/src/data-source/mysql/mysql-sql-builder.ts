@@ -94,6 +94,32 @@ export class MysqlSqlBuilder {
     return { sql, values }
   }
 
+  // Builds the two statements needed for an atomic increment-and-read counter. Both must run on
+  // the same connection: LAST_INSERT_ID() with no argument returns the session-local value set
+  // by the immediately preceding statement, which is what lets the second statement read back
+  // this caller's own increment even while other connections are concurrently incrementing the
+  // same row. See DataSourceMysql.getNextValue / MysqlTransactionLease.getNextValue for the
+  // connection-lifetime handling this depends on.
+  buildGetNextValueQuery(
+    tableName: string,
+    counterName: string
+  ): { upsertSql: string; upsertValues: any[]; selectSql: string } {
+    const sanitizedTableName = sanitizeIdentifier(tableName, true)
+    const sanitizedColumnName = sanitizeIdentifier(
+      JSON_DOCUMENT_COLUMN_NAME,
+      true
+    )
+    const upsertSql = stripWhitespace(`
+      INSERT INTO ${sanitizedTableName} (${sanitizedColumnName})
+      VALUES (JSON_OBJECT('_id', ?, 'seq', LAST_INSERT_ID(1)))
+      ON DUPLICATE KEY UPDATE
+        ${sanitizedColumnName} = JSON_SET(${sanitizedColumnName}, '$.seq',
+          LAST_INSERT_ID(CAST(JSON_EXTRACT(${sanitizedColumnName}, '$.seq') AS UNSIGNED) + 1))
+    `)
+    const selectSql = 'SELECT LAST_INSERT_ID() AS seq'
+    return { upsertSql, upsertValues: [counterName], selectSql }
+  }
+
   async buildUpdateQuery(
     tableName: string,
     querySelect: QuerySelection,

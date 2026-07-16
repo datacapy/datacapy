@@ -860,6 +860,87 @@ describe('DataSourceMysql', () => {
     })
   })
 
+  describe('getNextValue', () => {
+    let mockConnQuery: jest.Mock
+    let mockConn: {
+      query: jest.Mock
+      release: jest.Mock
+    }
+    let mockGetConnection: jest.Mock
+
+    beforeEach(() => {
+      mockConnQuery = jest.fn()
+      mockConn = {
+        query: mockConnQuery,
+        release: jest.fn(),
+      }
+      mockGetConnection = jest.fn().mockResolvedValue(mockConn)
+
+      const createPool = mysqlCreatePool as jest.Mock
+      createPool.mockReturnValue({
+        query: mockQuery,
+        getConnection: mockGetConnection,
+      })
+
+      // The outer beforeEach constructs `dataSource` against a pool mock with no
+      // getConnection() - reconstruct against the pool mock configured above.
+      dataSource = new DataSourceMysql({
+        host: 'localhost',
+        user: 'test',
+        password: 'test',
+        database: 'testdb',
+      })
+
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+    })
+
+    it('runs the atomic upsert and reads back LAST_INSERT_ID on the same leased connection, then releases it', async () => {
+      mockConnQuery
+        .mockResolvedValueOnce([{ affectedRows: 1 }, []])
+        .mockResolvedValueOnce([[{ seq: 5 }], []])
+
+      const result = await dataSource.getNextValue('counters', 'invoice')
+
+      expect(result).toBe(5)
+      expect(mockGetConnection).toHaveBeenCalledTimes(1)
+      expect(mockConnQuery).toHaveBeenCalledTimes(2)
+      const [upsertSql, upsertValues] = mockConnQuery.mock.calls[0]
+      expect((upsertSql as string).toUpperCase()).toContain(
+        'ON DUPLICATE KEY UPDATE'
+      )
+      expect(upsertSql).toContain('LAST_INSERT_ID')
+      expect(upsertSql).toContain('JSON_SET')
+      expect(upsertSql).toContain('JSON_EXTRACT')
+      expect(upsertValues).toEqual(['invoice'])
+      const [selectSql] = mockConnQuery.mock.calls[1]
+      expect(selectSql).toContain('LAST_INSERT_ID')
+      expect(mockConn.release).toHaveBeenCalledTimes(1)
+    })
+
+    it('creates the table first if it does not exist yet', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(false)
+      const createTableSpy = jest
+        .spyOn(dataSource, 'createTable' as any)
+        .mockResolvedValue(undefined)
+      mockConnQuery
+        .mockResolvedValueOnce([{ affectedRows: 1 }, []])
+        .mockResolvedValueOnce([[{ seq: 1 }], []])
+
+      await dataSource.getNextValue('counters', 'invoice')
+
+      expect(createTableSpy).toHaveBeenCalledWith('counters')
+    })
+
+    it('releases the connection even if a query fails', async () => {
+      mockConnQuery.mockRejectedValueOnce(new Error('boom'))
+
+      await expect(
+        dataSource.getNextValue('counters', 'invoice')
+      ).rejects.toThrow('boom')
+      expect(mockConn.release).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('transaction leases', () => {
     type MockConn = {
       query: jest.Mock
@@ -978,6 +1059,21 @@ describe('DataSourceMysql', () => {
       await expect(lease.transactionRollback()).rejects.toThrow(
         /already been committed or rolled back/
       )
+    })
+
+    it("getNextValue on a lease runs both statements on the lease's own connection, without acquiring a new one from the pool", async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      const lease = await dataSource.transactionStart()
+      mockGetConnection.mockClear()
+      mockConn.query
+        .mockResolvedValueOnce([{ affectedRows: 1 }, []])
+        .mockResolvedValueOnce([[{ seq: 7 }], []])
+
+      const result = await lease.getNextValue('counters', 'invoice')
+
+      expect(result).toBe(7)
+      expect(mockGetConnection).not.toHaveBeenCalled()
+      expect(mockConn.release).not.toHaveBeenCalled()
     })
   })
 })

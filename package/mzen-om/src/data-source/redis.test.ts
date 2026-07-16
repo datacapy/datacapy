@@ -55,6 +55,12 @@ class FakeRedisStore {
 
   expire = jest.fn((_key: string, _ttl: number) => Promise.resolve(1))
 
+  incr = jest.fn((key: string) => {
+    const next = Number(this.data.get(key) ?? 0) + 1
+    this.data.set(key, String(next))
+    return Promise.resolve(next)
+  })
+
   scan = jest.fn(
     (
       _cursor: string,
@@ -162,6 +168,11 @@ class FakeRedisStore {
       Promise.resolve(Array.from(this.sets.get(key) ?? []))
     )
     this.expire.mockImplementation((_key, _ttl) => Promise.resolve(1))
+    this.incr.mockImplementation((key) => {
+      const next = Number(this.data.get(key) ?? 0) + 1
+      this.data.set(key, String(next))
+      return Promise.resolve(next)
+    })
     this.scan.mockImplementation(
       (_cursor, _matchKw, pattern, _countKw, _count) => {
         const regex = new RegExp(
@@ -1146,6 +1157,30 @@ describe('DataSourceRedis', () => {
     })
   })
 
+  // ── getNextValue() ───────────────────────────────────────────────────────────
+
+  describe('getNextValue()', () => {
+    it('returns sequential values on repeated calls for the same counter', async () => {
+      const ds = await buildConnectedDataSource()
+      expect(await ds.getNextValue('counters', 'invoice')).toBe(1)
+      expect(await ds.getNextValue('counters', 'invoice')).toBe(2)
+      expect(await ds.getNextValue('counters', 'invoice')).toBe(3)
+    })
+
+    it('stores the counter as a raw integer under collectionName:doc:counterName', async () => {
+      const ds = await buildConnectedDataSource()
+      await ds.getNextValue('counters', 'invoice')
+      expect(store.incr).toHaveBeenCalledWith('counters:doc:invoice')
+    })
+
+    it('keeps separate counter names independent', async () => {
+      const ds = await buildConnectedDataSource()
+      expect(await ds.getNextValue('counters', 'invoice')).toBe(1)
+      expect(await ds.getNextValue('counters', 'creditNote')).toBe(1)
+      expect(await ds.getNextValue('counters', 'invoice')).toBe(2)
+    })
+  })
+
   // ── upsertMany() ─────────────────────────────────────────────────────────────
 
   describe('upsertMany()', () => {
@@ -1434,6 +1469,15 @@ describe('DataSourceRedis', () => {
       const ds = await buildConnectedDataSource()
       await expect(ds.transactionRollback()).rejects.toThrow(
         'transactionStart() returns a dedicated'
+      )
+    })
+
+    it('getNextValue on a lease throws - INCR results are not available until the pipeline commits', async () => {
+      const ds = await buildConnectedDataSource()
+      const lease = await ds.transactionStart()
+
+      await expect(lease.getNextValue('counters', 'invoice')).rejects.toThrow(
+        'getNextValue is not supported within a Redis transaction lease'
       )
     })
   })

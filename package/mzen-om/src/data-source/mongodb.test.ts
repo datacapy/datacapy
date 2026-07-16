@@ -19,6 +19,7 @@ function createMockCollection() {
       .mockReturnValue({ toArray: jest.fn().mockResolvedValue([]) }),
     drop: jest.fn().mockResolvedValue(undefined),
     createIndex: jest.fn().mockResolvedValue(undefined),
+    findOneAndUpdate: jest.fn().mockResolvedValue({ _id: 'invoice', seq: 3 }),
   }
   // withSession returns the same collection instance (spy-able call args prove which
   // session, if any, a given operation was scoped to)
@@ -94,6 +95,34 @@ describe('DataSourceMongodb', () => {
         insertedIds: { 0: 'abc' },
         upsertedIds: {},
       })
+    })
+  })
+
+  describe('getNextValue', () => {
+    it('calls findOneAndUpdate with $inc/upsert/returnDocument and returns the new seq', async () => {
+      const { dataSource, collection } = buildDataSource()
+
+      const result = await dataSource.getNextValue('counters', 'invoice')
+
+      expect(collection.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: 'invoice' },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: 'after' }
+      )
+      expect(result).toBe(3)
+    })
+
+    it('unwraps a { value } result for callers passing includeResultMetadata: true', async () => {
+      const { dataSource, collection } = buildDataSource()
+      collection.findOneAndUpdate.mockResolvedValue({
+        value: { _id: 'invoice', seq: 9 },
+      })
+
+      const result = await dataSource.getNextValue('counters', 'invoice', {
+        includeResultMetadata: true,
+      })
+
+      expect(result).toBe(9)
     })
   })
 
@@ -209,6 +238,18 @@ describe('DataSourceMongodb', () => {
       await dataSource.insertOne('things', { _id: 't1' })
 
       expect(collection.withSession).not.toHaveBeenCalled()
+    })
+
+    it('getNextValue invoked through the lease scopes the call to the lease session', async () => {
+      const { dataSource, startSession, collection } = buildDataSource()
+      const session = createMockSession()
+      startSession.mockResolvedValueOnce(session)
+
+      const lease = await dataSource.transactionStart()
+      const result = await lease.getNextValue('counters', 'invoice')
+
+      expect(collection.withSession).toHaveBeenCalledWith(session)
+      expect(result).toBe(3)
     })
 
     it('a DDL method invoked through the lease does not call withSession - DDL always escapes the transaction', async () => {

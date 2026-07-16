@@ -24,6 +24,7 @@ export class DataSourceMock implements DataSourceInterface {
   dataInsert: any[]
   dataUpdate: any[]
   queryCount: number
+  private counters: Map<string, number> = new Map()
 
   constructor(data) {
     this.data = data
@@ -240,6 +241,18 @@ export class DataSourceMock implements DataSourceInterface {
     this.queryCount++
     this.dataUpdate = this.dataUpdate.concat(queryUpdate)
     return { count: 1, upsertedCount: 0 }
+  }
+
+  async getNextValue(
+    collectionName: string,
+    counterName: string,
+    _options?: any
+  ): Promise<number> {
+    this.queryCount++
+    const key = `${collectionName}:${counterName}`
+    const next = (this.counters.get(key) ?? 0) + 1
+    this.counters.set(key, next)
+    return next
   }
 
   async deleteMany(

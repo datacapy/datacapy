@@ -956,6 +956,33 @@ export class DataSourceMysql implements DataSourceInterface {
     this.tableExistsCache.set(tableName, true)
   }
 
+  // Atomic increment-and-read counter. Routed around MysqlQueryOperations/deps.query because it
+  // needs both statements to run on the same connection: LAST_INSERT_ID() with no argument is
+  // session-scoped, so it must be read back on the exact connection that staged it via the
+  // INSERT...ON DUPLICATE KEY UPDATE below. A dedicated connection is leased from the pool for
+  // the duration of the two statements and released immediately after - this is a short-lived
+  // connection lease, not a transaction, so it never conflicts with an already-open
+  // MysqlTransactionLease (which implements the same two statements against its own connection).
+  async getNextValue(
+    tableName: string,
+    counterName: string,
+    options?: any
+  ): Promise<number> {
+    if (!(await this.tableExists(tableName))) {
+      await this.createTable(tableName)
+    }
+    const { upsertSql, upsertValues, selectSql } =
+      this.sqlBuilder.buildGetNextValueQuery(tableName, counterName)
+    const connection = await this.pool.getConnection()
+    try {
+      await connection.query(upsertSql, upsertValues)
+      const [rows] = await connection.query(selectSql)
+      return (rows as { seq: number }[])[0].seq
+    } finally {
+      connection.release()
+    }
+  }
+
   // Acquires a dedicated PoolConnection and returns an exclusive MysqlTransactionLease bound to
   // it. Unlike the previous single shared `this.connection` field, concurrent callers each get
   // their own independent lease - no "Transaction already in progress" guard is needed here
@@ -1020,6 +1047,7 @@ export class DataSourceMysql implements DataSourceInterface {
 class MysqlTransactionLease implements DataSourceInterface {
   private closed = false
   private queryOps: MysqlQueryOperations
+  private sqlBuilder = new MysqlSqlBuilder()
 
   constructor(
     private parent: DataSourceMysql,
@@ -1148,6 +1176,25 @@ class MysqlTransactionLease implements DataSourceInterface {
   ): Promise<QueryPersistResultUpsert> {
     this.assertOpen()
     return this.queryOps.upsertOne(tableName, filter, update, options)
+  }
+
+  // Runs both statements on this lease's own already-dedicated connection - no separate
+  // getConnection()/release() needed since the lease owns the connection for its whole
+  // lifetime. See DataSourceMysql.getNextValue for why both statements must share a connection.
+  async getNextValue(
+    tableName: string,
+    counterName: string,
+    options?: any
+  ): Promise<number> {
+    this.assertOpen()
+    if (!(await this.parent.tableExists(tableName))) {
+      await this.parent.createTable(tableName)
+    }
+    const { upsertSql, upsertValues, selectSql } =
+      this.sqlBuilder.buildGetNextValueQuery(tableName, counterName)
+    await this.connection.query(upsertSql, upsertValues)
+    const [rows] = await this.connection.query(selectSql)
+    return (rows as { seq: number }[])[0].seq
   }
 
   async deleteMany(

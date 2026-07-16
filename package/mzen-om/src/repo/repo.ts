@@ -989,6 +989,27 @@ export class Repo<T> {
     return result
   }
 
+  async getNextValue(counterName: string, options?): Promise<number> {
+    if (this.config.collectionName == undefined) {
+      throw new Error('No collection name provided')
+    }
+
+    const dataSource = await this.getDataSource(options?.context)
+
+    let result
+    try {
+      result = await dataSource.getNextValue(
+        this.config.collectionName,
+        counterName,
+        options
+      )
+    } finally {
+      this.releaseDataSource(options?.context)
+    }
+
+    return result
+  }
+
   async _deletePrepare(
     filter: QuerySelection,
     options?

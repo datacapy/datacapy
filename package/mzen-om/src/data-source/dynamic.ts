@@ -181,6 +181,16 @@ export class DataSourceDynamic implements DataSourceInterface {
     )
   }
 
+  async getNextValue(
+    collectionName: string,
+    counterName: string,
+    options?: any
+  ): Promise<number> {
+    throw new Error(
+      `Cannot query dynamic datasource directly. Use repo methods with DataSourceContext (e.g., repo.getNextValue(counterName, options, context))`
+    )
+  }
+
   async deleteMany(
     collectionName: string,
     query: QuerySelection,

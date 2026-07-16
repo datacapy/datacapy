@@ -210,6 +210,18 @@ export interface DataSourceInterface {
     options?: any
   ): Promise<QueryPersistResultUpsert>
 
+  // cspell:ignore upserting
+  // Atomically increments and returns a named sequence counter, upserting it into existence
+  // at 1 if it does not yet exist. Not composable from find/upsert/updateOne - no combination
+  // of those primitives is race-free across concurrent callers without a native atomic
+  // increment-and-read (Mongo's findOneAndUpdate, MySQL's INSERT...ON DUPLICATE KEY UPDATE +
+  // LAST_INSERT_ID() trick, Redis's INCR). Each adaptor implements this natively.
+  getNextValue(
+    collectionName: string,
+    counterName: string,
+    options?: any
+  ): Promise<number>
+
   deleteMany(
     collectionName: string,
     query: QuerySelection,
