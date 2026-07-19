@@ -1,12 +1,18 @@
 import * as path from "path";
 import { MigrationManager } from "./migration-manager";
-import { ModelManager, DataSourceInterface } from "mzen-om";
+import {
+  ModelManager,
+  DataSourceInterface,
+  BulkWriteOp,
+  QueryPersistResultBulk,
+} from "mzen-om";
 import { MigrationConfig } from "../interface/migration-config";
 
 // Enhanced test datasource for migration testing
 class TestDataSource implements DataSourceInterface {
   private collections: Map<string, any[]> = new Map();
   private indexes: Map<string, Set<string>> = new Map();
+  private counters: Map<string, number> = new Map();
 
   async connect(): Promise<DataSourceInterface> {
     return this;
@@ -134,6 +140,58 @@ class TestDataSource implements DataSourceInterface {
     return { count: initialLength - remaining.length };
   }
 
+  async incrementCounter(
+    collectionName: string,
+    counterName: string,
+  ): Promise<number> {
+    const key = `${collectionName}:${counterName}`;
+    const next = (this.counters.get(key) ?? 0) + 1;
+    this.counters.set(key, next);
+    return next;
+  }
+
+  async bulkWrite(
+    collectionName: string,
+    ops: BulkWriteOp[],
+  ): Promise<QueryPersistResultBulk> {
+    const result: QueryPersistResultBulk = {
+      insertedCount: 0,
+      matchedCount: 0,
+      modifiedCount: 0,
+      deletedCount: 0,
+      upsertedCount: 0,
+      insertedIds: {},
+      upsertedIds: {},
+    };
+
+    for (let index = 0; index < ops.length; index++) {
+      const op = ops[index];
+      if ("insertOne" in op) {
+        const r = await this.insertOne(collectionName, op.insertOne.document);
+        result.insertedCount += r.count;
+        result.insertedIds[index] = r.id;
+      } else if ("updateOne" in op) {
+        const r = await this.updateOne();
+        result.matchedCount += r.count;
+        result.modifiedCount += r.count;
+      } else if ("updateMany" in op) {
+        const r = await this.updateMany();
+        result.matchedCount += r.count;
+        result.modifiedCount += r.count;
+      } else if ("deleteOne" in op) {
+        const r = await this.deleteOne(collectionName, op.deleteOne.filter);
+        result.deletedCount += r.count;
+      } else if ("deleteMany" in op) {
+        const r = await this.deleteMany(collectionName, op.deleteMany.filter);
+        result.deletedCount += r.count;
+      } else {
+        throw new Error("Unsupported bulkWrite operation");
+      }
+    }
+
+    return result;
+  }
+
   async drop(collectionName: string): Promise<void> {
     this.collections.delete(collectionName);
   }
@@ -154,19 +212,9 @@ class TestDataSource implements DataSourceInterface {
 
   async dropIndexes(): Promise<void> {}
 
-  async bulkWrite(): Promise<any> {
-    return {
-      insertedCount: 0,
-      matchedCount: 0,
-      modifiedCount: 0,
-      deletedCount: 0,
-      upsertedCount: 0,
-      insertedIds: {},
-      upsertedIds: {},
-    };
+  async transactionStart(): Promise<DataSourceInterface> {
+    return this;
   }
-
-  async transactionStart(): Promise<void> {}
 
   async transactionCommit(): Promise<void> {}
 

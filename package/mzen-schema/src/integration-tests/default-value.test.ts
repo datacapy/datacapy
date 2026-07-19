@@ -1,5 +1,6 @@
 import Schema from 'schema'
 import ObjectID from 'bson-objectid'
+import { uniqueIdToBsonId } from 'mzen-id'
 
 describe('default value', () => {
   it('should inject default value when undefined', async () => {
@@ -139,7 +140,8 @@ describe('default value', () => {
     })
 
     await schema.validate(data)
-    expect(data._id?.length).toBe(21)
+    expect(data._id).toBeDefined()
+    expect(uniqueIdToBsonId(data._id as string)).toMatch(/^[0-9a-f]{24}$/i)
   })
 
   it('should not inject unique string if _id already has a value', async () => {
