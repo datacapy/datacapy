@@ -243,7 +243,7 @@ export class DataSourceMock implements DataSourceInterface {
     return { count: 1, upsertedCount: 0 }
   }
 
-  async getNextValue(
+  async incrementCounter(
     collectionName: string,
     counterName: string,
     _options?: any

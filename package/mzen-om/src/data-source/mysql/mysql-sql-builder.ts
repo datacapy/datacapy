@@ -98,9 +98,9 @@ export class MysqlSqlBuilder {
   // the same connection: LAST_INSERT_ID() with no argument returns the session-local value set
   // by the immediately preceding statement, which is what lets the second statement read back
   // this caller's own increment even while other connections are concurrently incrementing the
-  // same row. See DataSourceMysql.getNextValue / MysqlTransactionLease.getNextValue for the
-  // connection-lifetime handling this depends on.
-  buildGetNextValueQuery(
+  // same row. See DataSourceMysql.incrementCounter / MysqlTransactionLease.incrementCounter for
+  // the connection-lifetime handling this depends on.
+  buildIncrementCounterQuery(
     tableName: string,
     counterName: string
   ): { upsertSql: string; upsertValues: any[]; selectSql: string } {

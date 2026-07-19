@@ -316,7 +316,7 @@ export class DataSourceMongodb implements DataSourceInterface {
     return { count: response.deletedCount }
   }
 
-  async getNextValue(
+  async incrementCounter(
     collectionName: string,
     counterName: string,
     options?: any,
@@ -658,13 +658,13 @@ class MongodbTransactionLease implements DataSourceInterface {
     )
   }
 
-  async getNextValue(
+  async incrementCounter(
     collectionName: string,
     counterName: string,
     options?: any
   ): Promise<number> {
     this.assertOpen()
-    return this.parent.getNextValue(
+    return this.parent.incrementCounter(
       collectionName,
       counterName,
       options,

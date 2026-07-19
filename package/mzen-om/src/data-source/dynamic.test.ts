@@ -1,13 +1,13 @@
 import DataSourceDynamic from 'data-source/dynamic'
 
 describe('DataSourceDynamic', () => {
-  describe('getNextValue', () => {
+  describe('incrementCounter', () => {
     it('rejects, directing callers to use repo methods with DataSourceContext', async () => {
       const dataSource = new DataSourceDynamic()
       await expect(
-        dataSource.getNextValue('counters', 'invoice')
+        dataSource.incrementCounter('counters', 'invoice')
       ).rejects.toThrow(
-        'Cannot query dynamic datasource directly. Use repo methods with DataSourceContext (e.g., repo.getNextValue(counterName, options, context))'
+        'Cannot query dynamic datasource directly. Use repo methods with DataSourceContext (e.g., repo.incrementCounter(counterName, options, context))'
       )
     })
   })

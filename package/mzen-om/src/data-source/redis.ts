@@ -620,8 +620,8 @@ export class DataSourceRedis implements DataSourceInterface {
   // not as JSON documents like every other collection here - INCR requires that. Always runs
   // against the real client (this.client), never a pipeline: INCR queued on a pipeline returns a
   // ChainableCommander, not the incremented value, so it cannot honour this method's contract of
-  // returning the new number - see RedisTransactionLease.getNextValue.
-  async getNextValue(
+  // returning the new number - see RedisTransactionLease.incrementCounter.
+  async incrementCounter(
     collectionName: string,
     counterName: string,
     _options?: any
@@ -1073,19 +1073,19 @@ class RedisTransactionLease implements DataSourceInterface {
     )
   }
 
-  // Cannot delegate to parent.getNextValue(..., this.pipeline): INCR queued on a pipeline
+  // Cannot delegate to parent.incrementCounter(..., this.pipeline): INCR queued on a pipeline
   // returns a ChainableCommander, not the incremented value, until the pipeline commits - so
   // there is no way to honour this method's "return the new number" contract from inside an
-  // open transaction lease. Call getNextValue outside the transaction instead.
-  async getNextValue(
+  // open transaction lease. Call incrementCounter outside the transaction instead.
+  async incrementCounter(
     collectionName: string,
     counterName: string,
     options?: any
   ): Promise<number> {
     this.assertOpen()
     throw new Error(
-      'getNextValue is not supported within a Redis transaction lease - INCR results are not ' +
-        'available until the pipeline commits. Call getNextValue outside the transaction.'
+      'incrementCounter is not supported within a Redis transaction lease - INCR results are ' +
+        'not available until the pipeline commits. Call incrementCounter outside the transaction.'
     )
   }
 

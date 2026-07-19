@@ -1157,27 +1157,27 @@ describe('DataSourceRedis', () => {
     })
   })
 
-  // ── getNextValue() ───────────────────────────────────────────────────────────
+  // ── incrementCounter() ───────────────────────────────────────────────────────────
 
-  describe('getNextValue()', () => {
+  describe('incrementCounter()', () => {
     it('returns sequential values on repeated calls for the same counter', async () => {
       const ds = await buildConnectedDataSource()
-      expect(await ds.getNextValue('counters', 'invoice')).toBe(1)
-      expect(await ds.getNextValue('counters', 'invoice')).toBe(2)
-      expect(await ds.getNextValue('counters', 'invoice')).toBe(3)
+      expect(await ds.incrementCounter('counters', 'invoice')).toBe(1)
+      expect(await ds.incrementCounter('counters', 'invoice')).toBe(2)
+      expect(await ds.incrementCounter('counters', 'invoice')).toBe(3)
     })
 
     it('stores the counter as a raw integer under collectionName:doc:counterName', async () => {
       const ds = await buildConnectedDataSource()
-      await ds.getNextValue('counters', 'invoice')
+      await ds.incrementCounter('counters', 'invoice')
       expect(store.incr).toHaveBeenCalledWith('counters:doc:invoice')
     })
 
     it('keeps separate counter names independent', async () => {
       const ds = await buildConnectedDataSource()
-      expect(await ds.getNextValue('counters', 'invoice')).toBe(1)
-      expect(await ds.getNextValue('counters', 'creditNote')).toBe(1)
-      expect(await ds.getNextValue('counters', 'invoice')).toBe(2)
+      expect(await ds.incrementCounter('counters', 'invoice')).toBe(1)
+      expect(await ds.incrementCounter('counters', 'creditNote')).toBe(1)
+      expect(await ds.incrementCounter('counters', 'invoice')).toBe(2)
     })
   })
 
@@ -1472,12 +1472,14 @@ describe('DataSourceRedis', () => {
       )
     })
 
-    it('getNextValue on a lease throws - INCR results are not available until the pipeline commits', async () => {
+    it('incrementCounter on a lease throws - INCR results are not available until the pipeline commits', async () => {
       const ds = await buildConnectedDataSource()
       const lease = await ds.transactionStart()
 
-      await expect(lease.getNextValue('counters', 'invoice')).rejects.toThrow(
-        'getNextValue is not supported within a Redis transaction lease'
+      await expect(
+        lease.incrementCounter('counters', 'invoice')
+      ).rejects.toThrow(
+        'incrementCounter is not supported within a Redis transaction lease'
       )
     })
   })

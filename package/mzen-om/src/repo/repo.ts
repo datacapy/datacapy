@@ -989,7 +989,7 @@ export class Repo<T> {
     return result
   }
 
-  async getNextValue(counterName: string, options?): Promise<number> {
+  async incrementCounter(counterName: string, options?): Promise<number> {
     if (this.config.collectionName == undefined) {
       throw new Error('No collection name provided')
     }
@@ -998,7 +998,7 @@ export class Repo<T> {
 
     let result
     try {
-      result = await dataSource.getNextValue(
+      result = await dataSource.incrementCounter(
         this.config.collectionName,
         counterName,
         options

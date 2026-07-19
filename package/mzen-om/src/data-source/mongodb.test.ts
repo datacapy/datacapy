@@ -98,11 +98,11 @@ describe('DataSourceMongodb', () => {
     })
   })
 
-  describe('getNextValue', () => {
+  describe('incrementCounter', () => {
     it('calls findOneAndUpdate with $inc/upsert/returnDocument and returns the new seq', async () => {
       const { dataSource, collection } = buildDataSource()
 
-      const result = await dataSource.getNextValue('counters', 'invoice')
+      const result = await dataSource.incrementCounter('counters', 'invoice')
 
       expect(collection.findOneAndUpdate).toHaveBeenCalledWith(
         { _id: 'invoice' },
@@ -118,7 +118,7 @@ describe('DataSourceMongodb', () => {
         value: { _id: 'invoice', seq: 9 },
       })
 
-      const result = await dataSource.getNextValue('counters', 'invoice', {
+      const result = await dataSource.incrementCounter('counters', 'invoice', {
         includeResultMetadata: true,
       })
 
@@ -240,13 +240,13 @@ describe('DataSourceMongodb', () => {
       expect(collection.withSession).not.toHaveBeenCalled()
     })
 
-    it('getNextValue invoked through the lease scopes the call to the lease session', async () => {
+    it('incrementCounter invoked through the lease scopes the call to the lease session', async () => {
       const { dataSource, startSession, collection } = buildDataSource()
       const session = createMockSession()
       startSession.mockResolvedValueOnce(session)
 
       const lease = await dataSource.transactionStart()
-      const result = await lease.getNextValue('counters', 'invoice')
+      const result = await lease.incrementCounter('counters', 'invoice')
 
       expect(collection.withSession).toHaveBeenCalledWith(session)
       expect(result).toBe(3)

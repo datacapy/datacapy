@@ -129,22 +129,24 @@ describe('Data Source', () => {
       })
     })
 
-    describe('getNextValue()', () => {
+    describe('incrementCounter()', () => {
       it('returns sequential values on repeated calls for the same counter', async () => {
         const datasource = new DataSourceMock(data)
-        expect(await datasource.getNextValue('counters', 'invoice')).toBe(1)
-        expect(await datasource.getNextValue('counters', 'invoice')).toBe(2)
-        expect(await datasource.getNextValue('counters', 'invoice')).toBe(3)
+        expect(await datasource.incrementCounter('counters', 'invoice')).toBe(1)
+        expect(await datasource.incrementCounter('counters', 'invoice')).toBe(2)
+        expect(await datasource.incrementCounter('counters', 'invoice')).toBe(3)
       })
 
       it('keeps separate collectionName/counterName keys independent', async () => {
         const datasource = new DataSourceMock(data)
-        expect(await datasource.getNextValue('counters', 'invoice')).toBe(1)
-        expect(await datasource.getNextValue('counters', 'creditNote')).toBe(1)
-        expect(await datasource.getNextValue('otherCounters', 'invoice')).toBe(
-          1
-        )
-        expect(await datasource.getNextValue('counters', 'invoice')).toBe(2)
+        expect(await datasource.incrementCounter('counters', 'invoice')).toBe(1)
+        expect(
+          await datasource.incrementCounter('counters', 'creditNote')
+        ).toBe(1)
+        expect(
+          await datasource.incrementCounter('otherCounters', 'invoice')
+        ).toBe(1)
+        expect(await datasource.incrementCounter('counters', 'invoice')).toBe(2)
       })
     })
   })

@@ -963,7 +963,7 @@ export class DataSourceMysql implements DataSourceInterface {
   // the duration of the two statements and released immediately after - this is a short-lived
   // connection lease, not a transaction, so it never conflicts with an already-open
   // MysqlTransactionLease (which implements the same two statements against its own connection).
-  async getNextValue(
+  async incrementCounter(
     tableName: string,
     counterName: string,
     options?: any
@@ -972,7 +972,7 @@ export class DataSourceMysql implements DataSourceInterface {
       await this.createTable(tableName)
     }
     const { upsertSql, upsertValues, selectSql } =
-      this.sqlBuilder.buildGetNextValueQuery(tableName, counterName)
+      this.sqlBuilder.buildIncrementCounterQuery(tableName, counterName)
     const connection = await this.pool.getConnection()
     try {
       await connection.query(upsertSql, upsertValues)
@@ -1180,8 +1180,8 @@ class MysqlTransactionLease implements DataSourceInterface {
 
   // Runs both statements on this lease's own already-dedicated connection - no separate
   // getConnection()/release() needed since the lease owns the connection for its whole
-  // lifetime. See DataSourceMysql.getNextValue for why both statements must share a connection.
-  async getNextValue(
+  // lifetime. See DataSourceMysql.incrementCounter for why both statements must share a connection.
+  async incrementCounter(
     tableName: string,
     counterName: string,
     options?: any
@@ -1191,7 +1191,7 @@ class MysqlTransactionLease implements DataSourceInterface {
       await this.parent.createTable(tableName)
     }
     const { upsertSql, upsertValues, selectSql } =
-      this.sqlBuilder.buildGetNextValueQuery(tableName, counterName)
+      this.sqlBuilder.buildIncrementCounterQuery(tableName, counterName)
     await this.connection.query(upsertSql, upsertValues)
     const [rows] = await this.connection.query(selectSql)
     return (rows as { seq: number }[])[0].seq

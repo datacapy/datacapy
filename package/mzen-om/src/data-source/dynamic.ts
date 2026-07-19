@@ -181,13 +181,13 @@ export class DataSourceDynamic implements DataSourceInterface {
     )
   }
 
-  async getNextValue(
+  async incrementCounter(
     collectionName: string,
     counterName: string,
     options?: any
   ): Promise<number> {
     throw new Error(
-      `Cannot query dynamic datasource directly. Use repo methods with DataSourceContext (e.g., repo.getNextValue(counterName, options, context))`
+      `Cannot query dynamic datasource directly. Use repo methods with DataSourceContext (e.g., repo.incrementCounter(counterName, options, context))`
     )
   }
 

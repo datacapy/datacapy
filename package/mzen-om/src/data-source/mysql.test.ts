@@ -860,7 +860,7 @@ describe('DataSourceMysql', () => {
     })
   })
 
-  describe('getNextValue', () => {
+  describe('incrementCounter', () => {
     let mockConnQuery: jest.Mock
     let mockConn: {
       query: jest.Mock
@@ -899,7 +899,7 @@ describe('DataSourceMysql', () => {
         .mockResolvedValueOnce([{ affectedRows: 1 }, []])
         .mockResolvedValueOnce([[{ seq: 5 }], []])
 
-      const result = await dataSource.getNextValue('counters', 'invoice')
+      const result = await dataSource.incrementCounter('counters', 'invoice')
 
       expect(result).toBe(5)
       expect(mockGetConnection).toHaveBeenCalledTimes(1)
@@ -926,7 +926,7 @@ describe('DataSourceMysql', () => {
         .mockResolvedValueOnce([{ affectedRows: 1 }, []])
         .mockResolvedValueOnce([[{ seq: 1 }], []])
 
-      await dataSource.getNextValue('counters', 'invoice')
+      await dataSource.incrementCounter('counters', 'invoice')
 
       expect(createTableSpy).toHaveBeenCalledWith('counters')
     })
@@ -935,7 +935,7 @@ describe('DataSourceMysql', () => {
       mockConnQuery.mockRejectedValueOnce(new Error('boom'))
 
       await expect(
-        dataSource.getNextValue('counters', 'invoice')
+        dataSource.incrementCounter('counters', 'invoice')
       ).rejects.toThrow('boom')
       expect(mockConn.release).toHaveBeenCalledTimes(1)
     })
@@ -1061,7 +1061,7 @@ describe('DataSourceMysql', () => {
       )
     })
 
-    it("getNextValue on a lease runs both statements on the lease's own connection, without acquiring a new one from the pool", async () => {
+    it("incrementCounter on a lease runs both statements on the lease's own connection, without acquiring a new one from the pool", async () => {
       jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
       const lease = await dataSource.transactionStart()
       mockGetConnection.mockClear()
@@ -1069,7 +1069,7 @@ describe('DataSourceMysql', () => {
         .mockResolvedValueOnce([{ affectedRows: 1 }, []])
         .mockResolvedValueOnce([[{ seq: 7 }], []])
 
-      const result = await lease.getNextValue('counters', 'invoice')
+      const result = await lease.incrementCounter('counters', 'invoice')
 
       expect(result).toBe(7)
       expect(mockGetConnection).not.toHaveBeenCalled()

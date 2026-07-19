@@ -216,7 +216,7 @@ export interface DataSourceInterface {
   // of those primitives is race-free across concurrent callers without a native atomic
   // increment-and-read (Mongo's findOneAndUpdate, MySQL's INSERT...ON DUPLICATE KEY UPDATE +
   // LAST_INSERT_ID() trick, Redis's INCR). Each adaptor implements this natively.
-  getNextValue(
+  incrementCounter(
     collectionName: string,
     counterName: string,
     options?: any
