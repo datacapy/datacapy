@@ -3,6 +3,7 @@ import {
   LoggerInterface,
   RequestInterface,
   ResponseInterface,
+  ErrorTranslator,
 } from './interfaces'
 import { ServerApiConfigEndpointResponse } from '../api-config'
 
@@ -12,6 +13,7 @@ import { ServerApiConfigEndpointResponse } from '../api-config'
  */
 export class ErrorHandler {
   private logger: LoggerInterface
+  private errorTranslator?: ErrorTranslator
 
   constructor(logger: LoggerInterface) {
     this.logger = logger
@@ -22,6 +24,15 @@ export class ErrorHandler {
    */
   setLogger(logger: LoggerInterface): void {
     this.logger = logger
+  }
+
+  /**
+   * Set an optional error translator, invoked on every thrown error before
+   * it is matched/serialized. Framework-agnostic - no i18n dependency here,
+   * just a typed callback the host application supplies.
+   */
+  setErrorTranslator(errorTranslator: ErrorTranslator): void {
+    this.errorTranslator = errorTranslator
   }
 
   /**
@@ -36,6 +47,10 @@ export class ErrorHandler {
     responseErrorConfig: any
   ): Promise<void> {
     try {
+      if (this.errorTranslator) {
+        err = await this.errorTranslator(err, req)
+      }
+
       const error = err instanceof Error ? err : null
       let errorHandled = false
 

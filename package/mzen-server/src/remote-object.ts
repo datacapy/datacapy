@@ -10,6 +10,7 @@ import {
   LoggerInterface,
   ModelManagerInterface,
   AclInterface,
+  ErrorTranslator,
 } from './remote-object/interfaces'
 import { RequestDataParser } from './remote-object/request-data-parser'
 import {
@@ -97,6 +98,13 @@ export class ServerRemoteObject {
 
   setLogger(logger: LoggerInterface): this {
     this.errorHandler.setLogger(logger)
+    return this
+  }
+
+  setErrorTranslator(errorTranslator?: ErrorTranslator): this {
+    if (errorTranslator) {
+      this.errorHandler.setErrorTranslator(errorTranslator)
+    }
     return this
   }
 

@@ -14,6 +14,7 @@ import {
   ApiConfigRegistry,
   EndpointRegistrar,
 } from './server/index'
+import { ErrorTranslator } from './remote-object/interfaces'
 
 /**
  * Server - Orchestrates server components following SOLID principles
@@ -101,6 +102,11 @@ export class Server {
     this.expressAppManager['logger'] = logger
     this.httpServerManager['logger'] = logger
     this.endpointRegistrar['logger'] = logger
+    return this
+  }
+
+  setErrorTranslator(errorTranslator: ErrorTranslator): this {
+    this.endpointRegistrar['errorTranslator'] = errorTranslator
     return this
   }
 

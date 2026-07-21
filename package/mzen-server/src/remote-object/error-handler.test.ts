@@ -354,4 +354,88 @@ describe('ErrorHandler', () => {
       expect(mockRes.type).not.toHaveBeenCalled()
     })
   })
+
+  describe('setErrorTranslator()', () => {
+    it('passes errors through unchanged when no translator is set', async () => {
+      class CustomError extends Error {
+        constructor(message: string) {
+          super(message)
+          this.name = 'CustomError'
+        }
+      }
+
+      const err = new CustomError('Custom error')
+      const responseErrorConfig = {
+        CustomError: { http: { code: 400 } },
+      }
+
+      await errorHandler.handleEndpointError(
+        err,
+        mockRes,
+        mockReq,
+        'test-endpoint',
+        'testMethod',
+        responseErrorConfig
+      )
+
+      expect(mockRes.json).toHaveBeenCalledWith(err)
+    })
+
+    it('mutates the error via the translator before serialization', async () => {
+      class CustomError extends Error {
+        userMessage?: string
+        constructor(message: string) {
+          super(message)
+          this.name = 'CustomError'
+        }
+      }
+
+      const err = new CustomError('Custom error')
+      const responseErrorConfig = {
+        CustomError: { http: { code: 400 } },
+      }
+
+      errorHandler.setErrorTranslator(async (translatedErr) => {
+        translatedErr.userMessage = 'Translated message'
+        return translatedErr
+      })
+
+      await errorHandler.handleEndpointError(
+        err,
+        mockRes,
+        mockReq,
+        'test-endpoint',
+        'testMethod',
+        responseErrorConfig
+      )
+
+      expect(mockRes.status).toHaveBeenCalledWith(400)
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({ userMessage: 'Translated message' })
+      )
+    })
+
+    it('falls back to the fatal error handler if the translator itself throws', async () => {
+      const err = new Error('Original error')
+      const responseErrorConfig = {}
+
+      errorHandler.setErrorTranslator(async () => {
+        throw new Error('Translator failure')
+      })
+
+      await errorHandler.handleEndpointError(
+        err,
+        mockRes,
+        mockReq,
+        'test-endpoint',
+        'testMethod',
+        responseErrorConfig
+      )
+
+      expect(mockRes.status).toHaveBeenCalledWith(500)
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'FatalServerError' })
+      )
+    })
+  })
 })

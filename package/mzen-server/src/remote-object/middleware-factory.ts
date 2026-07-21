@@ -96,6 +96,11 @@ export class MiddlewareFactory {
           aclContext,
           remoteObjectWrapper
         )
+        // Expose on the raw request too, so error handling (which only has
+        // access to `req`, not `requestData`) can resolve identity - e.g. to
+        // translate error messages into the requester's language - even if
+        // the endpoint call below throws.
+        req.aclContext = aclContext
         const isPermitted = await this.remoteObjectContext.acl.isPermitted(
           endpointName,
           aclContext

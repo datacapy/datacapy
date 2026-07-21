@@ -11,6 +11,7 @@ import {
 import { ServerApiConfig } from '../api-config'
 import ServerAcl from '../acl'
 import { ServerRemoteObject } from '../remote-object'
+import { ErrorTranslator } from '../remote-object/interfaces'
 
 /**
  * Converts camelCase to kebab-case
@@ -30,6 +31,7 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
   private aclRegistry: AclRegistryInterface
   private apiConfigRegistry: ApiConfigRegistryInterface
   private logger: LoggerInterface
+  private errorTranslator?: ErrorTranslator
 
   constructor(
     configurationManager: ConfigurationManagerInterface,
@@ -121,6 +123,7 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
       modelManager
     )
     remote.setLogger(this.logger)
+    remote.setErrorTranslator(this.errorTranslator)
     remote.setAcl(acl)
     remote.initRouter(this.expressAppManager.getRouter())
   }

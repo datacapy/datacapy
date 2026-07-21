@@ -14,6 +14,11 @@ export interface ModelManagerInterface {
   repos: { [key: string]: any }
 }
 
+export type ErrorTranslator = (
+  err: any,
+  req: RequestInterface
+) => any | Promise<any>
+
 export interface RequestInterface {
   url: string
   originalUrl: string
