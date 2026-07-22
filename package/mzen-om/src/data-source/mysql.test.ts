@@ -359,6 +359,21 @@ describe('DataSourceMysql', () => {
     })
   })
 
+  describe('updateOne', () => {
+    it('should skip the query and return { count: 0 } when $set is an empty object', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+
+      const result = await dataSource.updateOne(
+        'users',
+        { _id: 'u1' },
+        { $set: {} }
+      )
+      expect(result).toEqual({ count: 0 })
+      expect(mockQuery).not.toHaveBeenCalled()
+    })
+  })
+
   describe('upsertOne', () => {
     it('should return { count: 1, upsertedCount: 0 } when the UPDATE matches a row', async () => {
       jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
@@ -527,6 +542,27 @@ describe('DataSourceMysql', () => {
         currency: 'EUR',
       })
     })
+
+    it('should skip the UPDATE query entirely and go straight to INSERT when the update is $setOnInsert-only', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery.mockResolvedValueOnce([{ affectedRows: 1, insertId: 3 }])
+
+      const result = await dataSource.upsertOne(
+        'fxRates',
+        { currency: 'JPY' },
+        { $setOnInsert: { _id: 'jpy1', baseCurrency: 'GBP', currency: 'JPY' } }
+      )
+      expect(mockQuery).toHaveBeenCalledTimes(1)
+      expect((mockQuery.mock.calls[0][0] as string).toUpperCase()).toContain(
+        'INSERT'
+      )
+      expect(result).toEqual({
+        count: 1,
+        upsertedCount: 1,
+        upsertedId: 3,
+      })
+    })
   })
 
   describe('upsertMany', () => {
@@ -645,6 +681,27 @@ describe('DataSourceMysql', () => {
       expect((updateCall[0] as string).toLowerCase()).not.toContain(
         'setoninsert' // cspell:ignore setoninsert
       )
+    })
+
+    it('should skip the UPDATE query entirely and go straight to INSERT when the update is $setOnInsert-only', async () => {
+      jest.spyOn(dataSource, 'tableExists' as any).mockResolvedValue(true)
+      jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(false)
+      mockQuery.mockResolvedValueOnce([{ affectedRows: 1, insertId: 4 }])
+
+      const result = await dataSource.upsertMany(
+        'fxRates',
+        { currency: 'CHF' },
+        { $setOnInsert: { _id: 'chf1', baseCurrency: 'GBP', currency: 'CHF' } }
+      )
+      expect(mockQuery).toHaveBeenCalledTimes(1)
+      expect((mockQuery.mock.calls[0][0] as string).toUpperCase()).toContain(
+        'INSERT'
+      )
+      expect(result).toEqual({
+        count: 1,
+        upsertedCount: 1,
+        upsertedId: 4,
+      })
     })
   })
 

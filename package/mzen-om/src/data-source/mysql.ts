@@ -225,6 +225,9 @@ class MysqlQueryOperations {
       queryUpdate,
       true
     )
+    if (!sql) {
+      return { count: 0 }
+    }
     const [result]: [{ affectedRows: number }] = await this.deps.query(
       sql,
       values
@@ -250,12 +253,11 @@ class MysqlQueryOperations {
       filter,
       update
     )
-    const [result]: [{ affectedRows: number }] = await this.deps.query(
-      sql,
-      values
-    )
-    if (result.affectedRows > 0) {
-      return { count: result.affectedRows, upsertedCount: 0 }
+    const affectedRows = sql
+      ? (await this.deps.query(sql, values))[0].affectedRows
+      : 0
+    if (affectedRows > 0) {
+      return { count: affectedRows, upsertedCount: 0 }
     }
     const insertDoc = {
       ...this._extractEqualityFields(filter),
@@ -289,12 +291,11 @@ class MysqlQueryOperations {
       update,
       true
     )
-    const [result]: [{ affectedRows: number }] = await this.deps.query(
-      sql,
-      values
-    )
-    if (result.affectedRows > 0) {
-      return { count: result.affectedRows, upsertedCount: 0 }
+    const affectedRows = sql
+      ? (await this.deps.query(sql, values))[0].affectedRows
+      : 0
+    if (affectedRows > 0) {
+      return { count: affectedRows, upsertedCount: 0 }
     }
     const insertDoc = {
       ...this._extractEqualityFields(filter),

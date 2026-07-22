@@ -134,6 +134,13 @@ export class MysqlSqlBuilder {
     const { clause: setClause, params: setParams } =
       this.buildSetClause(queryUpdate)
 
+    if (!setClause) {
+      // No operator in queryUpdate produced a SET assignment (e.g. an empty $set, or an
+      // update consisting only of $setOnInsert, which is insert-only and never applies here).
+      // Emitting UPDATE ... SET WHERE ... would be invalid SQL, so signal "nothing to do".
+      return { sql: '', values: [] }
+    }
+
     const sql = stripWhitespace(`
       UPDATE ${sanitizedTableName}
       SET ${setClause}

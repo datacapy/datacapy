@@ -51,6 +51,28 @@ describe('MysqlSqlBuilder - UPDATE operations', () => {
       expect(result.sql).toContain('UPDATE `users`')
       expect(result.sql).toContain('SET')
     })
+
+    it('should return empty sql (not an invalid "SET WHERE" query) when $set is an empty object', async () => {
+      const result = await sqlBuilder.buildUpdateQuery(
+        'users',
+        { id: 'test123' },
+        { $set: {} }
+      )
+
+      expect(result.sql).toBe('')
+      expect(result.values).toEqual([])
+    })
+
+    it('should return empty sql when the update consists only of $setOnInsert (insert-only, never applies to an UPDATE)', async () => {
+      const result = await sqlBuilder.buildUpdateQuery(
+        'fxRates',
+        { currency: 'EUR' },
+        { $setOnInsert: { _id: 'abc', baseCurrency: 'GBP' } }
+      )
+
+      expect(result.sql).toBe('')
+      expect(result.values).toEqual([])
+    })
   })
 
   describe('buildSetClause', () => {
