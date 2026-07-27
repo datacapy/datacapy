@@ -41,9 +41,9 @@ export interface RepoConfig {
   schemas?: { [key: string]: Schema } | Array<Schema>
   repos?: { [key: string]: Repo<any> } | Array<Repo<any>>
   services?: { [key: string]: Service } | Array<Service>
-  // When enabled, standard find/count/update calls exclude documents with a non null `deleted`
-  // field, and deleteOne/deleteMany/bulk delete ops become an update setting `deleted` to now
-  // rather than removing the document. The repo's schema must declare `deleted: sb.date().default(null)`.
+  // When enabled, standard find/count/update calls exclude documents with a non null `deletedAt`
+  // field, and deleteOne/deleteMany/bulk delete ops become an update setting `deletedAt` to now
+  // rather than removing the document. The repo's schema must declare `deletedAt: sb.date().default(null)`.
   softDelete?: boolean
 }
 
@@ -1038,7 +1038,11 @@ export class Repo<T> {
     options?
   ): Promise<QueryPersistResult> {
     if (this.config.softDelete && !options?.forceHardDelete) {
-      return this.updateMany(filter, { $set: { deleted: new Date() } }, options)
+      return this.updateMany(
+        filter,
+        { $set: { deletedAt: new Date() } },
+        options
+      )
     }
 
     if (this.config.collectionName == undefined) {
@@ -1065,7 +1069,11 @@ export class Repo<T> {
     options?
   ): Promise<QueryPersistResult> {
     if (this.config.softDelete && !options?.forceHardDelete) {
-      return this.updateOne(filter, { $set: { deleted: new Date() } }, options)
+      return this.updateOne(
+        filter,
+        { $set: { deletedAt: new Date() } },
+        options
+      )
     }
 
     if (this.config.collectionName == undefined) {
@@ -1121,7 +1129,7 @@ export class Repo<T> {
         if (this.config.softDelete && !options?.forceHardDelete) {
           const { f, u } = await this._updatePrepare(
             op.deleteOne.filter,
-            { $set: { deleted: new Date() } },
+            { $set: { deletedAt: new Date() } },
             options
           )
           preparedOps.push({ updateOne: { filter: f, update: u } })
@@ -1133,7 +1141,7 @@ export class Repo<T> {
         if (this.config.softDelete && !options?.forceHardDelete) {
           const { f, u } = await this._updatePrepare(
             op.deleteMany.filter,
-            { $set: { deleted: new Date() } },
+            { $set: { deletedAt: new Date() } },
             options
           )
           preparedOps.push({ updateMany: { filter: f, update: u } })
@@ -1176,11 +1184,11 @@ export class Repo<T> {
     return result
   }
 
-  // Merges a `deleted` exclusion condition into `query` when this repo has soft delete enabled,
-  // unless the caller passed `includeDeleted` or the query already targets `deleted` explicitly.
+  // Merges a `deletedAt` exclusion condition into `query` when this repo has soft delete enabled,
+  // unless the caller passed `includeDeleted` or the query already targets `deletedAt` explicitly.
   // Merged as a sibling top-level key (implicit AND, matching both DataSourceMock and Mongo
   // query semantics) rather than wrapped in `$and` - DataSourceMock has no `$and` support.
-  // Matches documents where `deleted` is explicitly null OR the field is entirely absent
+  // Matches documents where `deletedAt` is explicitly null OR the field is entirely absent
   // (pre-existing documents from before soft delete was enabled on this repo). `$in: [null]`
   // looks equivalent but is NOT: the MySQL JSON datasource translates it to a JSON_TYPE check
   // that only matches an explicit null, not a missing key, which silently excludes every
@@ -1190,10 +1198,10 @@ export class Repo<T> {
     options?: RepoQueryOptions
   ): QuerySelection {
     if (!this.config.softDelete || options?.includeDeleted) return query
-    if (Object.prototype.hasOwnProperty.call(query, 'deleted')) return query
+    if (Object.prototype.hasOwnProperty.call(query, 'deletedAt')) return query
     return {
       ...query,
-      $or: [{ deleted: null }, { deleted: { $exists: false } }],
+      $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }],
     }
   }
 

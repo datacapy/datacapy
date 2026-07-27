@@ -4,7 +4,7 @@ import MockDataSource from 'data-source/mock'
 type User = {
   _id?: string
   name: string
-  deleted?: Date | null
+  deletedAt?: Date | null
 }
 
 function buildSoftDeleteRepo(data: { user: User[] }) {
@@ -13,7 +13,7 @@ function buildSoftDeleteRepo(data: { user: User[] }) {
     softDelete: true,
     schema: {
       name: String,
-      deleted: { $type: Date, $default: null },
+      deletedAt: { $type: Date, $default: null },
     },
   }) as Repo<User>
   const dataSource = new MockDataSource(data)
@@ -22,11 +22,11 @@ function buildSoftDeleteRepo(data: { user: User[] }) {
 }
 
 describe('soft delete', () => {
-  it('excludes deleted docs from find() by default', async () => {
+  it('excludes deletedAt docs from find() by default', async () => {
     const { repo } = buildSoftDeleteRepo({
       user: [
-        { _id: '1', name: 'Kevin', deleted: null },
-        { _id: '2', name: 'Tom', deleted: new Date() },
+        { _id: '1', name: 'Kevin', deletedAt: null },
+        { _id: '2', name: 'Tom', deletedAt: new Date() },
       ],
     })
 
@@ -35,20 +35,20 @@ describe('soft delete', () => {
     expect(docs[0].name).toBe('Kevin')
   })
 
-  it('excludes deleted docs from findOne() by default', async () => {
+  it('excludes deletedAt docs from findOne() by default', async () => {
     const { repo } = buildSoftDeleteRepo({
-      user: [{ _id: '2', name: 'Tom', deleted: new Date() }],
+      user: [{ _id: '2', name: 'Tom', deletedAt: new Date() }],
     })
 
     const doc = await repo.findOne({ name: 'Tom' })
     expect(doc).toBeUndefined()
   })
 
-  it('excludes deleted docs from count() by default', async () => {
+  it('excludes deletedAt docs from count() by default', async () => {
     const { repo } = buildSoftDeleteRepo({
       user: [
-        { _id: '1', name: 'Kevin', deleted: null },
-        { _id: '2', name: 'Tom', deleted: new Date() },
+        { _id: '1', name: 'Kevin', deletedAt: null },
+        { _id: '2', name: 'Tom', deletedAt: new Date() },
       ],
     })
 
@@ -56,11 +56,11 @@ describe('soft delete', () => {
     expect(count).toBe(1)
   })
 
-  it('includes deleted docs when includeDeleted option is set', async () => {
+  it('includes deletedAt docs when includeDeleted option is set', async () => {
     const { repo } = buildSoftDeleteRepo({
       user: [
-        { _id: '1', name: 'Kevin', deleted: null },
-        { _id: '2', name: 'Tom', deleted: new Date() },
+        { _id: '1', name: 'Kevin', deletedAt: null },
+        { _id: '2', name: 'Tom', deletedAt: new Date() },
       ],
     })
 
@@ -68,13 +68,13 @@ describe('soft delete', () => {
     expect(docs.length).toBe(2)
   })
 
-  it('does not exclude deleted docs when a repo does not have softDelete enabled', async () => {
+  it('does not exclude deletedAt docs when a repo does not have softDelete enabled', async () => {
     const repo = new Repo({
       name: 'user',
-      schema: { name: String, deleted: { $type: Date, $default: null } },
+      schema: { name: String, deletedAt: { $type: Date, $default: null } },
     }) as Repo<User>
     repo.dataSource = new MockDataSource({
-      user: [{ _id: '2', name: 'Tom', deleted: new Date() }],
+      user: [{ _id: '2', name: 'Tom', deletedAt: new Date() }],
     })
 
     const docs = await repo.find()
@@ -82,7 +82,7 @@ describe('soft delete', () => {
     expect(docs[0].name).toBe('Tom')
   })
 
-  it('merges the not-deleted condition into updateOne/updateMany filters', async () => {
+  it('merges the not-deletedAt condition into updateOne/updateMany filters', async () => {
     const { repo, dataSource } = buildSoftDeleteRepo({ user: [] })
     const spy = jest.spyOn(dataSource, 'updateOne')
 
@@ -90,15 +90,15 @@ describe('soft delete', () => {
 
     expect(spy.mock.calls[0][1]).toEqual({
       name: 'Kevin',
-      $or: [{ deleted: null }, { deleted: { $exists: false } }],
+      $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }],
     })
   })
 
-  it('includes docs where the deleted field is entirely missing (pre-existing docs)', async () => {
+  it('includes docs where the deletedAt field is entirely missing (pre-existing docs)', async () => {
     const { repo } = buildSoftDeleteRepo({
       user: [
-        { _id: '1', name: 'Kevin' } as User, // no `deleted` key at all
-        { _id: '2', name: 'Tom', deleted: new Date() },
+        { _id: '1', name: 'Kevin' } as User, // no `deletedAt` key at all
+        { _id: '2', name: 'Tom', deletedAt: new Date() },
       ],
     })
 
@@ -116,7 +116,7 @@ describe('soft delete', () => {
 
     expect(deleteSpy).not.toHaveBeenCalled()
     expect(updateSpy).toHaveBeenCalled()
-    expect(dataSource.dataUpdate[0]['$set'].deleted).toBeInstanceOf(Date)
+    expect(dataSource.dataUpdate[0]['$set'].deletedAt).toBeInstanceOf(Date)
   })
 
   it('deleteMany() performs a soft delete (update) instead of removing documents', async () => {
@@ -128,7 +128,7 @@ describe('soft delete', () => {
 
     expect(deleteSpy).not.toHaveBeenCalled()
     expect(updateSpy).toHaveBeenCalled()
-    expect(dataSource.dataUpdate[0]['$set'].deleted).toBeInstanceOf(Date)
+    expect(dataSource.dataUpdate[0]['$set'].deletedAt).toBeInstanceOf(Date)
   })
 
   it('forceHardDelete option performs a real hard delete', async () => {
