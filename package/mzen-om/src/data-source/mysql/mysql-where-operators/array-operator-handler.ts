@@ -2,10 +2,10 @@ import { JSON_DOCUMENT_COLUMN_NAME } from '../mysql-constants'
 import { OperatorHandler, OperatorContext, OperatorResult } from './types'
 
 /**
- * Handler for array operators: $in
+ * Handler for array operators: $in, $nin
  */
 export class ArrayOperatorHandler implements OperatorHandler {
-  readonly operators = ['$in']
+  readonly operators = ['$in', '$nin']
 
   async handle(
     operator: string,
@@ -14,7 +14,7 @@ export class ArrayOperatorHandler implements OperatorHandler {
     context: OperatorContext
   ): Promise<OperatorResult> {
     if (!Array.isArray(operand)) {
-      throw new Error('Operand for $in must be an array')
+      throw new Error(`Operand for ${operator} must be an array`)
     }
 
     const sanitizedKey = context.sanitizeKey(key)
@@ -42,10 +42,15 @@ export class ArrayOperatorHandler implements OperatorHandler {
       )
     }
 
-    const condition =
-      conditionParts.length === 1
-        ? conditionParts[0]
-        : `(${conditionParts.join(' OR ')})`
+    // An empty operand array matches nothing for $in, and everything for $nin
+    const inCondition =
+      conditionParts.length === 0
+        ? '1=0'
+        : conditionParts.length === 1
+          ? conditionParts[0]
+          : `(${conditionParts.join(' OR ')})`
+
+    const condition = operator === '$nin' ? `NOT (${inCondition})` : inCondition
 
     return { condition, params }
   }

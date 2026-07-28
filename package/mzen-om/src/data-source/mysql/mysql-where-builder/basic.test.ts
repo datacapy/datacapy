@@ -91,6 +91,24 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
     })
   })
 
+  describe('$nin operator', () => {
+    it('should handle $nin operator', async () => {
+      const query = { status: { $nin: ['active', 'pending'] } }
+      const result = await whereBuilder.buildWhereClause(query)
+      const stripped = stripWhitespace(result.clause)
+      expect(stripped).toBe("NOT (jdoc->>'$.status' IN (?, ?))")
+      expect(result.params).toEqual(['active', 'pending'])
+    })
+
+    it('should match everything when $nin operand is an empty array', async () => {
+      const query = { status: { $nin: [] } }
+      const result = await whereBuilder.buildWhereClause(query)
+      const stripped = stripWhitespace(result.clause)
+      expect(stripped).toBe('NOT (1=0)')
+      expect(result.params).toEqual([])
+    })
+  })
+
   describe('$like operator', () => {
     it('should use LOWER() to force case-insensitive matching', async () => {
       const query = { name: { $like: 'John%' } }

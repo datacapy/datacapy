@@ -71,6 +71,16 @@ describe('MysqlWhereBuilder - Null Handling', () => {
       expect(result.params).toEqual(['active', 'pending'])
     })
 
+    it('should handle null values in $nin operator', async () => {
+      const query = { status: { $nin: ['active', null, 'pending'] } }
+      const result = await whereBuilder.buildWhereClause(query)
+      const stripped = stripWhitespace(result.clause)
+      expect(stripped).toBe(
+        "NOT ((jdoc->>'$.status' IN (?, ?) OR JSON_TYPE(JSON_EXTRACT(jdoc, '$.status')) = 'NULL'))"
+      )
+      expect(result.params).toEqual(['active', 'pending'])
+    })
+
     it('should handle mixed null and non-null conditions', async () => {
       const query = {
         name: null,
