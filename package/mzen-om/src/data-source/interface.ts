@@ -138,6 +138,7 @@ export interface DataSourceInterface {
 
   createDatabase?(databaseName: string, options?: any): Promise<void>
   dropDatabase?(databaseName: string, options?: any): Promise<void>
+  execute?(sql: string, values?: unknown[]): Promise<unknown>
 
   find(
     collectionName: string,
