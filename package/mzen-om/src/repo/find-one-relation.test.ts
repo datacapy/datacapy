@@ -47,6 +47,83 @@ describe('relation', function () {
     expect(doc?.name).toBe('Kevin Foster')
     expect(doc?.userTimezone?.name).toBe('Europe/London')
   })
+  it('should populate hasOne relation with composite keys even when a fields projection omits the key fields', async () => {
+    // Regression test: the fields projection is applied to related docs
+    // *before* they are matched back to the source doc via composite keys.
+    // If an include-mode projection lists only the fields the caller wants
+    // displayed - and forgets the composite-key fields themselves - the
+    // match must still succeed (the fields projection must not be able to
+    // silently break relation population).
+    class Response {
+      _id: string
+      surveyId: string
+      projectId: string
+      participantId: string
+      completed: boolean
+      constructor() {
+        this._id = ''
+        this.surveyId = ''
+        this.projectId = ''
+        this.participantId = ''
+        this.completed = false
+      }
+    }
+    class Participant {
+      _id: string
+      surveyId: string
+      projectId: string
+      surveyResponse?: Response
+      constructor() {
+        this._id = ''
+        this.surveyId = ''
+        this.projectId = ''
+      }
+    }
+
+    var data = {
+      surveyResponse: [
+        {
+          _id: 'r1',
+          surveyId: 's1',
+          projectId: 'p1',
+          participantId: 'part1',
+          completed: true,
+          answers: { some: 'answer-data-not-projected' },
+        },
+      ],
+      surveyParticipant: [{ _id: 'part1', surveyId: 's1', projectId: 'p1' }],
+    }
+    var dataSource = new MockDataSource(data)
+
+    var surveyParticipant = new Repo({
+      name: 'surveyParticipant',
+      relations: {
+        surveyResponse: {
+          alias: 'surveyResponse',
+          type: 'hasOne',
+          repo: 'surveyResponse',
+          key: 'participantId',
+          pkey: '_id',
+          keys: { surveyId: 'surveyId', projectId: 'projectId' },
+          // Deliberately omits surveyId/projectId - only the fields we want
+          // displayed are listed, matching the shape of the original bug.
+          fields: { completed: 1, participantId: 1 },
+          autoPopulate: true,
+        },
+      },
+    }) as Repo<Participant>
+    surveyParticipant.dataSource = dataSource
+
+    var surveyResponse = new Repo({
+      name: 'surveyResponse',
+    }) as Repo<Response>
+    surveyResponse.dataSource = dataSource
+    surveyParticipant.repos.surveyResponse = surveyResponse
+
+    var doc = await surveyParticipant.findOne()
+    expect(doc?.surveyResponse).toBeDefined()
+    expect(doc?.surveyResponse?.completed).toBe(true)
+  })
   it('should populate belongsTo relation', async () => {
     class Timezone {
       name: string

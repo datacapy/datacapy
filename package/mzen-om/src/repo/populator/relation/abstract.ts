@@ -153,6 +153,30 @@ export abstract class RelationAbstract {
     return { constantFields, variantFields: variantFieldsArray }
   }
 
+  // A relation's `fields` projection is applied to the related docs *before*
+  // they get matched back to their source doc via createCompositeKey(doc, targetFields)
+  // in has()/belongsTo(). If an include-mode projection omits one of those
+  // target fields, the composite key silently degrades to '__undefined__'
+  // for that field and the relation never populates - no error, just missing
+  // data. Ensure every target field survives the projection regardless of
+  // what the caller listed.
+  protected ensureFieldsIncludeKeys(
+    config: RelationConfig,
+    targetFields: string[]
+  ): void {
+    if (!config.fields) return
+    const isIncludeMode = Object.values(config.fields).some(
+      (value) => value === 1
+    )
+    if (!isIncludeMode) return // exclude-mode projections already keep these fields
+
+    targetFields.forEach((field) => {
+      if (config.fields[field] === undefined) {
+        config.fields[field] = 1
+      }
+    })
+  }
+
   // Build optimized query for composite keys
   // Detects constant fields and uses $in for variant fields to minimize $or clauses
   protected buildOptimizedCompositeQuery(

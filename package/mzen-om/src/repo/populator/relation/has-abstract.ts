@@ -24,6 +24,7 @@ export abstract class RelationHasAbstract extends RelationAbstract {
     Object.assign(config.query, optimizedQuery)
 
     const targetFields = Object.values(keys)
+    this.ensureFieldsIncludeKeys(config, targetFields)
 
     // @ts-ignore - Expected 0 arguments, but got 2 - variable method arguments
     var relatedDocs: Record<string, any>[] = await relationRepo.find(

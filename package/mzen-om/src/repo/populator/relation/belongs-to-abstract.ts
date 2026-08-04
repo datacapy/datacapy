@@ -27,6 +27,7 @@ export abstract class RelationBelongsToAbstract extends RelationAbstract {
     Object.assign(config.query, optimizedQuery)
 
     const targetFields = Object.values(keys)
+    this.ensureFieldsIncludeKeys(config, targetFields)
 
     const relatedDocs = await relationRepo.find(config.query, config)
 

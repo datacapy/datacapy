@@ -61,7 +61,11 @@ export class DataSourceMock implements DataSourceInterface {
     this.queryCount++
     var data = this.filterData(collectionName, query, options)
     // We must clone the result to prevent circular references
-    return clone(data)
+    var result = clone(data)
+    if (options?.fields) {
+      result = result.map((row: any) => this.filterFields(row, options.fields))
+    }
+    return result
   }
 
   async findOne(
@@ -122,6 +126,17 @@ export class DataSourceMock implements DataSourceInterface {
       if (options['limit'] && result.length == options['limit']) break
     }
     return result
+  }
+
+  private filterFields(row: any, fields: Record<string, number>): any {
+    const includeMode = Object.values(fields).some((v) => v === 1)
+    if (!includeMode) return row
+
+    const filtered: any = {}
+    for (const key in row) {
+      if (fields[key] === 1) filtered[key] = row[key]
+    }
+    return filtered
   }
 
   private matchesQuery(doc: any, query?: QuerySelection): boolean {
