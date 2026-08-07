@@ -144,11 +144,29 @@ describe('MysqlSqlBuilder - UPDATE operations', () => {
         },
       }
       const result = sqlBuilder.buildSetClause(queryUpdate)
+      const incClause = (path: string) =>
+        `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '${path}', ` +
+        `(CASE WHEN JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '${path}')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') ` +
+        `THEN JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '${path}') + 0 ELSE 0 END) + ?)`
       expect(sqlBuilder.stripWhitespace(result.clause)).toBe(
-        `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.age', COALESCE(${JSON_DOCUMENT_COLUMN_NAME}->>'$.age', 0) + ?), ` +
-          `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.score', COALESCE(${JSON_DOCUMENT_COLUMN_NAME}->>'$.score', 0) + ?)`
+        `${incClause('$.age')}, ${incClause('$.score')}`
       )
       expect(result.params).toEqual([1, -5])
+    })
+
+    // Regression test: JSON_UNQUOTE(JSON_EXTRACT(...)) (the ->> operator) turns a stored
+    // JSON null into the literal text 'null' rather than SQL NULL, so a naive
+    // COALESCE(doc->>'$.path', 0) leaves it untouched and MySQL then fails to add a
+    // number to it with "Truncated incorrect DOUBLE value: 'null'". The JSON_TYPE guard
+    // must treat a JSON-null-valued field the same as a missing one and fall back to 0.
+    it('should fall back to 0 when incrementing a field whose stored value is JSON null', () => {
+      const queryUpdate = { $inc: { score: 1 } }
+      const result = sqlBuilder.buildSetClause(queryUpdate)
+      expect(result.clause).not.toContain('COALESCE')
+      expect(result.clause).toContain(
+        "JSON_TYPE(JSON_EXTRACT(jdoc, '$.score'))"
+      )
+      expect(result.clause).toContain("IN ('INTEGER', 'DOUBLE', 'DECIMAL')")
     })
 
     it('should handle multiple operations', () => {
@@ -158,10 +176,14 @@ describe('MysqlSqlBuilder - UPDATE operations', () => {
         $inc: { score: 10 },
       }
       const result = sqlBuilder.buildSetClause(queryUpdate)
+      const incClause =
+        `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.score', ` +
+        `(CASE WHEN JSON_TYPE(JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.score')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') ` +
+        `THEN JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.score') + 0 ELSE 0 END) + ?)`
       expect(sqlBuilder.stripWhitespace(result.clause)).toBe(
         `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.name', ?), ` +
           `${JSON_DOCUMENT_COLUMN_NAME} = JSON_REMOVE(${JSON_DOCUMENT_COLUMN_NAME}, '$.age'), ` +
-          `${JSON_DOCUMENT_COLUMN_NAME} = JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, '$.score', COALESCE(${JSON_DOCUMENT_COLUMN_NAME}->>'$.score', 0) + ?)`
+          `${incClause}`
       )
       expect(result.params).toEqual(['John', 10])
     })

@@ -223,12 +223,19 @@ export class MysqlSqlBuilder {
         })
       } else if (key === '$inc') {
         for (const [field, increment] of Object.entries(value as object)) {
+          const path = `'$.${sanitizeJsonPathKey(field)}'`
+          // JSON_UNQUOTE(JSON_EXTRACT(...)) (the ->> operator) turns a stored JSON null
+          // into the literal text 'null' rather than SQL NULL, so COALESCE(...,0) leaves
+          // it untouched and the arithmetic below fails with "Truncated incorrect DOUBLE
+          // value: 'null'". Checking JSON_TYPE instead treats anything that isn't
+          // actually numeric (missing path, JSON null, or a stray non-numeric string) as 0.
+          const currentValue = `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, ${path})`
           setClauses.push(
             stripWhitespace(`
               ${JSON_DOCUMENT_COLUMN_NAME} =
-               JSON_SET(${JSON_DOCUMENT_COLUMN_NAME},
-                '$.${sanitizeJsonPathKey(field)}',
-                COALESCE(${JSON_DOCUMENT_COLUMN_NAME}->>'$.${sanitizeJsonPathKey(field)}', 0) + ?)
+               JSON_SET(${JSON_DOCUMENT_COLUMN_NAME}, ${path},
+                (CASE WHEN JSON_TYPE(${currentValue}) IN ('INTEGER', 'DOUBLE', 'DECIMAL')
+                  THEN ${currentValue} + 0 ELSE 0 END) + ?)
             `)
           )
           params.push(increment)
