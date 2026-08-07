@@ -29,7 +29,9 @@ describe('MysqlSqlBuilder - Backward compatibility', () => {
     const query = { name: 'John', age: { $gt: 25 } }
     const result = await sqlBuilder.buildWhereClause(query)
     expect(result.clause).toContain("jdoc->>'$.name' = ?")
-    expect(result.clause).toContain("jdoc->>'$.age' > ?")
+    expect(result.clause).toContain(
+      "(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.age')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.age') ELSE NULL END) > ?"
+    )
     expect(result.params).toEqual(['John', 25])
   })
 

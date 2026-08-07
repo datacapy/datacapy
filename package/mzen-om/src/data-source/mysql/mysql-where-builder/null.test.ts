@@ -90,7 +90,9 @@ describe('MysqlWhereBuilder - Null Handling', () => {
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
       expect(stripped).toBe(
-        "JSON_TYPE(JSON_EXTRACT(jdoc, '$.name')) = 'NULL' AND jdoc->>'$.age' > ? AND JSON_TYPE(JSON_EXTRACT(jdoc, '$.status')) != 'NULL'"
+        "JSON_TYPE(JSON_EXTRACT(jdoc, '$.name')) = 'NULL' AND " +
+          "(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.age')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.age') ELSE NULL END) > ? AND " +
+          "JSON_TYPE(JSON_EXTRACT(jdoc, '$.status')) != 'NULL'"
       )
       expect(result.params).toEqual([18])
     })

@@ -49,7 +49,9 @@ describe('MysqlSqlBuilder - COUNT and GROUP operations', () => {
       )
 
       expect(result.sql).toContain('WHERE')
-      expect(result.sql).toContain("jdoc->>'$.age' >= ?")
+      expect(result.sql).toContain(
+        "(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.age')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.age') ELSE NULL END) >= ?"
+      )
       expect(result.values).toEqual([18])
     })
   })

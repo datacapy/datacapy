@@ -125,7 +125,8 @@ describe('MysqlWhereBuilder - Date Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') >= ? AND jdoc->>'$.status' = ? AND JSON_EXTRACT(jdoc, '$.isActive') = ? AND jdoc->>'$.priority' > ?"
+      "STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(jdoc, '$.createdAt')), 19), '%Y-%m-%dT%H:%i:%s') >= ? AND jdoc->>'$.status' = ? AND JSON_EXTRACT(jdoc, '$.isActive') = ? AND " +
+        "(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.priority')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.priority') ELSE NULL END) > ?"
     )
     expect(result.params).toEqual(['2023-01-01 12:00:00', 'active', true, 5])
   })

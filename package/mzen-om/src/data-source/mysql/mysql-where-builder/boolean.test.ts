@@ -42,7 +42,9 @@ describe('MysqlWhereBuilder - Boolean Handling', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "JSON_EXTRACT(jdoc, '$.isActive') = ? AND JSON_TYPE(JSON_EXTRACT(jdoc, '$.name')) = 'NULL' AND jdoc->>'$.age' = ? AND JSON_EXTRACT(jdoc, '$.status') != ?"
+      "JSON_EXTRACT(jdoc, '$.isActive') = ? AND JSON_TYPE(JSON_EXTRACT(jdoc, '$.name')) = 'NULL' AND " +
+        "(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.age')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.age') ELSE NULL END) = ? AND " +
+        "JSON_EXTRACT(jdoc, '$.status') != ?"
     )
     expect(result.params).toEqual([true, 25, false])
   })

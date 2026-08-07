@@ -70,7 +70,10 @@ describe('MysqlWhereBuilder - Regex Operator', () => {
     }
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
-    expect(stripped).toBe("jdoc->>'$.name' REGEXP ? AND jdoc->>'$.age' >= ?")
+    expect(stripped).toBe(
+      "jdoc->>'$.name' REGEXP ? AND " +
+        "(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.age')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.age') ELSE NULL END) >= ?"
+    )
     expect(result.params).toEqual(['^John', 18])
   })
 

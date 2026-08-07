@@ -128,8 +128,18 @@ export class MysqlWhereBuilder {
         // Sanitize the generated column name as it contains user input
         const sanitizedColumnName = sanitizeIdentifier(generatedColumn)
         return `\`${sanitizedColumnName}\` ${sanitizedOperator} ?`
+      } else if (typeof operand === 'number') {
+        // ->> extracts JSON as text, so MySQL implicitly casts the stored side to
+        // compare against a numeric parameter. A non-numeric stored value (e.g. JSON
+        // null, which ->> renders as the literal text 'null') fails that cast with
+        // "Truncated incorrect DOUBLE value" instead of simply not matching. Guard on
+        // JSON_TYPE so a missing, null, or non-numeric field compares as SQL NULL (no
+        // match) rather than raising an error.
+        const jsonExtract = `JSON_EXTRACT(${JSON_DOCUMENT_COLUMN_NAME}, '$.${sanitizedKey}')`
+        const numericExtract = `(CASE WHEN JSON_TYPE(${jsonExtract}) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN ${jsonExtract} ELSE NULL END)`
+        return `${numericExtract} ${sanitizedOperator} ?`
       } else {
-        // Use regular JSON path for non-date comparisons
+        // Use regular JSON path for non-date, non-numeric comparisons
         return `${jsonPathExpression} ${sanitizedOperator} ?`
       }
     }

@@ -40,7 +40,8 @@ describe('MysqlWhereBuilder - $exists Operator', () => {
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "JSON_CONTAINS_PATH(jdoc, 'one', '$.name') AND jdoc->>'$.age' > ?"
+      "JSON_CONTAINS_PATH(jdoc, 'one', '$.name') AND " +
+        "(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.age')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.age') ELSE NULL END) > ?"
     )
     expect(result.params).toEqual([18])
   })

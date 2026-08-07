@@ -1,6 +1,9 @@
 import { MysqlWhereBuilder } from '../mysql-where-builder'
 import { stripWhitespace } from '../mysql-sql-utils'
 
+const numCompare = (field: string) =>
+  `(CASE WHEN JSON_TYPE(JSON_EXTRACT(jdoc, '$.${field}')) IN ('INTEGER', 'DOUBLE', 'DECIMAL') THEN JSON_EXTRACT(jdoc, '$.${field}') ELSE NULL END)`
+
 describe('MysqlWhereBuilder - Basic Operators', () => {
   let whereBuilder: MysqlWhereBuilder
 
@@ -21,7 +24,7 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
       const query = { age: { $eq: 30 } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
-      expect(stripped).toBe("jdoc->>'$.age' = ?")
+      expect(stripped).toBe(`${numCompare('age')} = ?`)
       expect(result.params).toEqual([30])
     })
   })
@@ -34,7 +37,7 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
       expect(stripped).toBe(
-        "(jdoc->>'$.nameFirst' = ? AND jdoc->>'$.nameLast' = ? AND jdoc->>'$.age' > ?)"
+        `(jdoc->>'$.nameFirst' = ? AND jdoc->>'$.nameLast' = ? AND ${numCompare('age')} > ?)`
       )
       // Params are in clause order: nameFirst, nameLast, age
       expect(result.params).toEqual(['John', 'Smith', 25])
@@ -52,7 +55,7 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
       const query = { $not: { age: { $lt: 18 } } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
-      expect(stripped).toBe("NOT (jdoc->>'$.age' < ?)")
+      expect(stripped).toBe(`NOT (${numCompare('age')} < ?)`)
       expect(result.params).toEqual([18])
     })
 
@@ -60,7 +63,9 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
       const query = { $nor: [{ age: { $lt: 18 } }, { name: 'John' }] }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
-      expect(stripped).toBe("NOT (jdoc->>'$.age' < ? OR jdoc->>'$.name' = ?)")
+      expect(stripped).toBe(
+        `NOT (${numCompare('age')} < ? OR jdoc->>'$.name' = ?)`
+      )
       expect(result.params).toEqual([18, 'John'])
     })
 
@@ -74,7 +79,7 @@ describe('MysqlWhereBuilder - Basic Operators', () => {
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
       expect(stripped).toBe(
-        "((jdoc->>'$.age' >= ? AND jdoc->>'$.age' <= ?) OR jdoc->>'$.name' = ?)"
+        `((${numCompare('age')} >= ? AND ${numCompare('age')} <= ?) OR jdoc->>'$.name' = ?)`
       )
       // Params are in clause order: age>=, age<=, name
       expect(result.params).toEqual([18, 65, 'John'])
