@@ -1,10 +1,21 @@
 import { EndpointRegistrar } from './endpoint-registrar'
 import { ServerApiConfig } from '../api-config'
+import { ServerRemoteObject } from '../remote-object'
 import express from 'express'
 
 // Mock the dependencies
 jest.mock('../acl')
 jest.mock('../remote-object')
+
+const MockServerRemoteObject = ServerRemoteObject as unknown as jest.Mock
+
+// Returns the endpoint names actually passed into ServerRemoteObject's constructor
+// across all registered services - i.e. what actually got registered.
+function getRegisteredEndpointNames(): string[] {
+  return MockServerRemoteObject.mock.calls.flatMap(([, options]) =>
+    Object.keys(options.endpoints)
+  )
+}
 
 describe('EndpointRegistrar', () => {
   let registrar: EndpointRegistrar
@@ -17,6 +28,7 @@ describe('EndpointRegistrar', () => {
   let mockRouter: express.Router
 
   beforeEach(() => {
+    MockServerRemoteObject.mockClear()
     mockRouter = express.Router()
 
     mockModelManager = {
@@ -114,7 +126,7 @@ describe('EndpointRegistrar', () => {
       expect(mockConfigurationManager.getModelManager).toHaveBeenCalled()
     })
 
-    it('skips configs with no enable flag', () => {
+    it('skips configs with enable set to false', () => {
       const configs: ServerApiConfig[] = [
         {
           service: 'UserService',
@@ -129,7 +141,76 @@ describe('EndpointRegistrar', () => {
 
       registrar.registerEndpoints()
 
-      expect(mockApiConfigRegistry.getApiConfigs).toHaveBeenCalled()
+      expect(MockServerRemoteObject).not.toHaveBeenCalled()
+    })
+
+    it('registers configs with enable set to true', () => {
+      const mockService = { name: 'UserService' }
+      mockModelManager.services = {
+        UserService: mockService,
+      }
+
+      const configs: ServerApiConfig[] = [
+        {
+          service: 'UserService',
+          enable: true,
+          endpoints: {
+            list: { groups: [] },
+          },
+        },
+      ]
+
+      mockApiConfigRegistry.getApiConfigs.mockReturnValue(configs)
+
+      registrar.registerEndpoints()
+
+      expect(getRegisteredEndpointNames()).toEqual(['list'])
+    })
+
+    it('registers configs with no enable flag specified', () => {
+      const mockService = { name: 'UserService' }
+      mockModelManager.services = {
+        UserService: mockService,
+      }
+
+      const configs: ServerApiConfig[] = [
+        {
+          service: 'UserService',
+          endpoints: {
+            list: { groups: [] },
+          },
+        },
+      ]
+
+      mockApiConfigRegistry.getApiConfigs.mockReturnValue(configs)
+
+      registrar.registerEndpoints()
+
+      expect(getRegisteredEndpointNames()).toEqual(['list'])
+    })
+
+    it('removes an individual endpoint with enable set to false', () => {
+      const mockService = { name: 'UserService' }
+      mockModelManager.services = {
+        UserService: mockService,
+      }
+
+      const configs: ServerApiConfig[] = [
+        {
+          service: 'UserService',
+          enable: true,
+          endpoints: {
+            list: { groups: [] },
+            create: { groups: [], enable: false },
+          },
+        },
+      ]
+
+      mockApiConfigRegistry.getApiConfigs.mockReturnValue(configs)
+
+      registrar.registerEndpoints()
+
+      expect(getRegisteredEndpointNames()).toEqual(['list'])
     })
 
     it('skips configs with no endpoints', () => {
@@ -262,7 +343,7 @@ describe('EndpointRegistrar', () => {
 
       registrar.registerEndpoints()
 
-      expect(mockConfigurationManager.getModelManager).toHaveBeenCalled()
+      expect(getRegisteredEndpointNames()).toEqual(['list'])
     })
 
     it('removes endpoints in disabled groups', () => {
@@ -289,7 +370,7 @@ describe('EndpointRegistrar', () => {
 
       registrar.registerEndpoints()
 
-      expect(mockConfigurationManager.getModelManager).toHaveBeenCalled()
+      expect(getRegisteredEndpointNames()).toEqual(['list'])
     })
 
     it('gets role assessors from registry', () => {

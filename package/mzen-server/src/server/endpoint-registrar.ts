@@ -74,13 +74,12 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
     const path =
       config.path != null ? config.path : '/' + camelToKebab(remoteObjectName)
 
-    const enable = config.enable ? config.enable : {}
     const aclConfig = config.acl ? config.acl : {}
     const endpointsDisable = config.disable ? config.disable : {}
     const endpointDisableGroup = config.disableGroup ? config.disableGroup : {}
     const endpoints = config.endpoints ? config.endpoints : {}
 
-    if (!enable) return
+    if (config.enable === false) return
 
     // Remove any endpoints that have been disabled
     for (const endpointName in endpoints) {
@@ -93,6 +92,9 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
         })
       }
       if (endpoints[endpointName] && endpointsDisable[endpointName] == true) {
+        delete endpoints[endpointName]
+      }
+      if (endpoints[endpointName] && endpoints[endpointName].enable === false) {
         delete endpoints[endpointName]
       }
     }
