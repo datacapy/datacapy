@@ -357,6 +357,11 @@ export class ModelManager {
         }
       } else if (defaultDataSourceName !== undefined) {
         repo.dataSource = this.dataSources[defaultDataSourceName]
+        // Keep config.dataSource (the name) in sync with the instance just assigned -
+        // repo.transaction() reads this string directly rather than the resolved
+        // instance, and throws "No dataSource configured" if it's left empty, even
+        // though ordinary find/create/updateOne calls work fine via repo.dataSource.
+        repo.config.dataSource = defaultDataSourceName
       }
 
       promises.push(repo.init())

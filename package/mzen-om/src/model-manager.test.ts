@@ -19,6 +19,19 @@ describe('ModelManager', () => {
 
         expect(person.dataSource).toEqual(dataSource)
       })
+      it('should set config.dataSource to the default datasource name when a repo declares none, so repo.transaction() can resolve it', async () => {
+        const person = new Repo({ name: 'person' })
+        expect(person.config.dataSource).toBe('')
+
+        const modelManager = new ModelManager()
+        const dataSource = new MockDataSource({})
+        modelManager.dataSources = { db: dataSource }
+        modelManager.addRepo(person)
+        await modelManager.init()
+
+        expect(person.dataSource).toEqual(dataSource)
+        expect(person.config.dataSource).toBe('db')
+      })
     })
     describe('initSchemas()', () => {
       it('should inject constructors into each schema', async () => {
