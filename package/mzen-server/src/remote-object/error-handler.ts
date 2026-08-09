@@ -53,6 +53,7 @@ export class ErrorHandler {
 
       const error = err instanceof Error ? err : null
       let errorHandled = false
+      let resolvedStatusCode: number | undefined
 
       if (Object.keys(responseErrorConfig).length) {
         for (const errorName in responseErrorConfig) {
@@ -82,12 +83,24 @@ export class ErrorHandler {
               res.status(code).send(error?.message)
             }
             errorHandled = true
+            resolvedStatusCode = code
           }
           break // Use first matching handler
         }
       }
 
-      this.logError(err, errorHandled, req, endpointName, method)
+      if (!errorHandled) {
+        resolvedStatusCode = 500
+      }
+
+      this.logError(
+        err,
+        errorHandled,
+        req,
+        endpointName,
+        method,
+        resolvedStatusCode
+      )
 
       if (!errorHandled) {
         this.sendUnhandledErrorResponse(res, err, endpointName, method)
@@ -105,7 +118,8 @@ export class ErrorHandler {
     errorHandled: boolean,
     req: RequestInterface,
     endpointName: string,
-    method: string
+    method: string,
+    statusCode?: number
   ): void {
     const isInTest = typeof global.it === 'function'
 
@@ -146,6 +160,7 @@ export class ErrorHandler {
         errorCode: err?.code,
         errorRef: err?.ref,
         handled: errorHandled,
+        statusCode: statusCode,
         req: this.getMinimalRequestInfo(req),
       })
     }
