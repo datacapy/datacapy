@@ -50,8 +50,13 @@ export class SchemaUtility {
     // These operators take an operand that is not itself a value of the
     // field's type (e.g. $exists takes a boolean regardless of whether the
     // field is a Date, string, etc.) so their operand should not be
-    // type-validated against the field's schema.
-    var cantValidateOperators = ['$near', '$exists']
+    // type-validated against the field's schema. $regex/$options are a
+    // search pattern and its match flags respectively - neither has to
+    // itself satisfy the field's own format validators (e.g. a substring
+    // search pattern for a field with a `.regex()` format constraint, such
+    // as a domain-shaped subdomain field, need not itself look like a
+    // domain).
+    var cantValidateOperators = ['$near', '$exists', '$regex', '$options']
     return cantValidateOperators.indexOf(fieldName) == -1
   }
 }

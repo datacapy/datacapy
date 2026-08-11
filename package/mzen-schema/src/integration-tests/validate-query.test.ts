@@ -1,4 +1,5 @@
 import Schema, { SchemaQuery } from 'schema'
+import { sb } from '../builder'
 
 describe('validateQuery', () => {
   it('should cast query parameters', async () => {
@@ -132,5 +133,29 @@ describe('validateQuery', () => {
     expect(data.$or[1].$and[0].name.$in[0].constructor).toBe(String)
     expect(data.$or[1].$and[1].age.$nin[0]).toBe(37)
     expect(data.$or[1].$and[1].age.$nin[0].constructor).toBe(Number)
+  })
+
+  it('should not validate $regex/$options operands against a field format validator', async () => {
+    // A $regex search pattern (or its $options match flags) is not itself a
+    // value of the field - it should not have to satisfy the field's own
+    // format constraints, e.g. a substring search against a domain-shaped
+    // field need not itself look like a domain.
+    const data = {
+      subdomain: { $regex: 'acme', $options: 'i' },
+    } as SchemaQuery
+
+    const schema = new Schema(
+      sb
+        .schema('project')
+        .shape({
+          subdomain: sb.string().regex(/^[a-z0-9-]+\.[a-z0-9-]+$/),
+        })
+        .build()
+    )
+
+    const result = await schema.validateQuery(data)
+
+    expect(result.isValid).toBe(true)
+    expect(result.errors).toEqual({})
   })
 })
