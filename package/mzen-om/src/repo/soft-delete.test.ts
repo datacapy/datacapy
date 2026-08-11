@@ -94,6 +94,20 @@ describe('soft delete', () => {
     })
   })
 
+  it('combines a caller-supplied $or with the not-deleted filter instead of overwriting it', async () => {
+    const { repo } = buildSoftDeleteRepo({
+      user: [
+        { _id: '1', name: 'Kevin', deletedAt: null },
+        { _id: '2', name: 'Tom', deletedAt: null },
+        { _id: '3', name: 'Kevin', deletedAt: new Date() },
+      ],
+    })
+
+    const docs = await repo.find({ $or: [{ name: 'Kevin' }] })
+    expect(docs.length).toBe(1)
+    expect(docs[0]._id).toBe('1')
+  })
+
   it('includes docs where the deletedAt field is entirely missing (pre-existing docs)', async () => {
     const { repo } = buildSoftDeleteRepo({
       user: [

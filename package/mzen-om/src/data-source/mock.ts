@@ -155,6 +155,15 @@ export class DataSourceMock implements DataSourceInterface {
         continue
       }
 
+      if (key === '$and') {
+        const andConditions = query[key]
+        const andMatches = andConditions.every((condition) =>
+          this.matchesQuery(doc, condition)
+        )
+        if (!andMatches) return false
+        continue
+      }
+
       var queryValue = query[key]
       if (
         queryValue &&

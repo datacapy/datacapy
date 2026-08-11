@@ -1199,10 +1199,20 @@ export class Repo<T> {
   ): QuerySelection {
     if (!this.config.softDelete || options?.includeDeleted) return query
     if (Object.prototype.hasOwnProperty.call(query, 'deletedAt')) return query
-    return {
-      ...query,
+
+    const notDeletedFilter = {
       $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }],
     }
+
+    if (Object.prototype.hasOwnProperty.call(query, '$or')) {
+      // The caller's query already uses $or at the top level - spreading our
+      // own $or in would silently overwrite theirs instead of combining the
+      // two, so AND the caller's $or together with the not-deleted filter.
+      const { $or, ...rest } = query
+      return { ...rest, $and: [{ $or }, notDeletedFilter] }
+    }
+
+    return { ...query, ...notDeletedFilter }
   }
 
   async validateQuery(query?: QuerySelection, options?: RepoQueryOptions) {
