@@ -19,6 +19,7 @@ import Schema, {
   SchemaValidationResult,
   SchemaSpec,
   ObjectPathAccessor,
+  SchemaUtility,
 } from 'mzen-schema'
 import Service from 'service'
 import { RepoPopulator, RepoRelationConfig } from 'repo/populator'
@@ -45,6 +46,10 @@ export interface RepoConfig {
   // field, and deleteOne/deleteMany/bulk delete ops become an update setting `deletedAt` to now
   // rather than removing the document. The repo's schema must declare `deletedAt: sb.date().default(null)`.
   softDelete?: boolean
+  // Top-level query keys that don't correspond to a schema field but are legitimately injected
+  // by a caller (e.g. ACL conditions, computed/joined fields) - suppresses the dev-mode
+  // unknown-query-key warning for these specific keys. See warnUnknownQueryKeys().
+  allowedQueryFields?: string[]
 }
 
 export class Repo<T> {
@@ -494,6 +499,7 @@ export class Repo<T> {
 
       query = query ? query : {}
       query = this.applySoftDeleteFilter(query, options)
+      this.warnUnknownQueryKeys(query)
       let errors = await this.validateQuery(query, options)
       if (errors) throw new RepoErrorValidation(errors)
 
@@ -532,6 +538,7 @@ export class Repo<T> {
 
       query = query ? query : {}
       query = this.applySoftDeleteFilter(query, options)
+      this.warnUnknownQueryKeys(query)
       let errors = await this.validateQuery(query, options)
       if (errors) throw new RepoErrorValidation(errors)
 
@@ -565,6 +572,7 @@ export class Repo<T> {
     try {
       query = query ? query : {}
       query = this.applySoftDeleteFilter(query, options)
+      this.warnUnknownQueryKeys(query)
       let errors = await this.validateQuery(query, options)
       if (errors) throw new RepoErrorValidation(errors)
 
@@ -1213,6 +1221,41 @@ export class Repo<T> {
     }
 
     return { ...query, ...notDeletedFilter }
+  }
+
+  // Warns (never throws) when a query filters on a top-level key absent from the repo's schema -
+  // most often a field left behind by a schema-field-removal refactor, which would otherwise
+  // silently zero-match every document with no error. Runs independent of `skipValidation`
+  // (unlike validateQuery above) since the call sites most likely to carry this bug are exactly
+  // the ones that pass skipValidation for performance. Dev/test only - never active in production,
+  // and never blocks the query even when it fires.
+  private warnUnknownQueryKeys(query: QuerySelection): void {
+    if (process.env.NODE_ENV === 'production') return
+    if (!this.schema || typeof this.schema.getSpec !== 'function') return
+
+    const spec = this.schema.getSpec()
+    if (!spec || typeof spec !== 'object') return
+
+    const pkey = this.config.pkey || '_id'
+
+    for (const key of Object.keys(query)) {
+      if (SchemaUtility.isOperator(key)) continue
+      const rootField = key.split('.')[0]
+      if (rootField === pkey) continue
+      const isSchemaField = Object.prototype.hasOwnProperty.call(
+        spec,
+        rootField
+      )
+      const isAllowedField = (this.config.allowedQueryFields || []).includes(
+        rootField
+      )
+      if (!isSchemaField && !isAllowedField) {
+        this.logger?.warn?.(
+          `Repo(${this.config.name}): query key "${key}" is not a schema field on this repo - ` +
+            `possible stale filter left over from a schema change`
+        )
+      }
+    }
   }
 
   async validateQuery(query?: QuerySelection, options?: RepoQueryOptions) {
