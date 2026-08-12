@@ -167,6 +167,15 @@ describe('BuilderString', () => {
         expect((spec.$filter as any)?.stripHtml).toBe(true)
       })
     })
+
+    describe('prependHttpIfMissing()', () => {
+      it('should configure a conditional prependHttp filter', () => {
+        const spec = sb.string().prependHttpIfMissing().build()
+        expect(
+          (spec.$filter as any)?.prependHttp?.$if?.$not?.$regex
+        ).toBeInstanceOf(RegExp)
+      })
+    })
   })
 
   describe('inherited base methods', () => {

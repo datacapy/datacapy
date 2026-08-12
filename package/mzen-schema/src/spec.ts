@@ -1,3 +1,5 @@
+import { FilterConditionSpec } from './filter/filter-condition'
+
 export interface SchemaSpec {
   $type?: any
   $spec?: SchemaSpec
@@ -20,6 +22,11 @@ export interface SchemaSpec {
   [key: string]: SchemaSpec | any
 }
 
+export interface SchemaSpecFilterConditional<T = any> {
+  $if: FilterConditionSpec
+  $then?: T
+}
+
 export interface SchemaSpecFilter {
   trim?: boolean
   uppercase?: boolean
@@ -29,6 +36,7 @@ export interface SchemaSpecFilter {
   private?: boolean
   privateValue?: boolean
   encrypt?: boolean
+  prependHttp?: boolean | SchemaSpecFilterConditional<boolean>
 }
 
 /**

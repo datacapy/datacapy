@@ -2,6 +2,7 @@ import SchemaSpec, {
   SchemaSpecValidateOptions,
   CustomValidatorFn,
 } from '../spec'
+import { FilterConditionSpec } from '../filter/filter-condition'
 
 /**
  * Abstract base class for all field builders
@@ -133,6 +134,22 @@ export abstract class BuilderBase<T = any> {
   filter(fn: (value: any) => boolean | string): this {
     if (!this.spec.$filter) this.spec.$filter = {}
     this.spec.$filter.callback = fn
+    return this
+  }
+
+  /**
+   * Apply a named filter only if a condition on the value is met
+   */
+  filterIf(
+    filterName: string,
+    condition: FilterConditionSpec,
+    filterConfig?: any
+  ): this {
+    if (!this.spec.$filter) this.spec.$filter = {}
+    ;(this.spec.$filter as any)[filterName] = {
+      $if: condition,
+      ...(filterConfig !== undefined ? { $then: filterConfig } : {}),
+    }
     return this
   }
 

@@ -492,6 +492,61 @@ export class Schema {
     return object
   }
 
+  /**
+   * Like applyFilters, but only walks the fields actually present in the given
+   * object (e.g. a partial $set update payload) instead of the full schema shape
+   * - so it does not apply defaultValue filters for fields absent from the object
+   */
+  async applyFiltersPaths<T extends Record<string, any>>(
+    paths: T,
+    config?: SchemaConfig
+  ): Promise<T> {
+    this.init()
+    var meta: SchemaValidationMeta = { errors: {} }
+    config = config ? config : {}
+
+    var promises = []
+    this.schemaIterator.iteratePaths(
+      paths,
+      (opts) => {
+        promises.push(
+          (async () => {
+            let {
+              spec,
+              specParent,
+              fieldName,
+              container,
+              path,
+              meta: mapperMeta,
+            } = opts
+            try {
+              let value = await this.filterField({
+                spec,
+                specParent,
+                fieldName,
+                value: container ? container[fieldName] : undefined,
+                path,
+                config,
+                meta,
+                mapperMeta,
+              })
+              if (container) container[fieldName] = value
+            } catch (e) {
+              throw new Error(
+                'Filter field failed at "' + path + '": ' + e.toString()
+              )
+            }
+          })()
+        )
+      },
+      { skipTransients: true }
+    )
+
+    await Promise.all(promises)
+
+    return paths
+  }
+
   async applyEncrypt<T>(object: T): Promise<T> {
     this.init()
     const promises: Promise<void>[] = []

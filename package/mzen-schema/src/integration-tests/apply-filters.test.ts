@@ -123,6 +123,40 @@ describe('applyFilters', () => {
     expect(result.id).toBe('generated-id')
   })
 
+  describe('conditional filter ($if/$then)', () => {
+    it('should apply the filter when the condition is met', async () => {
+      const object = { url: 'example.com' }
+
+      const schema = new Schema({
+        url: {
+          $type: String,
+          $filter: {
+            prependHttp: { $if: { $not: { $regex: /^https?:\/\// } } },
+          },
+        },
+      })
+
+      const result = await schema.applyFilters(object)
+      expect(result.url).toBe('http://example.com')
+    })
+
+    it('should skip the filter when the condition is not met', async () => {
+      const object = { url: 'https://example.com' }
+
+      const schema = new Schema({
+        url: {
+          $type: String,
+          $filter: {
+            prependHttp: { $if: { $not: { $regex: /^https?:\/\// } } },
+          },
+        },
+      })
+
+      const result = await schema.applyFilters(object)
+      expect(result.url).toBe('https://example.com')
+    })
+  })
+
   describe('defaultValue - array', () => {
     it('should apply defaultValue filter when field is an empty array', async () => {
       const object = { items: [] }

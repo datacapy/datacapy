@@ -1,7 +1,9 @@
 import { FilterAbstract } from './filter-abstract'
 import { FilterCallback } from './filter-callback'
+import { FilterCondition } from './filter-condition'
 import { FilterDefaultValue } from './filter-default-value'
 import { FilterLowercase } from './filter-lowercase'
+import { FilterPrependHttp } from './filter-prepend-http'
 import { FilterTrim } from './filter-trim'
 import { FilterUppercase } from './filter-uppercase'
 import { FilterPostcode } from './filter-postcode'
@@ -32,7 +34,13 @@ export class Filter {
           : [filterSpec]
 
       for (let y = 0; y < filterSpec.length; y++) {
-        value = await Promise.resolve(filter.filter(value, filterSpec[y]))
+        let currentSpec = filterSpec[y]
+        if (currentSpec && typeof currentSpec === 'object' && currentSpec.$if) {
+          if (!FilterCondition.evaluate(value, currentSpec.$if)) continue
+          currentSpec =
+            currentSpec.$then !== undefined ? currentSpec.$then : true
+        }
+        value = await Promise.resolve(filter.filter(value, currentSpec))
       }
     }
 
@@ -48,6 +56,7 @@ export class Filter {
 Filter.addFilter(new FilterCallback())
 Filter.addFilter(new FilterDefaultValue())
 Filter.addFilter(new FilterLowercase())
+Filter.addFilter(new FilterPrependHttp())
 Filter.addFilter(new FilterTrim())
 Filter.addFilter(new FilterUppercase())
 Filter.addFilter(new FilterPostcode())

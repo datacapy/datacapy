@@ -144,6 +144,15 @@ export class BuilderString extends BuilderBase<string> {
     ;(this.spec.$filter as any).stripHtml = true
     return this
   }
+
+  /**
+   * Prepend http:// if the string has no URI scheme prefix already
+   */
+  prependHttpIfMissing(): this {
+    return this.filterIf('prependHttp', {
+      $not: { $regex: /^[a-zA-Z][a-zA-Z\d+\-.]*:/ },
+    })
+  }
 }
 
 export default BuilderString
