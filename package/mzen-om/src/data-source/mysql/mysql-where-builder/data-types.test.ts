@@ -78,14 +78,14 @@ describe('MysqlWhereBuilder - Data Type Handling Analysis', () => {
   // text 'null' via ->>, and casting that to compare against a number fails with
   // "Truncated incorrect DOUBLE value: 'null'" in strict SQL mode instead of just
   // not matching. This previously affected numeric equality/comparison filters
-  // (e.g. ServiceUsageTracking.recordResponseCompleted matching on
-  // responsesCompletedPeriodStartMs, which defaults to null).
+  // (e.g. ServiceUsageTracking.recordResponseStarted matching on
+  // responsesStartedPeriodStartMs, which defaults to null).
   it('should guard numeric comparisons with JSON_TYPE instead of raw ->> extraction', async () => {
-    const query = { responsesCompletedPeriodStartMs: 1754568000000 }
+    const query = { responsesStartedPeriodStartMs: 1754568000000 }
     const result = await whereBuilder.buildWhereClause(query)
     expect(result.clause).not.toContain('->>')
     expect(result.clause).toContain(
-      "JSON_TYPE(JSON_EXTRACT(jdoc, '$.responsesCompletedPeriodStartMs'))"
+      "JSON_TYPE(JSON_EXTRACT(jdoc, '$.responsesStartedPeriodStartMs'))"
     )
     expect(result.clause).toContain("IN ('INTEGER', 'DOUBLE', 'DECIMAL')")
     expect(result.params).toEqual([1754568000000])
