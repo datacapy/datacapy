@@ -62,13 +62,11 @@ export interface SchemaSpecValidate {
   email?: boolean | SchemaSpecValidateOptions
   valueLength?: SchemaSpecValidateOptionsValueLength
   equality?:
-    | SchemaSpecValidateOptionsEquality
-    | Array<SchemaSpecValidateOptionsEquality>
+    SchemaSpecValidateOptionsEquality | Array<SchemaSpecValidateOptionsEquality>
   inArray?: SchemaSpecValidateOptionsInArray
   regex?: SchemaSpecValidateOptionsRegex | Array<SchemaSpecValidateOptionsRegex>
   callback?:
-    | SchemaSpecValidateOptionsCallback
-    | Array<SchemaSpecValidateOptionsCallback>
+    SchemaSpecValidateOptionsCallback | Array<SchemaSpecValidateOptionsCallback>
 }
 
 export interface SchemaSpecValidateOptions {

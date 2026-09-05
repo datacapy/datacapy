@@ -137,10 +137,9 @@ export class BuilderString extends BuilderBase<string> {
    * Strip HTML tags from the string
    */
   stripHtml(): this {
-    if (!this.spec.$filter)
-      this.spec.$filter = {}
-      // Note: stripHtml is added via filter config, not in base SchemaSpecFilter interface
-      // but it's supported in the Filter.filter() implementation
+    if (!this.spec.$filter) this.spec.$filter = {}
+    // Note: stripHtml is added via filter config, not in base SchemaSpecFilter interface
+    // but it's supported in the Filter.filter() implementation
     ;(this.spec.$filter as any).stripHtml = true
     return this
   }

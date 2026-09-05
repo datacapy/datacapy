@@ -4,7 +4,7 @@ export class ValidatorNotNull {
       value !== null &&
       !(
         // The string value NULL or null are treated as a literal null
-        (typeof value == 'string' && value.toLowerCase() == 'null')
+        typeof value == 'string' && value.toLowerCase() == 'null'
       )
     const name = options && options.label ? options.label : 'field'
     const message =
