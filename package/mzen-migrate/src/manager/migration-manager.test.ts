@@ -468,11 +468,21 @@ describe("MigrationManager", () => {
     // resolveDataSource() acquires a dynamic datasource reference that must be
     // released once migrate() is done with it, on both success and error paths.
     const registryKey = "project:proj1";
+    const dynamicModelManagers: ModelManager[] = [];
+
+    afterEach(async () => {
+      for (const manager of dynamicModelManagers.splice(0)) {
+        // Drop the pre-seed's own reference, or shutdown waits for it to drain
+        manager.dataSourceRegistry!.release(registryKey);
+        await manager.shutdown();
+      }
+    });
 
     function buildDynamicModelManager() {
       const dynamicModelManager = new ModelManager({
         dynamicDataSource: { enable: true },
       });
+      dynamicModelManagers.push(dynamicModelManager);
 
       // Registry entry is pre-seeded directly so resolveDataSource()'s acquire
       // resolves without needing a real DataSourceLookup/connection. The lookup
