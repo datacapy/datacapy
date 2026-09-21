@@ -309,6 +309,8 @@ export class DataSourceRegistry {
       },
       Math.min(this.config.idleTimeout / 2, 60000)
     ) // Check at half idle timeout, max 1 minute
+    // Housekeeping only: must not keep the process alive if close() is never called
+    this.idleTimeoutTimer.unref()
   }
 
   /**
