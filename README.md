@@ -1,12 +1,14 @@
 # Mzen Monorepo
 
-A TypeScript-based ODM/ORM framework with schema validation, REST API generation, and utilities for building data-driven applications.
+A TypeScript-based ODM/ORM framework with schema validation, REST API
+generation, and utilities for building data-driven applications.
 
 ## Packages
 
 ### mzen-om
 
-Object mapper providing ODM/ORM functionality for TypeScript applications. Supports multiple data sources including MongoDB and MySQL, with features like:
+Object mapper providing ODM/ORM functionality for TypeScript applications.
+Supports multiple data sources including MongoDB and MySQL, with features like:
 
 - Model management and repositories
 - Relationship handling (has-one, has-many, belongs-to)
@@ -18,6 +20,7 @@ Object mapper providing ODM/ORM functionality for TypeScript applications. Suppo
 
 Schema validation, formatting, and filtering library. Provides:
 
+- Fluent schema builder (`sb`) and raw spec definitions
 - Type-safe schema definitions
 - Data validation and type casting
 - Field filtering and sanitization
@@ -33,9 +36,16 @@ REST API server framework for exposing models as HTTP endpoints. Features:
 - Express.js integration
 - Configurable endpoints and middleware
 
+### mzen-migrate
+
+Database migration runner for mzen data sources. See
+[its docs](package/mzen-migrate/docs/architecture/index.md).
+
 ### mzen-id
 
-Utility for generating Base62-encoded UUIDs, designed as a relational database-friendly alternative to MongoDB's ObjectId format.
+Utility for generating short, time-ordered Base62 string IDs (12 bytes, 15
+characters), designed as a relational database-friendly alternative to MongoDB's
+ObjectId format.
 
 ## Installation
 
@@ -76,4 +86,4 @@ pnpm format
 
 ## License
 
-BSD-3-Clause
+[BSD 3-Clause](LICENSE)

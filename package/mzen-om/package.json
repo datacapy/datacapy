@@ -19,10 +19,14 @@
   },
   "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
   "license": "BSD-3-Clause",
-  "homepage": "https://github.com/kevin-foster-uk/mzen",
+  "homepage": "https://github.com/kevin-foster-uk/mzen#readme",
+  "bugs": {
+    "url": "https://github.com/kevin-foster-uk/mzen/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kevin-foster-uk/mzen.git"
+    "url": "git+https://github.com/kevin-foster-uk/mzen.git",
+    "directory": "package/mzen-om"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",
