@@ -1,3 +1,4 @@
+// cspell:ignore elemMatch
 import { MysqlSqlBuilder } from '../mysql-sql-builder'
 
 describe('MysqlSqlBuilder - buildSelectQuery', () => {
@@ -52,5 +53,15 @@ describe('MysqlSqlBuilder - buildSelectQuery', () => {
       options
     )
     expect(result.sql).toContain(`LIMIT ${Number.MAX_SAFE_INTEGER} OFFSET 5`)
+  })
+
+  it('should reject rather than build an unscoped SELECT when the query uses only unregistered operators', async () => {
+    // Regression: previously an unregistered operator was silently dropped
+    // from the WHERE clause, so this produced a SELECT with no WHERE clause
+    // at all - returning every row instead of throwing.
+    const query = { projectId: { $elemMatch: { foo: 'bar' } } }
+    await expect(sqlBuilder.buildSelectQuery('users', query)).rejects.toThrow(
+      'Invalid query operator'
+    )
   })
 })

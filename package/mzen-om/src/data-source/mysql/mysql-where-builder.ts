@@ -189,19 +189,26 @@ export class MysqlWhereBuilder {
         for (const [operator, operand] of Object.entries(value)) {
           const handler = this.operatorRegistry.getSelectionHandler(operator)
 
-          if (handler) {
-            const result = await handler.handle(
-              operator,
-              key,
-              operand,
-              context,
-              value // Pass all siblings for $options access
-            )
+          if (!handler) {
+            // Fail closed: an unrecognised operator must never be silently
+            // dropped from the query, since a query missing a condition is
+            // not "no rows match" but "no WHERE clause for this field at
+            // all" - potentially scoping a SELECT/UPDATE/DELETE far wider
+            // than intended.
+            throw new Error(`Invalid query operator: ${operator}`)
+          }
 
-            if (result) {
-              conditions.push(result.condition)
-              params.push(...result.params)
-            }
+          const result = await handler.handle(
+            operator,
+            key,
+            operand,
+            context,
+            value // Pass all siblings for $options access
+          )
+
+          if (result) {
+            conditions.push(result.condition)
+            params.push(...result.params)
           }
         }
       } else {

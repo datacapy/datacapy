@@ -1,3 +1,4 @@
+// cspell:ignore elemMatch
 import { MysqlSqlBuilder } from '../mysql-sql-builder'
 
 describe('MysqlSqlBuilder - buildDeleteQuery', () => {
@@ -22,5 +23,15 @@ describe('MysqlSqlBuilder - buildDeleteQuery', () => {
     const result = await sqlBuilder.buildDeleteQuery('users', query, true)
 
     expect(result.sql).toContain('LIMIT 1')
+  })
+
+  it('should reject rather than build an unscoped DELETE when the query uses only unregistered operators', async () => {
+    // Regression: previously an unregistered operator was silently dropped
+    // from the WHERE clause, so this produced `DELETE FROM \`users\`` with
+    // no WHERE clause at all - deleting every row instead of throwing.
+    const query = { projectId: { $elemMatch: { foo: 'bar' } } }
+    await expect(sqlBuilder.buildDeleteQuery('users', query)).rejects.toThrow(
+      'Invalid query operator'
+    )
   })
 })
