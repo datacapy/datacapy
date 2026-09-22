@@ -1,3 +1,4 @@
+import { Readable } from 'stream'
 import {
   BodyParserConfigurer,
   ServerBodyParserConfig,
@@ -93,6 +94,13 @@ describe('BodyParserConfigurer', () => {
         limit: '5mb',
         type: undefined,
       })
+    })
+
+    it('defaults raw to rawDefault, not textDefault, when raw config is omitted', () => {
+      // Regression: previously fell back to textDefault - identical values
+      // today, but the wrong default entirely if the two ever diverge.
+      const result = configurer.normalizeConfig({})
+      expect(result.raw).toEqual({ enable: false, limit: '100kb' })
     })
 
     it('handles enable flag correctly when explicitly set to false', () => {
@@ -222,6 +230,42 @@ describe('BodyParserConfigurer', () => {
       const middleware = configurer.getMiddleware(normalized)
 
       expect(middleware.length).toBe(4)
+    })
+
+    it('raw middleware parses the body as a Buffer, not a string', async () => {
+      // Regression: this previously used bodyParser.text(), which decodes
+      // the body to a UTF-8 string instead of leaving it as raw bytes -
+      // wrong for any consumer needing the exact bytes (e.g. a webhook
+      // signature check over the raw request body).
+      const config: ServerBodyParserConfig = {
+        json: { enable: false },
+        raw: { enable: true, type: 'application/octet-stream' },
+      }
+      const normalized = configurer.normalizeConfig(config)
+      const [rawMiddleware] = configurer.getMiddleware(normalized)
+
+      const req = new Readable() as Readable & {
+        headers: Record<string, string>
+        method?: string
+        body?: unknown
+      }
+      req.method = 'POST'
+      const body = Buffer.from([0x01, 0x02, 0x03])
+      req.push(body)
+      req.push(null)
+      req.headers = {
+        'content-type': 'application/octet-stream',
+        'content-length': String(body.length),
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        rawMiddleware(req, {}, (err?: unknown) =>
+          err ? reject(err) : resolve()
+        )
+      })
+
+      expect(Buffer.isBuffer(req.body)).toBe(true)
+      expect(req.body).toEqual(Buffer.from([0x01, 0x02, 0x03]))
     })
   })
 })

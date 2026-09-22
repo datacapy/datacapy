@@ -80,7 +80,7 @@ export class BodyParserConfigurer {
             limit: raw.limit != undefined ? raw.limit : rawDefault.limit,
             type: raw.type != undefined ? raw.type : undefined,
           }
-        : textDefault,
+        : rawDefault,
     }
   }
 
@@ -101,7 +101,7 @@ export class BodyParserConfigurer {
       middleware.push(bodyParser.text(text))
     }
     if (raw && raw.enable) {
-      middleware.push(bodyParser.text(raw))
+      middleware.push(bodyParser.raw(raw))
     }
 
     return middleware
