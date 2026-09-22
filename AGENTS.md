@@ -4,6 +4,13 @@
 
 - This codebase is written in an OOP style. Prefer methods on the relevant class over standalone/module-level helper functions, even for small utilities (e.g. a config-normalising helper used only within one class should be a private method on that class, not a free function above it).
 
+### Writing Style
+
+No em-dashes anywhere in this repository: prose, docs, code comments, commit messages, PR
+descriptions. Use a comma, colon, semicolon, or a full stop and a new sentence instead. It's
+the single most common tell in AI-generated writing, so treat it as a hard rule, not a style
+preference.
+
 ### Naming Conventions
 
 Timestamp fields use the `xxxAt` suffix (e.g. `createdAt`, `updatedAt`, `deletedAt`), never the bare word alone. `mzen-om` has no auto-populating hook for document lifecycle timestamps: schemas declare their own `createdAt`/`updatedAt` with a schema default (e.g. `createdAt: sb.date().default('now')`). Soft-delete support (`softDelete: true` on a repo) is hardcoded in `repo.ts` to use the field name `deletedAt`; schemas enabling it must declare `deletedAt: sb.date().default(null)`.
@@ -22,14 +29,14 @@ Timestamp fields use the `xxxAt` suffix (e.g. `createdAt`, `updatedAt`, `deleted
 
 Each `mzen-*` package (`mzen-id`, `mzen-migrate`, `mzen-om`, `mzen-schema`, `mzen-server`)
 has its own independent semver line, tracked via [Changesets](https://github.com/changesets/changesets)
-(`.changeset/`). None of these are published to npm — they're consumed by `veysur` purely
-via the pnpm `workspace:*` protocol — so "release" means a version bump, a changelog entry,
+(`.changeset/`). None of these are published to npm: they're consumed by `veysur` purely
+via the pnpm `workspace:*` protocol, so "release" means a version bump, a changelog entry,
 a git tag, and a GitHub release, not an `npm publish`.
 
 - When a PR changes one or more `mzen-*` packages' behaviour, add a changeset:
-  `pnpm changeset` — pick the affected package(s), the bump level (patch/minor/major), and
-  write the changelog summary.
-- To cut a release: `./scripts/release.sh` — runs `pnpm changeset version`, commits, tags
+  `pnpm changeset`, picking the affected package(s), the bump level (patch/minor/major), and
+  writing the changelog summary.
+- To cut a release: `./scripts/release.sh`. Runs `pnpm changeset version`, commits, tags
   each bumped package `<package-name>@<version>`, and pushes. Prints the `gh release create`
   command(s) to run afterwards for each tag.
-- Manual, maintainer-triggered flow for now — no CI release automation yet.
+- Manual, maintainer-triggered flow for now: no CI release automation yet.
