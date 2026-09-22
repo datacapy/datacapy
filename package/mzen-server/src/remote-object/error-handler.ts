@@ -14,9 +14,11 @@ import { ServerApiConfigEndpointResponse } from '../api-config'
 export class ErrorHandler {
   private logger: LoggerInterface
   private errorTranslator?: ErrorTranslator
+  private exposeErrorDetails: boolean
 
-  constructor(logger: LoggerInterface) {
+  constructor(logger: LoggerInterface, exposeErrorDetails = false) {
     this.logger = logger
+    this.exposeErrorDetails = exposeErrorDetails
   }
 
   /**
@@ -24,6 +26,16 @@ export class ErrorHandler {
    */
   setLogger(logger: LoggerInterface): void {
     this.logger = logger
+  }
+
+  /**
+   * Whether an unhandled error's own message may be returned to the client.
+   * Off by default - the host application opts in via the constructor, e.g.
+   * only outside production, since server-side logging (unaffected by this
+   * flag) already gets the full detail regardless.
+   */
+  setExposeErrorDetails(exposeErrorDetails: boolean): void {
+    this.exposeErrorDetails = exposeErrorDetails
   }
 
   /**
@@ -176,9 +188,12 @@ export class ErrorHandler {
     method: string
   ): void {
     if (!res.headersSent) {
+      const message = this.exposeErrorDetails
+        ? err?.message || 'An unexpected error occurred'
+        : 'An unexpected error occurred'
       res.status(500).json({
         error: 'InternalServerError',
-        message: err?.message || 'An unexpected error occurred',
+        message,
         endpoint: endpointName,
         method: method,
       })

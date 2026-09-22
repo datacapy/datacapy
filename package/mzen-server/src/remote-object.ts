@@ -86,7 +86,10 @@ export class ServerRemoteObject {
     this.requestDataParser = new RequestDataParser(this.config.server)
     this.bodyParserConfigurer = new BodyParserConfigurer()
     this.responseHandler = new ResponseHandler()
-    this.errorHandler = new ErrorHandler(console as LoggerInterface)
+    this.errorHandler = new ErrorHandler(
+      console as LoggerInterface,
+      !!this.config.server?.exposeErrorDetails
+    )
     this.endpointResolver = new EndpointResolver(this.object, this.modelManager)
     this.middlewareFactory = new MiddlewareFactory(
       this.requestDataParser,

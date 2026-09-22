@@ -85,10 +85,64 @@ describe('ErrorHandler', () => {
       expect(mockRes.json).toHaveBeenCalledWith(
         expect.objectContaining({
           error: 'InternalServerError',
-          message: 'Unexpected error',
           endpoint: 'test-endpoint',
           method: 'testMethod',
         })
+      )
+    })
+
+    it('does not expose the raw error message by default', async () => {
+      const err = new Error('DB connection failed: password=secret123')
+
+      await errorHandler.handleEndpointError(
+        err,
+        mockRes,
+        mockReq,
+        'test-endpoint',
+        'testMethod',
+        {}
+      )
+
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'An unexpected error occurred',
+        })
+      )
+    })
+
+    it('exposes the raw error message when the host application opts in', async () => {
+      const exposingHandler = new ErrorHandler(mockLogger, true)
+      const err = new Error('Unexpected error')
+
+      await exposingHandler.handleEndpointError(
+        err,
+        mockRes,
+        mockReq,
+        'test-endpoint',
+        'testMethod',
+        {}
+      )
+
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unexpected error' })
+      )
+    })
+
+    it('setExposeErrorDetails() toggles exposure at runtime', async () => {
+      errorHandler.setExposeErrorDetails(true)
+      const err = new Error('Unexpected error')
+
+      await errorHandler.handleEndpointError(
+        err,
+        mockRes,
+        mockReq,
+        'test-endpoint',
+        'testMethod',
+        {}
+      )
+
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unexpected error' })
       )
     })
 
