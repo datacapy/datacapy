@@ -104,6 +104,56 @@ describe('FilterStripHtml', () => {
     expect(result).toBe('Link: <a href="test.com" class="link">Click here</a>')
   })
 
+  it('should strip a javascript: URI from an allow-listed href attribute', () => {
+    const result = filter.filter('<a href="javascript:alert(1)">click</a>', {
+      allowTags: ['a'],
+    })
+    expect(result).toBe('<a>click</a>')
+  })
+
+  it('should strip a javascript: URI even with embedded control characters (java\\tscript:)', () => {
+    const result = filter.filter('<a href="java\tscript:alert(1)">click</a>', {
+      allowTags: ['a'],
+    })
+    expect(result).not.toContain('script:')
+    expect(result).toBe('<a>click</a>')
+  })
+
+  it('should allow http/https/mailto URIs on an allow-listed href attribute', () => {
+    expect(
+      filter.filter('<a href="https://example.com">go</a>', {
+        allowTags: ['a'],
+      })
+    ).toBe('<a href="https://example.com">go</a>')
+    expect(
+      filter.filter('<a href="mailto:a@example.com">mail</a>', {
+        allowTags: ['a'],
+      })
+    ).toBe('<a href="mailto:a@example.com">mail</a>')
+  })
+
+  it('should strip an onerror event-handler attribute from an allow-listed img tag', () => {
+    const result = filter.filter('<img src="x" onerror="alert(1)">', {
+      allowTags: ['img'],
+    })
+    expect(result).toBe('<img src="x">')
+  })
+
+  it('should strip an onmouseover event-handler attribute even when title carries encoded quotes', () => {
+    const result = filter.filter(
+      '<a href="test" title="x&quot; onmouseover=&quot;alert(1)">click</a>',
+      { allowTags: ['a'] }
+    )
+    expect(result).not.toContain('onmouseover')
+  })
+
+  it('should preserve a self-closing allow-listed tag while stripping its unsafe attributes', () => {
+    const result = filter.filter('<img src="x" onerror="alert(1)" />', {
+      allowTags: ['img'],
+    })
+    expect(result).toBe('<img src="x" />')
+  })
+
   it('should handle empty string', () => {
     const result = filter.filter('')
     expect(result).toBe('')
