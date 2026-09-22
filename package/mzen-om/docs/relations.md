@@ -2,13 +2,16 @@
 
 ## Overview
 
-Mzen uses a sophisticated relation system for joining data across repositories, similar to ORMs. The system supports automatic population of related documents with query optimisation.
+Mzen uses a sophisticated relation system for joining data across repositories,
+similar to ORMs. The system supports automatic population of related documents
+with query optimisation.
 
 ## Relation Types
 
 The system supports various relation types:
 
 ### belongsToOne
+
 A document belongs to a single related document.
 
 ```typescript
@@ -23,6 +26,7 @@ relations: {
 ```
 
 ### belongsToMany
+
 A document belongs to multiple related documents using an array of IDs.
 
 ```typescript
@@ -37,6 +41,7 @@ relations: {
 ```
 
 ### hasOne
+
 A document has one related document.
 
 ```typescript
@@ -51,6 +56,7 @@ relations: {
 ```
 
 ### hasMany
+
 A document has many related documents.
 
 ```typescript
@@ -65,6 +71,7 @@ relations: {
 ```
 
 ### hasManyCount
+
 Returns count of related documents instead of the documents themselves.
 
 ```typescript
@@ -81,6 +88,7 @@ relations: {
 ### Embedded Relations
 
 Embedded relations join on data within the same document:
+
 - `embeddedHasOne` - Embedded one-to-one relation
 - `embeddedHasMany` - Embedded one-to-many relation
 - `embeddedBelongsToOne` - Embedded belongs-to-one relation
@@ -101,15 +109,15 @@ export class RepoPost extends Repo<Post> {
         author: {
           type: 'belongsToOne',
           repo: 'user',
-          key: 'authorId'
+          key: 'authorId',
         },
         comments: {
           type: 'hasMany',
           repo: 'comment',
           pkey: '_id',
-          key: 'postId'
-        }
-      }
+          key: 'postId',
+        },
+      },
     })
   }
 }
@@ -121,29 +129,35 @@ Relations can be populated automatically or manually:
 
 ```typescript
 // Auto-populate in query
-const posts = await repoPost.find({}, {
-  populate: {
-    author: true,
-    comments: true
+const posts = await repoPost.find(
+  {},
+  {
+    populate: {
+      author: true,
+      comments: true,
+    },
   }
-})
+)
 
 // Nested population
-const posts = await repoPost.find({}, {
-  populate: {
-    author: true,
-    comments: {
-      populate: {
-        user: true  // Populate user on each comment
-      }
-    }
+const posts = await repoPost.find(
+  {},
+  {
+    populate: {
+      author: true,
+      comments: {
+        populate: {
+          user: true, // Populate user on each comment
+        },
+      },
+    },
   }
-})
+)
 
 // Manual population on existing results
 await repoPost.populate(posts, {
   author: true,
-  comments: true
+  comments: true,
 })
 ```
 
@@ -172,6 +186,7 @@ const posts = await repoPost.find({}, {
 ## Query Optimisation
 
 The relation system includes basic query optimisation:
+
 - Batches queries to minimise database round-trips
 - Uses `$in` operator for single-key lookups (most efficient)
 - Optimises composite key queries (see [Composite Keys](composite-keys.md))
@@ -181,10 +196,12 @@ The relation system includes basic query optimisation:
 Understanding field direction is crucial:
 
 ### belongsTo Relations
+
 - `key` is the field in the **current** document
 - `pkey` is the field in the **related** document (defaults to `_id`)
 
 ### has Relations
+
 - `pkey` is the field in the **current** document
 - `key` is the field in the **related** documents
 
@@ -192,11 +209,30 @@ Understanding field direction is crucial:
 
 ### Composite Keys
 
-Relations support composite keys for multi-field matching. See [Composite Keys](composite-keys.md) for detailed information.
+Relations support composite keys for multi-field matching. See
+[Composite Keys](composite-keys.md) for detailed information.
 
 ### Cross-DataSource Relations
 
-Relations can span multiple datasources. See [DataSource Context](dynamic-datasource.md) for details.
+Relations can span multiple datasources. See
+[DataSource Context](dynamic-datasource.md) for details.
+
+## Security: Populated Relations Are Never Scoped
+
+Relation population (`hasOne`, `hasMany`, `belongsToOne`, `belongsToMany`)
+builds its query purely from the relation's declared foreign-key mapping - it
+has no concept of ACL, tenant, or ownership scoping, and applies none. If a
+document returned by an already-scoped top-level query has a foreign key
+pointing at a record belonging to a different tenant/project (e.g. corrupted
+data, or a bug elsewhere that let a cross-tenant reference get written),
+population will attach that other tenant's record with no additional check.
+
+Tenant isolation for populated data is entirely the calling application's
+responsibility: either ensure the parent query's own scoping is sufficient on
+its own regardless of what gets populated, or don't rely on populate to filter
+by tenant. Embedded relation variants (`embeddedHasOne`, `embeddedHasMany`,
+etc.) don't query the database at all, so they can't leak cross-tenant data via
+a _new_ query - but they don't add any scoping of their own either.
 
 ## See Also
 
