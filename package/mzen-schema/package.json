@@ -2,7 +2,7 @@
   "name": "mzen-schema",
   "type": "commonjs",
   "private": true,
-  "version": "0.0.123",
+  "version": "0.1.0",
   "description": "Mzen Schema",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",

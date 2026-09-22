@@ -17,3 +17,19 @@ Timestamp fields use the `xxxAt` suffix (e.g. `createdAt`, `updatedAt`, `deleted
   - File-specific terms: use `// cspell:ignore term` inline or at the top of the file
   - Whole file (e.g. generated files): use `// cspell:disable` at the top
   - Genuinely project-wide terms only: add to `.cspell-words.txt`
+
+### Releases
+
+Each `mzen-*` package (`mzen-id`, `mzen-migrate`, `mzen-om`, `mzen-schema`, `mzen-server`)
+has its own independent semver line, tracked via [Changesets](https://github.com/changesets/changesets)
+(`.changeset/`). None of these are published to npm — they're consumed by `veysur` purely
+via the pnpm `workspace:*` protocol — so "release" means a version bump, a changelog entry,
+a git tag, and a GitHub release, not an `npm publish`.
+
+- When a PR changes one or more `mzen-*` packages' behaviour, add a changeset:
+  `pnpm changeset` — pick the affected package(s), the bump level (patch/minor/major), and
+  write the changelog summary.
+- To cut a release: `./scripts/release.sh` — runs `pnpm changeset version`, commits, tags
+  each bumped package `<package-name>@<version>`, and pushes. Prints the `gh release create`
+  command(s) to run afterwards for each tag.
+- Manual, maintainer-triggered flow for now — no CI release automation yet.

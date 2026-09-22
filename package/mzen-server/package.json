@@ -2,7 +2,7 @@
   "name": "mzen-server",
   "type": "commonjs",
   "private": true,
-  "version": "0.1.210",
+  "version": "0.1.0",
   "description": "mzen server",
   "main": "dist/index",
   "types": "dist/index.d.ts",

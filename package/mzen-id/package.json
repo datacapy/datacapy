@@ -2,7 +2,7 @@
   "name": "mzen-id",
   "type": "commonjs",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Mzen Id",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",
@@ -26,8 +26,7 @@
     "url": "git+https://github.com/kevin-foster-uk/mzen.git",
     "directory": "package/mzen-id"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^25.5.2",
     "ts-node": "^10.7.0",

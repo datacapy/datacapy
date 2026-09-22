@@ -24,6 +24,7 @@ module.exports = {
     { name: "cspell" },
     { name: "spelling" },
     { name: "docs" },
+    { name: "release" },
   ],
   allowCustomScopes: false,
   subjectLimit: 72,
