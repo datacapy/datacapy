@@ -87,12 +87,12 @@ export default class AddUserPreferences implements DatabasePatchInterface {
 
 ### Pattern: Data Transformation
 
-Each user's normalized email is a different computed value, so `updateMany` can't do this in one call — use `bulkWrite` to batch the per-document `updateOne` ops into a single round trip instead of issuing them one at a time. Page through with `skip`/`limit` so the working set stays bounded, rather than loading the whole collection at once:
+Each user's normalised email is a different computed value, so `updateMany` can't do this in one call: use `bulkWrite` to batch the per-document `updateOne` ops into a single round trip instead of issuing them one at a time. Page through with `skip`/`limit` so the working set stays bounded, rather than loading the whole collection at once:
 
 ```typescript
 export default class NormalizeEmails implements DatabasePatchInterface {
   version = "2024-02-05_1700";
-  description = "Normalize email addresses to lowercase";
+  description = "Normalise email addresses to lowercase";
   dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
@@ -123,14 +123,14 @@ export default class NormalizeEmails implements DatabasePatchInterface {
       skip += limit;
     }
 
-    console.log(`✓ Normalized ${updated} email addresses`);
+    console.log(`✓ Normalised ${updated} email addresses`);
   }
 }
 ```
 
 **Caveat:** since the update in each page can change the very field being sorted/matched on, re-running `find({}, { skip, limit })` after a write can shift which documents land on the next page (some get skipped, others repeated). Where the collection has a stable insertion-order field (e.g. `_id`), page by filtering on it (`{ _id: { $gt: lastSeenId } }`) instead of by numeric `skip`, so already-processed documents can't re-enter a later page.
 
-**Caveat:** `bulkWrite` is ordered and stops at the first failing op — and on MySQL you can't always tell which op in the batch failed. Keep batch sizes reasonable (page-sized, as above) and expect an all-or-nothing failure per batch rather than partial success.
+**Caveat:** `bulkWrite` is ordered and stops at the first failing op, and on MySQL you can't always tell which op in the batch failed. Keep batch sizes reasonable (page-sized, as above) and expect an all-or-nothing failure per batch rather than partial success.
 
 ## Related Documentation
 

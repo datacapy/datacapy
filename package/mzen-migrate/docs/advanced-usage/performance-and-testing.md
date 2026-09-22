@@ -1,6 +1,6 @@
-# Performance Optimization and Testing Strategies
+# Performance Optimisation and Testing Strategies
 
-## Performance Optimization
+## Performance Optimisation
 
 ### Batch Operations
 
@@ -14,16 +14,18 @@ for (const user of users) {
 await repo.updateMany({ status: "active" }, { status: { $exists: false } });
 ```
 
-**Mixed-operation batching via `bulkWrite`:** `updateMany` only works when every matched document receives the _same_ update. When each document needs a distinct computed value, use `repo.bulkWrite([...])` to submit a mixed batch of `insertOne`/`updateOne`/`updateMany`/`deleteOne`/`deleteMany` operations (each touching different documents with different values) instead of one `updateOne` round trip per document. Two caveats: `bulkWrite` is `ordered`-only — it stops and rolls back the whole batch at the first failing op, with no partial-success reporting — and on MySQL it cannot always identify which op in the batch failed if one does. It also doesn't replace pagination: `find()` still has no cursor and always resolves the full page into memory, so page through with a bounded `limit` (`skip`/`limit`) and call `bulkWrite` once per page rather than building one array for the whole collection. See [Best Practices § Don't Load Large Datasets Into Memory](../best-practices/donts.md#6-dont-load-large-datasets-into-memory) for the decision rule and a paginated example.
+**Mixed-operation batching via `bulkWrite`:** `updateMany` only works when every matched document receives the _same_ update. When each document needs a distinct computed value, use `repo.bulkWrite([...])` to submit a mixed batch of `insertOne`/`updateOne`/`updateMany`/`deleteOne`/`deleteMany` operations (each touching different documents with different values) instead of one `updateOne` round trip per document. Two caveats: `bulkWrite` is `ordered`-only, so it stops and rolls back the whole batch at the first failing op, with no partial-success reporting, and on MySQL it cannot always identify which op in the batch failed if one does. It also doesn't replace pagination: `find()` still has no cursor and always resolves the full page into memory, so page through with a bounded `limit` (`skip`/`limit`) and call `bulkWrite` once per page rather than building one array for the whole collection. See [Best Practices § Don't Load Large Datasets Into Memory](../best-practices/donts.md#6-dont-load-large-datasets-into-memory) for the decision rule and a paginated example.
 
-**No pipeline updates, and `$mul`/`$min`/`$max` don't work on MySQL:** the update passed to `updateMany`/`updateOne` must be a plain object of operators (`$set`, `$inc`, `$unset`, `$push`, `$addToSet`, `$pop`, `$pull`, `$pullAll`, `$rename`) — not an aggregation pipeline array, so a computed update like `{ $set: { newField: { $multiply: ['$oldField', 2] } } }` is not supported. When the project's datasource is MySQL, only the operator list above is implemented; `$mul`, `$min`, and `$max` will throw `Unsupported operator`, even though they appear on `DataSourceInterface`'s TypeScript type. A same-value-for-every-document case (e.g. `{ $set: { status: 'active' } }`) is the only shape `updateMany` can express in one round trip; a per-document computed value (`newField = oldField * 2`) needs the paginated `find` + `updateOne` loop above.
+**No pipeline updates, and `$mul`/`$min`/`$max` don't work on MySQL:** the update passed to `updateMany`/`updateOne` must be a plain object of operators (`$set`, `$inc`, `$unset`, `$push`, `$addToSet`, `$pop`, `$pull`, `$pullAll`, `$rename`), not an aggregation pipeline array, so a computed update like `{ $set: { newField: { $multiply: ['$oldField', 2] } } }` is not supported.
+
+When the project's datasource is MySQL, only the operator list above is implemented: `$mul`, `$min`, and `$max` will throw `Unsupported operator`, even though they appear on `DataSourceInterface`'s TypeScript type. A same-value-for-every-document case (e.g. `{ $set: { status: 'active' } }`) is the only shape `updateMany` can express in one round trip; a per-document computed value (`newField = oldField * 2`) needs the paginated `find` + `updateOne` loop above.
 
 ### Index Creation Timing
 
 ```typescript
 export default class OptimizedIndexCreation implements DatabasePatchInterface {
   version = "2024-02-12_1000";
-  description = "Create indexes with optimization";
+  description = "Create indexes with optimisation";
   dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {

@@ -173,7 +173,7 @@ async update(modelManager: ModelManager): Promise<void> {
 **Which option to use:**
 
 - **Every matched document gets the same value** (a static field, or an update built entirely from operators like `$set`/`$inc`/`$unset`) → use a single `repo.updateMany(update, filter)` call. This runs entirely on the database server: no documents cross the network, and there's only one round trip regardless of collection size.
-- **Each document needs a different, computed value** (e.g. normalizing per-document text, or logic that depends on external data) → use `repo.bulkWrite([...])` to submit a mixed batch of `insertOne`/`updateOne`/`updateMany`/`deleteOne`/`deleteMany` ops in one call, instead of one `updateOne` round trip per document:
+- **Each document needs a different, computed value** (e.g. normalising per-document text, or logic that depends on external data) → use `repo.bulkWrite([...])` to submit a mixed batch of `insertOne`/`updateOne`/`updateMany`/`deleteOne`/`deleteMany` ops in one call, instead of one `updateOne` round trip per document:
 
   ```typescript
   await repo.bulkWrite(
@@ -186,9 +186,9 @@ async update(modelManager: ModelManager): Promise<void> {
   );
   ```
 
-  `bulkWrite` is `ordered`-only (it stops and rolls back at the first failing op — there's no partial-success mode) and, on MySQL, cannot always identify which op in the batch failed if one does. It doesn't replace the pagination advice above: `find()` still has no cursor, so building a very large ops array still means resolving the full page into memory first — page through with a bounded `limit` and call `bulkWrite` once per page. See [Data Transformation](./common-patterns.md#pattern-data-transformation) below for a worked example, including how to bound the damage when that round-trip count is large.
+  `bulkWrite` is `ordered`-only (it stops and rolls back at the first failing op; there's no partial-success mode) and, on MySQL, cannot always identify which op in the batch failed if one does. It doesn't replace the pagination advice above: `find()` still has no cursor, so building a very large ops array still means resolving the full page into memory first: page through with a bounded `limit` and call `bulkWrite` once per page. See [Data Transformation](./common-patterns.md#pattern-data-transformation) below for a worked example, including how to bound the damage when that round-trip count is large.
 
-- **Never** call `repo.find({})` with no `limit` on a collection that isn't known to be small — see the `find()` API reference in [`README.md`](../../README.md#writing-patches) for the `skip`/`limit` options.
+- **Never** call `repo.find({})` with no `limit` on a collection that isn't known to be small: see the `find()` API reference in [`README.md`](../../README.md#writing-patches) for the `skip`/`limit` options.
 
 ## Related Documentation
 

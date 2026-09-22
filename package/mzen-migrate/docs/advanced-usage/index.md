@@ -21,7 +21,7 @@ Advanced patterns covered:
 - ✅ Custom workflows and programmatic usage
 - ✅ Advanced patterns (dependencies, external data, progress reporting)
 - ✅ Troubleshooting common issues
-- ✅ Performance optimization
+- ✅ Performance optimisation
 - ✅ Testing strategies
 - ✅ Deployment integration
 

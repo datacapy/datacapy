@@ -9,7 +9,7 @@ Database migration tool for mzen-om applications. Manage schema changes, data tr
 - **Version Tracking**: Track applied migrations in a metadata table
 - **Dry Run Mode**: Preview changes without applying them
 - **TypeScript First**: Full TypeScript support with type-safe patch interfaces
-- **Flexible Organization**: Organize patches by year/month with timestamped versions
+- **Flexible Organisation**: Organise patches by year/month with timestamped versions
 - **Resume Capability**: Automatically resume from last successful patch
 - **CLI Tool**: Simple command-line interface for running migrations
 
@@ -170,7 +170,7 @@ export interface DatabasePatchInterface {
 
 ### Patch File Structure
 
-Patches must be organized in a timestamped directory structure:
+Patches must be organised in a timestamped directory structure:
 
 ```
 migrate/
@@ -401,7 +401,7 @@ $ pnpm mzen-migrate --config ./migrate.config.js --datasource db
 
 ## Metadata Tracking
 
-Migration status is tracked in a `migrationMeta` table (customizable via `metaTableName`):
+Migration status is tracked in a `migrationMeta` table (customisable via `metaTableName`):
 
 ```javascript
 {
