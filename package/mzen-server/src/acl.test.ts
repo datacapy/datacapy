@@ -180,6 +180,28 @@ describe('ServerAcl', function () {
       const permitted = await acl.isPermitted('guest')
       expect(permitted).toEqual(conditions)
     })
+    it('denies when a role returning conditions is matched by an allow:false rule', async () => {
+      const config = {
+        endpoints: {},
+        rules: [{ allow: false, role: 'projectAdmin' }],
+      }
+
+      class AclAssessorProjectAdmin extends ServerAclRoleAssessor {
+        constructor() {
+          super('projectAdmin')
+        }
+        hasRole(context) {
+          // Returns a conditions object, same shape as the real
+          // projectAdmin/projectOwner assessors, whenever the role applies.
+          return Promise.resolve(!!context ? { projectAdmin: ['p1'] } : false)
+        }
+      }
+
+      const acl = new ServerAcl(config)
+      acl.addRoleAssessor(new AclAssessorProjectAdmin())
+      const permitted = await acl.isPermitted('test', {})
+      expect(permitted).toBe(false)
+    })
   })
   describe('populateContext()', function () {
     it('populates context object from each role assessor initContext()', async () => {

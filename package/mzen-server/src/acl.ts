@@ -100,11 +100,18 @@ export class ServerAcl {
               const initConditions: PermittedResultType | null =
                 typeof initResult == 'object' ? initResult : null
               if (typeof userHasRole == 'object') {
-                // An object was returned - this represents the conditions under which the user has the role
-                // If we already had role ownership conditions we need to merge the new conditions
-                result = initConditions
-                  ? { ...initConditions, ...userHasRole }
-                  : userHasRole
+                if (rule.allow === false) {
+                  // The rule explicitly denies this role - conditions describe
+                  // *when* the role applies, not whether it should override an
+                  // explicit deny, so this must still deny.
+                  result = false
+                } else {
+                  // An object was returned - this represents the conditions under which the user has the role
+                  // If we already had role ownership conditions we need to merge the new conditions
+                  result = initConditions
+                    ? { ...initConditions, ...userHasRole }
+                    : userHasRole
+                }
               } else if (userHasRole === true) {
                 if (initConditions) {
                   // The previous role assessor returned conditions - these still apply so we return them
