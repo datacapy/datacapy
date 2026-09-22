@@ -1,4 +1,6 @@
-import { SchemaIterator } from '../iterator'
+import { SchemaIterator, SchemaIteratorMeta } from '../iterator'
+import TypeCaster from '../utilities/type-caster'
+import SchemaSpec from '../spec'
 
 /**
  * Interface for SchemaFieldPrivateFilter
@@ -80,6 +82,22 @@ export class SchemaFieldPrivateFilter implements SchemaFieldPrivateFilterInterfa
             // - this allows the removal of the private value while still indicating if a value exists or not
             if (container) valueReplaceRefs.push({ container, fieldName })
           }
+          // The shared iterator never descends into $or-composed fields'
+          // children (validation intentionally handles those separately),
+          // so a private()-flagged field nested inside an $or alternative
+          // would otherwise never be visited at all. Redaction is scoped
+          // narrowly here instead, matched-by-type against $or's
+          // alternatives, rather than changing that shared skip.
+          if (spec && spec.$or && container && container[fieldName] != null) {
+            this.collectPrivateRefsInOrValue(
+              container[fieldName],
+              spec.$or,
+              mode,
+              iterator,
+              deleteRefs,
+              valueReplaceRefs
+            )
+          }
         })
       : object
 
@@ -96,6 +114,59 @@ export class SchemaFieldPrivateFilter implements SchemaFieldPrivateFilterInterfa
         delete ref.container[ref.fieldName]
     })
     return result
+  }
+
+  /**
+   * Redacts private()-flagged fields nested inside an $or-composed value,
+   * matching each alternative against the value's own runtime type (the
+   * same resolution SchemaIterator#mapField uses for a plain spec) rather
+   * than relying on a discriminator - if more than one alternative shares
+   * that type, every one of them is walked, so a field private in any
+   * matching alternative is redacted regardless of which one truly applies.
+   */
+  private collectPrivateRefsInOrValue(
+    value: any,
+    orAlternatives: SchemaSpec[],
+    mode: boolean | string,
+    iterator: SchemaIterator,
+    deleteRefs: Array<{ container: any; fieldName: string | number }>,
+    valueReplaceRefs: Array<{ container: any; fieldName: string | number }>
+  ): void {
+    const valueType = TypeCaster.getType(value)
+
+    for (const altSpec of orAlternatives) {
+      if (!altSpec || typeof altSpec !== 'object') continue
+
+      let altType =
+        altSpec.constructor == String ? altSpec : TypeCaster.getType(altSpec)
+      if (altType == Object && (altSpec as SchemaSpec).$type !== undefined) {
+        altType = (altSpec as SchemaSpec).$type
+      }
+      if (altType !== valueType) continue
+
+      const resolvedSpec = (altSpec as SchemaSpec).$spec ?? altSpec
+
+      iterator.mapField({
+        spec: resolvedSpec as SchemaSpec,
+        specParent: null,
+        fieldName: 'value',
+        container: { value },
+        path: '',
+        callback: (opts) => {
+          const { spec: fieldSpec, fieldName, container } = opts
+          const filters =
+            fieldSpec && fieldSpec.$filter ? fieldSpec.$filter : {}
+          if (filters.private === true || filters.private == mode) {
+            if (container) deleteRefs.push({ container, fieldName })
+          }
+          if (filters.privateValue === true || filters.privateValue == mode) {
+            if (container) valueReplaceRefs.push({ container, fieldName })
+          }
+        },
+        config: {},
+        meta: { errors: {} } as SchemaIteratorMeta,
+      })
+    }
   }
 }
 
