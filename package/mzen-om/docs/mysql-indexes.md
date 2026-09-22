@@ -47,13 +47,13 @@ await repo.createIndex(
 
 ### Pitfall: omitting `typeHint` on a Date field
 
-Without a `typeHint`, a Date-typed field gets the default `string` hint — the
+Without a `typeHint`, a Date-typed field gets the default `string` hint: the
 generated column is `VARCHAR`, populated via plain `JSON_VALUE` with no
 `STR_TO_DATE` cast. Range queries (`$lte`, `$gte`, `$lt`, `$gt`) against it then
 compare the ISO-8601 string _lexicographically_, not chronologically.
 
 This is silently wrong rather than an error: for two timestamps on the same
-calendar day, the byte at index 10 (`'T'` vs `' '` — the where-builder formats
+calendar day, the byte at index 10 (`'T'` vs `' '`: the where-builder formats
 query params as `'YYYY-MM-DD HH:mm:ss'`, not ISO) makes the stored value compare
 as "greater" than it should, so `<=` queries can incorrectly exclude rows that
 are actually due/expired until the calendar date rolls over. This exact bug
@@ -61,7 +61,7 @@ caused a production scheduler outage (see `RepoTask`'s `enabled` index in
 `veysur-dev`).
 
 **Any index spec containing a Date-typed schema field must set
-`typeHint: 'datetime'`/`'timestamp'` for that field** — there is no safe default
+`typeHint: 'datetime'`/`'timestamp'` for that field**: there is no safe default
 for dates.
 
 ## Case-Insensitive Search
@@ -72,8 +72,8 @@ MySQL's `->>` JSON extraction returns values with `utf8mb4_bin` (binary)
 collation. This makes `LIKE` comparisons case-sensitive, even though `LIKE` is
 case-insensitive on regular table columns. A query like
 `{ email: { $regex: 'john', $options: 'i' } }` will fall back to
-`LOWER(jdoc->>'$.email') LIKE '%john%'` — correct, but it applies `LOWER()` to
-every row on every query.
+`LOWER(jdoc->>'$.email') LIKE '%john%'`, which is correct, but applies `LOWER()`
+to every row on every query.
 
 ### The solution: `lowercase: true`
 
@@ -89,15 +89,15 @@ await repo.createIndex(
 // CREATE INDEX idx_email_lower ON user (gen_email_lower ASC)
 ```
 
-Once the column exists, case-insensitive queries use it automatically — no code
+Once the column exists, case-insensitive queries use it automatically: no code
 changes needed at the query site:
 
 ```typescript
 // Query unchanged:
 repo.find({ email: { $regex: 'john', $options: 'i' } })
 
-// Without gen_email_lower:  LOWER(jdoc->>'$.email') LIKE '%john%'  — full scan, LOWER() per row
-// With gen_email_lower:     `gen_email_lower` LIKE '%john%'        — indexed column, no runtime LOWER()
+// Without gen_email_lower:  LOWER(jdoc->>'$.email') LIKE '%john%'  (full scan, LOWER() per row)
+// With gen_email_lower:     `gen_email_lower` LIKE '%john%'        (indexed column, no runtime LOWER())
 ```
 
 The same optimisation applies to `$like` and case-insensitive `RegExp` objects.
@@ -122,9 +122,9 @@ column.
 | `$regex` + `$options: 'i'` (simple literal)  | No                       | `LOWER(jdoc->>'$.field') LIKE ?`    |
 | `$like`                                      | Yes                      | `` `gen_field_lower` LIKE ? ``      |
 | `$like`                                      | No                       | `LOWER(jdoc->>'$.field') LIKE ?`    |
-| `$regex` no options (simple literal)         | —                        | `jdoc->>'$.field' LIKE BINARY ?`    |
-| `$regex` + `$options: 'i'` (complex pattern) | —                        | `jdoc->>'$.field' REGEXP '(?i)...'` |
-| `=`, `IN`, `!=`                              | —                        | unchanged (always case-sensitive)   |
+| `$regex` no options (simple literal)         | N/A                      | `jdoc->>'$.field' LIKE BINARY ?`    |
+| `$regex` + `$options: 'i'` (complex pattern) | N/A                      | `jdoc->>'$.field' REGEXP '(?i)...'` |
+| `=`, `IN`, `!=`                              | N/A                      | unchanged (always case-sensitive)   |
 
 ### Example: user search
 
@@ -143,7 +143,7 @@ await repo.createIndex(
   { name: 'idx_name_last_lower', lowercase: true }
 )
 
-// Query — no changes needed
+// Query: no changes needed
 repo.find({
   $or: [
     { email: { $regex: search, $options: 'i' } },

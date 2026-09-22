@@ -30,7 +30,7 @@ For more detailed analysis:
 
 ```typescript
 console.log('Composite IDs:', compositeIds)
-console.log('Normalized Keys:', normalizedKeys)
+console.log('Normalised Keys:', normalizedKeys)
 console.log('Generated Query:', JSON.stringify(config.query, null, 2))
 console.time('query-execution')
 const relatedDocs = await repo.find(config.query)
@@ -88,15 +88,15 @@ console.log('Source composite IDs:', compositeIds)
    - Verify `key` and `keys` are being merged correctly
    - Check if `key` is being overridden
 
-3. **Query optimization issue**
+3. **Query optimisation issue**
    - Generated query may have incorrect constant/variant detection
    - Check the actual query being sent to database
 
 **Debugging steps:**
 
 ```typescript
-// Log normalized keys
-console.log('Normalized keys:', this.getNormalizedKeys())
+// Log normalised keys
+console.log('Normalised keys:', this.getNormalizedKeys())
 
 // Log composite IDs being generated
 console.log('Composite IDs:', compositeIds)
@@ -145,7 +145,7 @@ db.collection.find(query).explain('executionStats')
 EXPLAIN SELECT ...
 ```
 
-See [Performance](performance.md) for optimization strategies.
+See [Performance](performance.md) for optimisation strategies.
 
 ### DataSource Context Issues
 
@@ -263,5 +263,5 @@ If you're stuck:
 - [Relations](relations.md) - Understanding relation configuration
 - [Composite Keys](composite-keys.md) - Multi-field relation matching
 - [DataSource Context](dynamic-datasource.md) - Dynamic datasource debugging
-- [Performance](performance.md) - Query optimization
+- [Performance](performance.md) - Query optimisation
 - [Testing](testing.md) - Testing strategies

@@ -1,4 +1,4 @@
-# Update Operators — MySQL DataSource
+# Update Operators: MySQL DataSource
 
 ## Supported Operators
 
@@ -17,28 +17,28 @@
 ## Usage Examples
 
 ```typescript
-// $push — append one tag
+// $push: append one tag
 await repo.updateOne({ id }, { $push: { tags: 'draft' } })
 
-// $push $each — append multiple at once
+// $push $each: append multiple at once
 await repo.updateOne(
   { id },
   { $push: { tags: { $each: ['draft', 'review'] } } }
 )
 
-// $addToSet — add role only if missing
+// $addToSet: add role only if missing
 await repo.updateOne({ id }, { $addToSet: { roles: 'editor' } })
 
-// $pop — remove last element
+// $pop: remove last element
 await repo.updateOne({ id }, { $pop: { history: 1 } })
 
-// $pop — remove first element
+// $pop: remove first element
 await repo.updateOne({ id }, { $pop: { history: -1 } })
 
-// $pull — remove all elements equal to a value
+// $pull: remove all elements equal to a value
 await repo.updateOne({ id }, { $pull: { tags: 'obsolete' } })
 
-// $pullAll — remove several values at once
+// $pullAll: remove several values at once
 await repo.updateOne({ id }, { $pullAll: { tags: ['obsolete', 'wip'] } })
 ```
 
@@ -54,7 +54,7 @@ await repo.updateOne({ id }, { $pullAll: { tags: ['obsolete', 'wip'] } })
   `{ $pull: { items: { status: 'inactive' } } }`) throw an error. Use
   application-level filtering and `$set` to replace the array instead.
 - **`$pop` on an empty array** is a no-op (the document is left unchanged).
-- **`$addToSet` with `$each`** checks each candidate independently — each
+- **`$addToSet` with `$each`** checks each candidate independently: each
   missing element is appended in order.
 
 ## Implementation

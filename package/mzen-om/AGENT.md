@@ -25,20 +25,20 @@ docs in the `docs/` directory and [README.md](README.md).
   Multi-datasource system
 - **[docs/validation.md](docs/validation.md)** - Validation and type-casting
 - **[docs/testing.md](docs/testing.md)** - Testing patterns and MockDataSource
-- **[docs/performance.md](docs/performance.md)** - Optimization strategies
+- **[docs/performance.md](docs/performance.md)** - Optimisation strategies
 - **[docs/debugging.md](docs/debugging.md)** - Troubleshooting guide
 
 ### Core Files
 
 #### Encryption System
 
-- **[src/encryption/encryption-service-rsa.ts](src/encryption/encryption-service-rsa.ts)**
-  — RSA+AES-256-GCM hybrid implementation (Node.js only)
-- **[src/model-manager.ts](src/model-manager.ts)** —
+- **[src/encryption/encryption-service-rsa.ts](src/encryption/encryption-service-rsa.ts)**:
+  RSA+AES-256-GCM hybrid implementation (Node.js only)
+- **[src/model-manager.ts](src/model-manager.ts)**:
   `ModelManagerConfig.encryptionService`, propagation in `initSchemas`
-- **[mzen-schema/src/encryption/encryption-service.ts](../../mzen-schema/src/encryption/encryption-service.ts)**
-  — `SchemaEncryptionService` interface
-- **[mzen-schema/src/schema.ts](../../mzen-schema/src/schema.ts)** —
+- **[mzen-schema/src/encryption/encryption-service.ts](../../mzen-schema/src/encryption/encryption-service.ts)**:
+  `SchemaEncryptionService` interface
+- **[mzen-schema/src/schema.ts](../../mzen-schema/src/schema.ts)**:
   `applyEncrypt`, `applyEncryptPaths`, `applyDecrypt`
 
 #### Relation System
@@ -92,7 +92,7 @@ key operations. Single-key joins are composite keys with one field.
 Use composite keys when:
 
 - Multi-tenant applications need to scope relations by
-  tenant/project/organization
+  tenant/project/organisation
 - Sharded data requires matching on multiple dimensions
 - Natural keys involve multiple fields
 - Business rules require matching on multiple fields (e.g., same survey, same
@@ -150,31 +150,31 @@ See [docs/encryption.md](docs/encryption.md) for usage and configuration.
 
 ### Design Decisions
 
-- **RSA+AES hybrid** — Pure RSA has a message size limit (~190 bytes for
+- **RSA+AES hybrid**: pure RSA has a message size limit (~190 bytes for
   2048-bit key with SHA-256). AES-256-GCM encrypts the field value; RSA-OAEP
   encrypts a random AES key. No size limit on field values.
-- **mzen-schema holds the interface; mzen-om holds the implementation** —
+- **mzen-schema holds the interface; mzen-om holds the implementation**:
   `mzen-schema` is framework-agnostic and does not depend on Node.js.
   `SchemaEncryptionServiceRsa` lives in `mzen-om` which already requires
   Node.js.
-- **`applyEncrypt`/`applyDecrypt` use `schemaIterator.iterate`** — same pattern
+- **`applyEncrypt`/`applyDecrypt` use `schemaIterator.iterate`**: same pattern
   as `applyFilters`. `applyEncryptPaths` uses `iteratePaths` for partial `$set`
   updates.
-- **ModelManager propagation is opt-in per schema** — `initSchemas` sets
+- **ModelManager propagation is opt-in per schema**: `initSchemas` sets
   `encryptionService` only on schemas that do not already have one, allowing
   per-schema overrides.
 
 ### Edge Cases
 
-- **Null/undefined fields** — skipped silently (no encryption or decryption
+- **Null/undefined fields**: skipped silently (no encryption or decryption
   attempted).
-- **Encrypted fields in queries** — `validateQuery` still runs but matches
+- **Encrypted fields in queries**: `validateQuery` still runs but matches
   against ciphertext; value-based filters on encrypted fields will not return
   results.
-- **No private key** — encryption works fine (public key only); decryption
+- **No private key**: encryption works fine (public key only); decryption
   throws `'Private key not configured'`. Useful for write-only or reporting
   nodes.
-- **Type preservation** — values are stringified (`String(value)`) before
+- **Type preservation**: values are stringified (`String(value)`) before
   encryption. After decryption the schema's normal type-casting is applied
   during subsequent `validate` calls, but callers using `find` get strings back
   if no explicit cast is defined on the field.
@@ -208,9 +208,9 @@ multi-key scenarios.
 
 **Impact:** Always specify datasource name when creating contexts.
 
-### 3. Query Optimization
+### 3. Query Optimisation
 
-**Decision:** Automatically optimize composite key queries by detecting constant
+**Decision:** Automatically optimise composite key queries by detecting constant
 vs variant fields.
 
 **Rationale:**
@@ -220,7 +220,7 @@ vs variant fields.
 - Transparent to users
 
 **Impact:** See [docs/composite-keys.md](docs/composite-keys.md) for
-optimization algorithm details.
+optimisation algorithm details.
 
 ### 4. Per-Datasource Lookup Registration
 
@@ -287,7 +287,7 @@ When adding new features:
 2. **Test edge cases** - Empty results, missing fields, arrays
 3. **Test backward compatibility** - Ensure legacy configs still work
 4. **Update MockDataSource if needed** - Support new query patterns
-5. **Add optimization tests** - Verify query optimization works correctly
+5. **Add optimisation tests** - Verify query optimisation works correctly
 
 See [docs/testing.md](docs/testing.md) for detailed testing patterns.
 
@@ -295,14 +295,14 @@ See [docs/testing.md](docs/testing.md) for detailed testing patterns.
 
 When making changes:
 
-1. **Minimize database round-trips** - Batch queries where possible
+1. **Minimise database round-trips** - Batch queries where possible
 2. **Use proper indexes** - Document required compound indexes
-3. **Optimize queries** - Leverage constant field detection for composite keys
+3. **Optimise queries** - Use constant field detection for composite keys
 4. **Cache lookups** - Implement caching in DataSourceLookup implementations
 5. **Connection pooling** - Configure registry and datasource pools
    appropriately
 
-See [docs/performance.md](docs/performance.md) for optimization strategies.
+See [docs/performance.md](docs/performance.md) for optimisation strategies.
 
 ## Questions to Consider
 
@@ -323,7 +323,7 @@ This system has comprehensive test coverage (30+ tests):
 
 - All relation types (belongsTo, has, embedded)
 - Composite key scenarios
-- Query optimization
+- Query optimisation
 - Backward compatibility
 - Edge cases
 
@@ -346,11 +346,11 @@ This is a mature, battle-tested system with:
 
 - Unified composite key implementation
 - Multi-datasource support with explicit naming
-- Automatic query optimization
+- Automatic query optimisation
 - Comprehensive test coverage
 - Strong backward compatibility
 
-When making changes, prioritize:
+When making changes, prioritise:
 
 1. Maintaining backward compatibility
 2. Clear error messages

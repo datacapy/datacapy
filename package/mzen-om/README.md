@@ -1,7 +1,7 @@
 # mzen-om
 
-NodeJS Object Document Mapping (ODM) framework for building robust applications
-with MongoDB and MySQL support.
+NodeJS Object Document Mapping (ODM) framework for MongoDB and MySQL, with
+support for schemas, repositories, and services.
 
 ## Key Features
 
@@ -15,7 +15,7 @@ with MongoDB and MySQL support.
 - **Multi-DataSource Support** - Dynamic datasource routing for multi-tenant
   architectures
 - **Composite Keys** - Advanced multi-field relation matching
-- **Query Optimization** - Automatic query optimization for efficient database
+- **Query Optimisation** - Automatic query optimisation for efficient database
   operations
 
 ## Quick Start
@@ -140,7 +140,7 @@ See [DataSource Context Documentation](docs/dynamic-datasource.md) for details.
 - [Composite Keys](docs/composite-keys.md) - Multi-field relation matching
 - [DataSource Context](docs/dynamic-datasource.md) - Multi-datasource support
 - [Encryption](docs/encryption.md) - Field-level at-rest encryption
-- [Performance](docs/performance.md) - Optimization strategies
+- [Performance](docs/performance.md) - Optimisation strategies
 - [Upsert Operations](docs/upsert.md) - upsertOne, upsertMany, and $setOnInsert
 
 ### Development

@@ -32,7 +32,7 @@ db.responses.createIndex({
 ```
 
 This ordering allows MongoDB's query planner to efficiently use the index with
-the optimized composite queries.
+the optimised composite queries.
 
 ### Index Best Practices
 
@@ -43,7 +43,7 @@ the optimized composite queries.
    usage
 4. **Avoid over-indexing** - Each index has storage and write overhead
 
-## Query Optimization
+## Query Optimisation
 
 ### Single-Key Queries
 
@@ -59,18 +59,18 @@ Single-key queries use the `$in` operator, which is the most optimal:
 
 **Performance:** O(log n) with proper index
 
-### Composite Key Optimization
+### Composite Key Optimisation
 
-The system automatically optimizes composite key queries by detecting constant
+The system automatically optimises composite key queries by detecting constant
 vs variant fields:
 
 **Example:**
 
 - 100 documents with same `projectId` and `surveyId`, varying `participantId`
-- **Unoptimized:** 100 `$or` clauses
-- **Optimized:** 2 constant equality conditions + 1 `$in` with 100 values
+- **Unoptimised:** 100 `$or` clauses
+- **Optimised:** 2 constant equality conditions + 1 `$in` with 100 values
 
-**Optimized query:**
+**Optimised query:**
 
 ```javascript
 {
@@ -80,13 +80,13 @@ vs variant fields:
 }
 ```
 
-See [Composite Keys](composite-keys.md) for detailed optimization strategies.
+See [Composite Keys](composite-keys.md) for detailed optimisation strategies.
 
 ### Relation Population
 
-The relation system includes query optimizations:
+The relation system includes query optimisations:
 
-1. **Batching** - Minimizes database round-trips
+1. **Batching** - Minimises database round-trips
 2. **Deduplication** - Removes duplicate IDs before querying
 3. **Single-key $in** - Uses efficient $in operator when possible
 4. **Constant field detection** - Reduces $or clauses for composite keys
@@ -225,7 +225,7 @@ SELECT * FROM mysql.slow_log ORDER BY start_time DESC;
 
 ## Performance Checklist
 
-When optimizing performance:
+When optimising performance:
 
 1. ✓ **Indexes exist** for all composite key fields
 2. ✓ **Index ordering** matches query patterns (constants first)
@@ -273,7 +273,7 @@ When optimizing performance:
 
 ## See Also
 
-- [Composite Keys](composite-keys.md) - Query optimization strategies
+- [Composite Keys](composite-keys.md) - Query optimisation strategies
 - [MySQL Indexes](mysql-indexes.md) - Generated columns and case-insensitive
   search indexes
 - [DataSource Context](dynamic-datasource.md) - Connection pooling and registry

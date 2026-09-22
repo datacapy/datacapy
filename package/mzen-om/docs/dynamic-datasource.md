@@ -165,7 +165,7 @@ await repoSurvey.findOne(surveyId, {
 
 ### Transactions
 
-Each transactional caller gets its own dedicated connection lease — never call
+Each transactional caller gets its own dedicated connection lease: never call
 `transactionStart()`/`transactionCommit()`/`transactionRollback()` directly on a
 shared datasource; use `repo.transaction()` instead:
 
@@ -181,12 +181,12 @@ await repo.transaction(context, async (txContext) => {
 ```
 
 `repo.transaction()` checks out a dedicated connection lease, runs the callback,
-then commits on success or rolls back on error — always releasing the lease
+then commits on success or rolls back on error, always releasing the lease
 afterwards.
 
 **The callback receives a new tx-scoped context (`txContext`), not the original
 `context`.** Every nested repo call made inside the transaction must be passed
-`txContext`, not the outer `context` — otherwise that call silently resolves to
+`txContext`, not the outer `context`, otherwise that call silently resolves to
 a non-transactional datasource instead of erroring.
 
 ## Error Handling
@@ -338,4 +338,4 @@ See [Testing](testing.md) for more details.
   BaseDataSourceLookup, DataSourceRegistry internals
 - [Architecture](architecture.md) - Overall system design
 - [Testing](testing.md) - Testing with dynamic datasources
-- [Performance](performance.md) - Optimization strategies
+- [Performance](performance.md) - Optimisation strategies

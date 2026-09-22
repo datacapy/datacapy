@@ -8,7 +8,7 @@ Mzen has comprehensive test coverage for all core features:
 - **Backward compatibility tests** - Ensure existing single-key relations work
 - **Composite key tests** - Verify multi-column joins work correctly
 - **Edge case tests** - No matches, missing fields, array handling
-- **Query optimization tests** - Verify composite key query optimization
+- **Query optimisation tests** - Verify composite key query optimisation
 
 ## Test Files
 
@@ -18,7 +18,7 @@ Located in `src/repo-populator/relation/_tests/`:
 
 - `*.test.ts` - Tests for all relation types
 - `composite-keys.test.ts` - Composite key specific tests
-- `composite-keys-optimization.test.ts` - Query optimization tests
+- `composite-keys-optimization.test.ts` - Query optimisation tests
 
 ### Testing Dynamic Datasources
 

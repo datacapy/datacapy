@@ -3,7 +3,7 @@
 # Field-Level Encryption
 
 Opt-in at-rest encryption for individual schema fields. Encrypted values are
-transparently encrypted before write and decrypted after read — no changes
+transparently encrypted before write and decrypted after read: no changes
 needed in application code beyond configuration.
 
 ## Quick Start
@@ -82,23 +82,23 @@ openssl genrsa -aes256 -out private.pem 4096
 openssl rsa -in private.pem -pubout -out public.pem
 ```
 
-Provide the passphrase via an environment variable — never hard-code it.
+Provide the passphrase via an environment variable: never hard-code it.
 
 **Read-only nodes** (e.g. reporting replicas): omit `privateKey` from the
 config. Encryption works normally; decryption throws
-`'Private key not configured — decryption unavailable'`.
+`'Private key not configured: decryption unavailable'`.
 
 ## Limitations
 
-- **Not queryable by value** — the database stores ciphertext. Filtering on an
+- **Not queryable by value**: the database stores ciphertext. Filtering on an
   encrypted field (e.g. `find({ ssn: '123-45-6789' })`) will not match.
-- **String conversion** — values are stringified before encryption. Numeric or
+- **String conversion**: values are stringified before encryption. Numeric or
   boolean fields will be returned as strings after decryption; handle
-  deserialization in the application layer.
-- **Node.js only** — `SchemaEncryptionServiceRsa` uses the built-in `crypto`
+  deserialisation in the application layer.
+- **Node.js only**: `SchemaEncryptionServiceRsa` uses the built-in `crypto`
   module. Custom implementations of `SchemaEncryptionService` can target other
   environments.
-- **No built-in key rotation** — rotating keys requires re-encrypting all stored
+- **No built-in key rotation**: rotating keys requires re-encrypting all stored
   values outside of mzen-om.
 
 ## Custom Encryption Service
@@ -121,15 +121,15 @@ export class KmsEncryptionService implements SchemaEncryptionService {
 
 ## Source References
 
-- [`mzen-schema/src/encryption/encryption-service.ts`](../../mzen-schema/src/encryption/encryption-service.ts)
-  — `SchemaEncryptionService` interface
-- [`mzen-om/src/encryption/encryption-service-rsa.ts`](../src/encryption/encryption-service-rsa.ts)
-  — RSA+AES-256-GCM implementation
-- [`mzen-schema/src/spec.ts`](../../mzen-schema/src/spec.ts) —
+- [`mzen-schema/src/encryption/encryption-service.ts`](../../mzen-schema/src/encryption/encryption-service.ts):
+  `SchemaEncryptionService` interface
+- [`mzen-om/src/encryption/encryption-service-rsa.ts`](../src/encryption/encryption-service-rsa.ts):
+  RSA+AES-256-GCM implementation
+- [`mzen-schema/src/spec.ts`](../../mzen-schema/src/spec.ts):
   `SchemaSpecFilter.encrypt` field
-- [`mzen-schema/src/schema.ts`](../../mzen-schema/src/schema.ts) —
+- [`mzen-schema/src/schema.ts`](../../mzen-schema/src/schema.ts):
   `applyEncrypt`, `applyEncryptPaths`, `applyDecrypt`
-- [`mzen-om/src/model-manager.ts`](../src/model-manager.ts) —
+- [`mzen-om/src/model-manager.ts`](../src/model-manager.ts):
   `ModelManagerConfig.encryptionService`, propagation in `initSchemas`
-- [`mzen-om/src/repo/index.ts`](../src/repo/index.ts) — call sites in insert,
+- [`mzen-om/src/repo/index.ts`](../src/repo/index.ts): call sites in insert,
   update, and find paths

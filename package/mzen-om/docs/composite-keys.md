@@ -61,7 +61,7 @@ relations: {
 
 ## How It Works
 
-### 1. Key Normalization
+### 1. Key Normalisation
 
 The `getNormalizedKeys` method converts legacy `key`/`pkey` and new `keys` into
 a unified format:
@@ -93,7 +93,7 @@ documents:
 
 ### 3. Query Building
 
-#### Single Key (Optimized)
+#### Single Key (Optimised)
 
 ```javascript
 // Uses $in for better performance
@@ -138,9 +138,9 @@ The `populateValues` method:
    - `hasOne` vs `hasMany` (single doc vs array)
    - Empty results (undefined for `*One`, empty array for `*Many`)
 
-## Query Optimization
+## Query Optimisation
 
-The system automatically optimizes queries by detecting which fields are
+The system automatically optimises queries by detecting which fields are
 constant vs variant across documents.
 
 ### Scenario 1: All but one field is constant
@@ -155,7 +155,7 @@ constant vs variant across documents.
 ]
 ```
 
-**Unoptimized query (3 $or clauses):**
+**Unoptimised query (3 $or clauses):**
 
 ```javascript
 {
@@ -167,7 +167,7 @@ constant vs variant across documents.
 }
 ```
 
-**Optimized query (constants + $in):**
+**Optimised query (constants + $in):**
 
 ```javascript
 {
@@ -193,7 +193,7 @@ constant vs variant across documents.
 ]
 ```
 
-**Optimized query (grouped by constant):**
+**Optimised query (grouped by constant):**
 
 ```javascript
 {
@@ -215,9 +215,9 @@ constant vs variant across documents.
 **Benefit:** 2 $or clauses instead of 3, with $in for variants within each
 group.
 
-### How Optimization Works
+### How Optimisation Works
 
-The optimization is handled by `buildOptimizedCompositeQuery()` in
+The optimisation is handled by `buildOptimizedCompositeQuery()` in
 [abstract.ts](../src/repo-populator/relation/abstract.ts):
 
 1. **Analyse fields** (`analyzeCompositeFields`):
@@ -226,7 +226,7 @@ The optimization is handled by `buildOptimizedCompositeQuery()` in
    - Detect which fields have varying values (variant)
    - Skip array values (always treat as variant)
 
-2. **Build optimized query**:
+2. **Build optimised query**:
 
    - Add constant fields as simple equality: `{ field: value }`
    - If only one variant field, use `$in`: `{ field: { $in: [values] } }`
@@ -284,7 +284,7 @@ relations: {
 Use composite keys when:
 
 - Multi-tenant applications need to scope relations by
-  tenant/project/organization
+  tenant/project/organisation
 - Sharded data requires matching on multiple dimensions
 - Natural keys involve multiple fields
 - You need to ensure relations match on business rules (e.g., same survey, same
@@ -312,12 +312,12 @@ Stick with single keys when:
    - `key` property still supported
    - Automatically converted to `keys` format internally
 
-3. **Query Optimization**:
+3. **Query Optimisation**:
 
    - **Single-key queries** use `$in` (faster)
    - **Constant field detection**: Analyses composite IDs to identify fields
      with constant values
-   - **Optimized multi-key queries**: Minimizes `$or` clauses by using `$in` for
+   - **Optimised multi-key queries**: Minimises `$or` clauses by using `$in` for
      variant fields
 
 4. **Field Direction Mapping**:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Mzen uses a sophisticated relation system for joining data across repositories, similar to ORMs. The system supports automatic population of related documents with query optimization.
+Mzen uses a sophisticated relation system for joining data across repositories, similar to ORMs. The system supports automatic population of related documents with query optimisation.
 
 ## Relation Types
 
@@ -169,12 +169,12 @@ const posts = await repoPost.find({}, {
 })
 ```
 
-## Query Optimization
+## Query Optimisation
 
-The relation system includes basic query optimization:
-- Batches queries to minimize database round-trips
+The relation system includes basic query optimisation:
+- Batches queries to minimise database round-trips
 - Uses `$in` operator for single-key lookups (most efficient)
-- Optimizes composite key queries (see [Composite Keys](composite-keys.md))
+- Optimises composite key queries (see [Composite Keys](composite-keys.md))
 
 ## Field Direction
 

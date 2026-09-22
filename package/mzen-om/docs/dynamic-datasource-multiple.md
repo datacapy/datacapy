@@ -207,11 +207,11 @@ uses.
 
 ### Pattern 1: Hierarchical Tenancy
 
-Organizations > Projects > Data
+Organisations > Projects > Data
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  org: { lookupKey: orgId }, // Organization-level data
+  org: { lookupKey: orgId }, // Organisation-level data
   project: { lookupKey: projectId }, // Project-level data
 })
 
@@ -265,7 +265,7 @@ await repoProduct.findOne(
 
 ## Cross-DataSource Relations
 
-Relations can span datasources seamlessly:
+Relations can span datasources without extra configuration at the query site:
 
 ```typescript
 // Entity definitions
@@ -326,7 +326,7 @@ const context = DataSourceContext.fromDataSources({
 await repoSurvey.find(query, { context })
 ```
 
-All repositories continue working with the same API—they automatically use the
+All repositories continue working with the same API: they automatically use the
 datasource entry matching their configured `dataSource` name.
 
 ## Error Handling

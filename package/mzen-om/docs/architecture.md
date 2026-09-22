@@ -44,7 +44,7 @@ The ODM system provides:
 
 - Population of documents into constructor instances
 - Automatic population of document relations
-- Efficient query optimization
+- Efficient query optimisation
 
 ## Data Sources
 
@@ -76,7 +76,7 @@ forced common base class: `MysqlTransactionLease` binds a dedicated
 `PoolConnection`, `MongodbTransactionLease` binds a dedicated `ClientSession`,
 and `RedisTransactionLease` binds a dedicated pipeline. Across all three, DDL
 (`drop`/`createIndex`/`dropIndex`/`dropIndexes`) always delegates straight back
-to the parent, unscoped — DDL never participates in a transaction.
+to the parent, unscoped: DDL never participates in a transaction.
 
 See the "Transactions" section in [DataSource Context](dynamic-datasource.md)
 for the call pattern, and `src/repo/repo.ts` (`transaction()`),
