@@ -1236,6 +1236,15 @@ export class Repo<T> {
     const spec = this.schema.getSpec()
     if (!spec || typeof spec !== 'object') return
 
+    // A repo with no explicit schema (or one that only carries a $construct directive) falls
+    // back to a field-free Schema() with an empty/meta-only spec - every key would look
+    // "unknown" against it, which isn't the drift this warning is meant to catch. Only warn
+    // when the schema actually declares at least one real field to compare against.
+    const declaredFields = Object.keys(spec).filter(
+      (key) => !key.startsWith('$')
+    )
+    if (declaredFields.length === 0) return
+
     const pkey = this.config.pkey || '_id'
 
     for (const key of Object.keys(query)) {

@@ -20,10 +20,13 @@ rather than shared, since each is independently versioned). Noisy-but-passing su
 real problems and make regressions hard to spot. Two ways to allow an expected call through:
 
 - **Package-wide known-benign**: add the pattern to that package's own
-  `KNOWN_BENIGN_PATTERNS` array (e.g. `mzen-om`'s covers its own "unknown query key"
-  diagnostic warning, which fires incidentally across many relation-population tests that
-  use deliberately minimal fixtures). Reserve this for warnings that are
-  environmental/unfixable and will recur broadly within that package - comment why.
+  `KNOWN_BENIGN_PATTERNS` array. Reserve this for warnings that are genuinely
+  environmental/unfixable and will recur broadly within that package - comment why. Prefer
+  fixing the false positive at its source over adding a broad pattern: `mzen-om`'s own
+  "unknown query key" warning used to fire incidentally across many relation-population
+  tests because `Repo.warnUnknownQueryKeys` didn't distinguish "no schema declared" from
+  "field removed from a real schema" - fixed in `repo.ts` rather than suppressed, so the
+  warning now only fires for genuine drift against a real, populated schema.
 - **Scoped to one test/file**: wrap the triggering code in `allowConsole(pattern, fn)` from
   the same module, imported locally.
 

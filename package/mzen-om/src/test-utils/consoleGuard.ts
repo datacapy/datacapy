@@ -1,13 +1,9 @@
 type ConsolePattern = string | RegExp
 
-const KNOWN_BENIGN_PATTERNS: ConsolePattern[] = [
-  // Repo.warnUnknownQueryKeys is this package's own diagnostic mechanism, exercised
-  // incidentally throughout this test suite because its fixtures/schemas are deliberately
-  // minimal and don't declare every key used by unrelated relation-population scenarios.
-  // query-key-validation.test.ts tests the mechanism itself deliberately, with its own
-  // local spy (unaffected by this pattern - it asserts on the call directly).
-  /query key ".*" is not a schema field on this repo/,
-]
+// No known-benign console.error/warn patterns - Repo.warnUnknownQueryKeys' false positive on
+// schema-less/field-free-schema repos is fixed at the source (see repo.ts), so this warning
+// only fires now for a repo that has a real, populated schema - genuine signal, not noise.
+const KNOWN_BENIGN_PATTERNS: ConsolePattern[] = []
 
 const activeScopedPatterns: ConsolePattern[] = []
 
