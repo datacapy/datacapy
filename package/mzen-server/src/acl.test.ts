@@ -1,6 +1,6 @@
-import ServerAcl from 'acl'
-import ServerAclRoleAssessor from 'acl/role-assessor'
-import ServerAclRoleAssessorAll from 'acl/role-assessor/all'
+import ServerAcl from './acl'
+import ServerAclRoleAssessor from './acl/role-assessor'
+import ServerAclRoleAssessorAll from './acl/role-assessor/all'
 
 describe('ServerAcl', function () {
   describe('hasRole()', function () {

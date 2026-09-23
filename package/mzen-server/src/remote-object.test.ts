@@ -1,6 +1,6 @@
-import ServerRemoteObject from 'remote-object'
-import ServerAcl from 'acl'
-import ServerAclRoleAssessor from 'acl/role-assessor'
+import ServerRemoteObject from './remote-object'
+import ServerAcl from './acl'
+import ServerAclRoleAssessor from './acl/role-assessor'
 import ExpressMockRequest from './test/fixtures/express/mock-request'
 import ExpressMockResponse from './test/fixtures/express/mock-response'
 
