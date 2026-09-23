@@ -42,18 +42,25 @@ describe("PatchExecutor", () => {
   let modelManager: MockModelManager;
   let logger: MigrationLogger;
   let logSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
   let context: DataSourceContext;
 
   beforeEach(() => {
     modelManager = new MockModelManager();
     logger = new MigrationLogger(false);
     context = new DataSourceContext();
-    // Spy on logger to suppress output during tests
+    // MigrationLogger prints to console by design (it's a CLI logger) - suppress its
+    // output during tests, matching its info/warn/error levels.
     logSpy = jest.spyOn(console, "log").mockImplementation();
+    warnSpy = jest.spyOn(console, "warn").mockImplementation();
+    errorSpy = jest.spyOn(console, "error").mockImplementation();
   });
 
   afterEach(() => {
     logSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   describe("executePatch", () => {

@@ -5,17 +5,22 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   moduleDirectories: ['node_modules', 'src'],
   modulePaths: ['<rootDir>/src'],
+  setupFilesAfterEnv: ['<rootDir>/src/test-utils/setupTests.ts'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        baseUrl: './src',
-        paths: { '*': ['*'] }
-      }
-    }]
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          baseUrl: './src',
+          paths: { '*': ['*'] },
+        },
+      },
+    ],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.test.ts',
-    '!src/test/**'
-  ]
+    '!src/test/**',
+    '!src/test-utils/**',
+  ],
 }

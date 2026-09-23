@@ -243,12 +243,27 @@ describe("MigrationManager", () => {
     "sample-patches",
   );
 
+  let logSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
+
   beforeEach(() => {
     testDataSource = new TestDataSource();
     modelManager = new ModelManager({});
     modelManager.addDataSource("db", testDataSource);
     // Add project datasource for testing datasource filtering
     modelManager.addDataSource("project", new TestDataSource());
+    // MigrationManager logs via MigrationLogger, a CLI logger that prints to console by
+    // design - suppress its output during tests.
+    logSpy = jest.spyOn(console, "log").mockImplementation();
+    warnSpy = jest.spyOn(console, "warn").mockImplementation();
+    errorSpy = jest.spyOn(console, "error").mockImplementation();
+  });
+
+  afterEach(() => {
+    logSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   describe("migrate", () => {

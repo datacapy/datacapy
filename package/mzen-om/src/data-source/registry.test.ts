@@ -1,5 +1,6 @@
 import { DataSourceRegistry } from './registry'
 import { DataSourceInterface } from './interface'
+import { allowConsole } from '../test-utils/consoleGuard'
 
 function makeFakeDataSource(
   hasActiveLeases: () => boolean
@@ -13,24 +14,32 @@ function makeFakeDataSource(
 describe('DataSourceRegistry', () => {
   describe('eviction and active leases', () => {
     it('does not evict a refCount === 0 entry that still has an active transaction lease', async () => {
-      const registry = new DataSourceRegistry({ maxSize: 1, logger: console })
+      await allowConsole(
+        'All datasources have active references, cannot evict',
+        async () => {
+          const registry = new DataSourceRegistry({
+            maxSize: 1,
+            logger: console,
+          })
 
-      let leased = true
-      const leasedDataSource = makeFakeDataSource(() => leased)
-      await registry.getOrCreate('a', async () => leasedDataSource as any)
-      registry.release('a') // refCount back to 0, but hasActiveLeases() still true
+          let leased = true
+          const leasedDataSource = makeFakeDataSource(() => leased)
+          await registry.getOrCreate('a', async () => leasedDataSource as any)
+          registry.release('a') // refCount back to 0, but hasActiveLeases() still true
 
-      // Creating a second entry exceeds maxSize and triggers evictLRU(), which must skip
-      // the leased entry rather than closing it out from under the in-progress transaction.
-      const otherDataSource = makeFakeDataSource(() => false)
-      await registry.getOrCreate('b', async () => otherDataSource as any)
-      registry.release('b')
+          // Creating a second entry exceeds maxSize and triggers evictLRU(), which must skip
+          // the leased entry rather than closing it out from under the in-progress transaction.
+          const otherDataSource = makeFakeDataSource(() => false)
+          await registry.getOrCreate('b', async () => otherDataSource as any)
+          registry.release('b')
 
-      expect(leasedDataSource.close).not.toHaveBeenCalled()
-      expect(registry.has('a')).toBe(true)
+          expect(leasedDataSource.close).not.toHaveBeenCalled()
+          expect(registry.has('a')).toBe(true)
 
-      leased = false
-      await registry.close()
+          leased = false
+          await registry.close()
+        }
+      )
     })
 
     it('evicts a refCount === 0 entry once its active leases clear', async () => {
@@ -76,22 +85,27 @@ describe('DataSourceRegistry', () => {
     })
 
     it('does not force-close a still-in-use datasource once the wait timeout elapses, and leaves it in the registry', async () => {
-      const registry = new DataSourceRegistry({
-        removeWaitTimeout: 100,
-        logger: console,
-      })
+      await allowConsole(
+        'Timed out waiting for active references/leases to clear',
+        async () => {
+          const registry = new DataSourceRegistry({
+            removeWaitTimeout: 100,
+            logger: console,
+          })
 
-      const dataSource = makeFakeDataSource(() => false) // no active leases
-      await registry.getOrCreate('a', async () => dataSource as any)
-      // Do NOT release - refCount stays 1, simulating an in-flight caller still using it.
+          const dataSource = makeFakeDataSource(() => false) // no active leases
+          await registry.getOrCreate('a', async () => dataSource as any)
+          // Do NOT release - refCount stays 1, simulating an in-flight caller still using it.
 
-      await registry.remove('a', 'test')
+          await registry.remove('a', 'test')
 
-      expect(dataSource.close).not.toHaveBeenCalled()
-      expect(registry.has('a')).toBe(true)
+          expect(dataSource.close).not.toHaveBeenCalled()
+          expect(registry.has('a')).toBe(true)
 
-      registry.release('a')
-      await registry.close()
+          registry.release('a')
+          await registry.close()
+        }
+      )
     })
   })
 

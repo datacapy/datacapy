@@ -11,6 +11,27 @@ descriptions. Use a comma, colon, semicolon, or a full stop and a new sentence i
 the single most common tell in AI-generated writing, so treat it as a hard rule, not a style
 preference.
 
+### Console Noise in Tests
+
+Each package's Jest suite is configured to fail a test on any unexpected `console.error`/
+`console.warn` call, via `installConsoleGuard()` wired into its own `setupFilesAfterEnv`
+(`src/test-utils/consoleGuard.ts`, `src/test-utils/setupTests.ts` — duplicated per package
+rather than shared, since each is independently versioned). Noisy-but-passing suites hide
+real problems and make regressions hard to spot. Two ways to allow an expected call through:
+
+- **Package-wide known-benign**: add the pattern to that package's own
+  `KNOWN_BENIGN_PATTERNS` array (e.g. `mzen-om`'s covers its own "unknown query key"
+  diagnostic warning, which fires incidentally across many relation-population tests that
+  use deliberately minimal fixtures). Reserve this for warnings that are
+  environmental/unfixable and will recur broadly within that package - comment why.
+- **Scoped to one test/file**: wrap the triggering code in `allowConsole(pattern, fn)` from
+  the same module, imported locally.
+
+Do not reach for a raw `jest.spyOn(console, 'warn'|'error')` - use these helpers so every
+suppression is discoverable and consistent. A test that asserts on the console call itself
+(e.g. testing a logger) may keep its own local spy layered under the guard instead - it
+shadows the guard's spy for that test and restores cleanly afterwards.
+
 ### Naming Conventions
 
 Timestamp fields use the `xxxAt` suffix (e.g. `createdAt`, `updatedAt`, `deletedAt`), never the bare word alone. `mzen-om` has no auto-populating hook for document lifecycle timestamps: schemas declare their own `createdAt`/`updatedAt` with a schema default (e.g. `createdAt: sb.date().default('now')`). Soft-delete support (`softDelete: true` on a repo) is hardcoded in `repo.ts` to use the field name `deletedAt`; schemas enabling it must declare `deletedAt: sb.date().default(null)`.

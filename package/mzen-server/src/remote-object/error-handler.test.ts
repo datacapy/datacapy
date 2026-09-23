@@ -4,6 +4,7 @@ import {
   RequestInterface,
   ResponseInterface,
 } from './interfaces'
+import { allowConsole } from '../test-utils/consoleGuard'
 
 describe('ErrorHandler', () => {
   let errorHandler: ErrorHandler
@@ -477,13 +478,15 @@ describe('ErrorHandler', () => {
         throw new Error('Translator failure')
       })
 
-      await errorHandler.handleEndpointError(
-        err,
-        mockRes,
-        mockReq,
-        'test-endpoint',
-        'testMethod',
-        responseErrorConfig
+      await allowConsole('FATAL: Error in error handler', () =>
+        errorHandler.handleEndpointError(
+          err,
+          mockRes,
+          mockReq,
+          'test-endpoint',
+          'testMethod',
+          responseErrorConfig
+        )
       )
 
       expect(mockRes.status).toHaveBeenCalledWith(500)
