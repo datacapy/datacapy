@@ -551,7 +551,7 @@ export class Schema {
     this.init()
     const promises: Promise<void>[] = []
     this.schemaIterator.iterate(object, (opts) => {
-      const { spec, fieldName, container, path } = opts
+      const { spec, fieldName, container } = opts
       if (!spec?.$filter?.encrypt) return
       if (!container || container[fieldName] == null) return
       if (!this.config.encryptionService) {
@@ -563,8 +563,7 @@ export class Schema {
       promises.push(
         (async () => {
           container[fieldName] = await service.encrypt(
-            String(container[fieldName]),
-            path
+            String(container[fieldName])
           )
         })()
       )
@@ -579,7 +578,7 @@ export class Schema {
     this.schemaIterator.iteratePaths(
       paths,
       (opts) => {
-        const { spec, fieldName, container, path } = opts
+        const { spec, fieldName, container } = opts
         if (!spec?.$filter?.encrypt) return
         if (!container || container[fieldName] == null) return
         if (!this.config.encryptionService) {
@@ -591,8 +590,7 @@ export class Schema {
         promises.push(
           (async () => {
             container[fieldName] = await service.encrypt(
-              String(container[fieldName]),
-              path
+              String(container[fieldName])
             )
           })()
         )
@@ -607,7 +605,7 @@ export class Schema {
     this.init()
     const promises: Promise<void>[] = []
     this.schemaIterator.iterate(object, (opts) => {
-      const { spec, fieldName, container, path } = opts
+      const { spec, fieldName, container } = opts
       if (!spec?.$filter?.encrypt) return
       if (
         !container ||
@@ -624,8 +622,7 @@ export class Schema {
       promises.push(
         (async () => {
           container[fieldName] = await service.decrypt(
-            String(container[fieldName]),
-            path
+            String(container[fieldName])
           )
         })()
       )

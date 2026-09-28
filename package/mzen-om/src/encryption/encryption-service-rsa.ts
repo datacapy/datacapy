@@ -39,18 +39,11 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     }
   }
 
-  async encrypt(plaintext: string, context?: string): Promise<string> {
+  async encrypt(plaintext: string): Promise<string> {
     const aesKey = randomBytes(32)
     const iv = randomBytes(12)
 
     const cipher = createCipheriv('aes-256-gcm', aesKey, iv)
-    // Binds the ciphertext to its context (the schema layer passes the
-    // field's path) via GCM's additional authenticated data, so a value
-    // copied to a different field/document fails to decrypt instead of
-    // silently succeeding. `v: 2` marks this envelope as AAD-aware, so
-    // decrypt() knows to apply the same binding - envelopes written before
-    // this existed (no `v`) never had AAD and must not have it required now.
-    cipher.setAAD(Buffer.from(context ?? '', 'utf8'))
     const encrypted = Buffer.concat([
       cipher.update(plaintext, 'utf8'),
       cipher.final(),
@@ -67,7 +60,6 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     )
 
     const payload = JSON.stringify({
-      v: 2,
       k: encryptedKey.toString('base64'),
       iv: iv.toString('base64'),
       tag: authTag.toString('base64'),
@@ -77,7 +69,7 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     return Buffer.from(payload).toString('base64')
   }
 
-  async decrypt(ciphertext: string, context?: string): Promise<string> {
+  async decrypt(ciphertext: string): Promise<string> {
     if (!this.privateKey) {
       throw new Error('Private key not configured — decryption unavailable')
     }
@@ -85,7 +77,7 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     // Detect legacy plaintext values stored before encryption was introduced.
     // The encryption envelope is base64(JSON{k,iv,tag,d}). If the value doesn't
     // decode to that structure it's a legacy value — return it unchanged.
-    let payload: { v?: number; k: string; iv: string; tag: string; d: string }
+    let payload: { k: string; iv: string; tag: string; d: string }
     try {
       const decoded = Buffer.from(ciphertext, 'base64').toString('utf8')
       payload = JSON.parse(decoded)
@@ -110,13 +102,6 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
       aesKey,
       Buffer.from(payload.iv, 'base64')
     )
-    // Only envelopes written by the AAD-aware encrypt() above (v: 2) ever
-    // had AAD set - anything older must not have it applied on decrypt, or
-    // the auth tag check below would fail for every value already stored
-    // under the pre-existing (no-AAD) scheme.
-    if (payload.v === 2) {
-      decipher.setAAD(Buffer.from(context ?? '', 'utf8'))
-    }
     decipher.setAuthTag(Buffer.from(payload.tag, 'base64'))
 
     const decrypted = Buffer.concat([
