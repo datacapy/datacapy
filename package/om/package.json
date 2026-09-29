@@ -8,7 +8,7 @@
   "scripts": {
     "prepublishOnly": "pnpm build && pnpm test",
     "build": "pnpm run clean && tsc && tsc-alias -p tsconfig.json && pnpm run build-minimise",
-    "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} + && find ./dist -type f -name '*.test.*' -delete",
+    "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} + && find ./dist -type f -name '*.test.*' -delete && find ./dist -type d -name 'test-utils' -exec rm -rf {} +",
     "clean": "rm -fr ./dist/*",
     "test": "jest",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json}\"",
