@@ -35,23 +35,23 @@
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.6.0",
-    "eslint": "^10.2.0",
+    "@types/node": "^25.9.8",
+    "eslint": "^10.11.0",
     "husky": "^9.1.7",
-    "jest": "^30.3.0",
+    "jest": "^30.5.2",
     "lint-staged": "^15.5.2",
     "prettier": "3.8.1",
-    "ts-jest": "^29.4.9",
+    "ts-jest": "^29.4.14",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.58.0"
+    "typescript-eslint": "^8.71.0"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.3.0",
     "express": "^5.2.1",
     "merge": "^2.1.1",
-    "mongodb": "^6.20.0",
+    "mongodb": "^6.21.0",
     "mzen-om": "workspace:*"
   },
   "files": [
