@@ -146,12 +146,14 @@ describe('DataSourceRegistry', () => {
         throw error
       })
 
-      await expect(
-        Promise.all([
-          registry.getOrCreate('a', failingFactory),
-          registry.getOrCreate('a', failingFactory),
-        ])
-      ).rejects.toThrow('connection failed')
+      await allowConsole('Failed to create datasource: a', async () => {
+        await expect(
+          Promise.all([
+            registry.getOrCreate('a', failingFactory),
+            registry.getOrCreate('a', failingFactory),
+          ])
+        ).rejects.toThrow('connection failed')
+      })
 
       expect(failingFactory).toHaveBeenCalledTimes(1)
       expect(registry.has('a')).toBe(false)
