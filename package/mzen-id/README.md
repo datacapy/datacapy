@@ -1,17 +1,17 @@
 <!-- cspell:ignore bson -->
 
-# mzen-id
+# @datacapy/id
 
 Short, time-ordered string IDs for relational databases.
 
-`mzen-id` generates a 12-byte value (the same size as a MongoDB ObjectId) and
+`@datacapy/id` generates a 12-byte value (the same size as a MongoDB ObjectId) and
 encodes it in Base62, so the ID is 15 alphanumeric characters instead of 24 hex
 characters. It has no runtime dependencies.
 
 ```ts
-import genUniqueId from 'mzen-id'
+import genUniqueId from "@datacapy/id";
 
-genUniqueId() // 'ecrDWdCQCiXSrf6'
+genUniqueId(); // 'ecrDWdCQCiXSrf6'
 ```
 
 ## Why
@@ -32,15 +32,15 @@ genUniqueId() // 'ecrDWdCQCiXSrf6'
 ## Usage
 
 ```ts
-import genUniqueId, { uniqueIdToBsonId, bsonIdToUniqueId } from 'mzen-id'
+import genUniqueId, { uniqueIdToBsonId, bsonIdToUniqueId } from "@datacapy/id";
 
-const id = genUniqueId() // 'ecrDWdCQCiXSrf6'
+const id = genUniqueId(); // 'ecrDWdCQCiXSrf6'
 
-uniqueIdToBsonId('ecrDWdCQCiXSrf6') // '01a0c50600995e64661d1978'
-bsonIdToUniqueId('01a0c50600995e64661d1978') // 'ecrDWdCQCiXSrf6'
+uniqueIdToBsonId("ecrDWdCQCiXSrf6"); // '01a0c50600995e64661d1978'
+bsonIdToUniqueId("01a0c50600995e64661d1978"); // 'ecrDWdCQCiXSrf6'
 ```
 
-The default export is `genUniqueId`, so `import { genUniqueId } from 'mzen-id'`
+The default export is `genUniqueId`, so `import { genUniqueId } from '@datacapy/id'`
 is equivalent.
 
 ## API
@@ -64,13 +64,13 @@ The alphabet is
 `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz`, in that order.
 
 ```ts
-import { base62Encode, base62Decode } from 'mzen-id'
+import { base62Encode, base62Decode } from "@datacapy/id";
 
-base62Encode(0n) // '0'
-base62Encode(61n) // 'z'
-base62Encode(62n) // '10'
-base62Decode('10') // 62n
-base62Decode('a-b') // throws: Invalid character '-' in base62 string
+base62Encode(0n); // '0'
+base62Encode(61n); // 'z'
+base62Encode(62n); // '10'
+base62Decode("10"); // 62n
+base62Decode("a-b"); // throws: Invalid character '-' in base62 string
 ```
 
 ## ID structure
@@ -102,6 +102,6 @@ Consequences:
 
 ## Related packages
 
-- [`mzen-schema`](../mzen-schema/README.md) uses it to default a `String` field
+- [`@datacapy/schema`](../mzen-schema/README.md) uses it to default a `String` field
   named `_id`.
-- `mzen-migrate` uses it to generate the IDs of its metadata-table rows.
+- `@datacapy/migrate` uses it to generate the IDs of its metadata-table rows.

@@ -11,7 +11,7 @@ import { MigrationLogger } from "../logger/migration-logger";
 import {
   DataSourceInterface,
   DataSourceContext,
-} from "mzen-om/dist/data-source";
+} from "@datacapy/om/dist/data-source";
 
 /**
  * MigrationManager

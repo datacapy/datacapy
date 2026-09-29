@@ -1,5 +1,5 @@
 import { DatabasePatchInterface } from "../../../../../interface/database-patch";
-import { ModelManager } from "mzen-om";
+import { ModelManager } from "@datacapy/om";
 
 export default class AddUsersTable implements DatabasePatchInterface {
   version = "2024-01-15_1200";

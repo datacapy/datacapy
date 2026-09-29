@@ -6,7 +6,7 @@ references, alternatives, dynamic keys, and class instances.
 ## Nested objects and arrays
 
 ```ts
-import { Schema, sb } from 'mzen-schema'
+import { Schema, sb } from '@datacapy/schema'
 
 const order = new Schema(
   sb
@@ -37,7 +37,7 @@ Give a schema a name, then refer to it from another schema instead of repeating
 its fields.
 
 ```ts
-import { Schema, SchemaManager, sb } from 'mzen-schema'
+import { Schema, SchemaManager, sb } from '@datacapy/schema'
 
 const address = new Schema(
   sb
@@ -209,4 +209,4 @@ post.stripTransients({ title: 't', author: { name: 'a' } })
 // { title: 't' }
 ```
 
-`mzen-om` uses this to populate relations on read and strip them on write.
+`@datacapy/om` uses this to populate relations on read and strip them on write.

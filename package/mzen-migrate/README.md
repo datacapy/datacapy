@@ -1,6 +1,6 @@
-# mzen-migrate
+# @datacapy/migrate
 
-Database migration tool for mzen-om applications. Manage schema changes, data transformations, and database versioning across multiple datasources with transaction safety and rollback support.
+Database migration tool for @datacapy/om applications. Manage schema changes, data transformations, and database versioning across multiple datasources with transaction safety and rollback support.
 
 ## Features
 
@@ -16,7 +16,7 @@ Database migration tool for mzen-om applications. Manage schema changes, data tr
 ## Installation
 
 ```bash
-pnpm add mzen-migrate
+pnpm add @datacapy/migrate
 ```
 
 ## Quick Start
@@ -42,8 +42,8 @@ Create patches in `migrate/YYYY/MM/YYYY-MM-DD_HHMM_label.ts`:
 
 ```typescript
 // migrate/2024/02/2024-02-05_1430_add-users-table.ts
-import { DatabasePatchInterface } from "mzen-migrate";
-import { ModelManager } from "mzen-om";
+import { DatabasePatchInterface } from "@datacapy/migrate";
+import { ModelManager } from "@datacapy/om";
 
 export default class AddUsersTable implements DatabasePatchInterface {
   version = "2024-02-05_1430";
@@ -67,13 +67,13 @@ export default class AddUsersTable implements DatabasePatchInterface {
 
 ```bash
 # Migrate account-level database
-pnpm mzen-migrate --config ./migrate.config.js --datasource db
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 
 # Preview changes first
-pnpm mzen-migrate --config ./migrate.config.js --datasource db --dry-run
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --dry-run
 
 # Migrate with verbose output
-pnpm mzen-migrate --config ./migrate.config.js --datasource db --verbose
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --verbose
 ```
 
 ## CLI Reference
@@ -81,7 +81,7 @@ pnpm mzen-migrate --config ./migrate.config.js --datasource db --verbose
 ### Command Syntax
 
 ```bash
-mzen-migrate [OPTIONS]
+@datacapy/migrate [OPTIONS]
 ```
 
 ### Required Options
@@ -103,23 +103,23 @@ mzen-migrate [OPTIONS]
 
 ```bash
 # Migrate account-level database
-pnpm mzen-migrate --config ./migrate.config.js --datasource db
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 
 # Migrate specific project database (dynamic datasource)
-pnpm mzen-migrate --config ./migrate.config.js \\
+pnpm @datacapy/migrate --config ./migrate.config.js \\
   --datasource project \\
   --context projectId=abc123
 
 # Dry run to preview changes
-pnpm mzen-migrate --config ./migrate.config.js --datasource db --dry-run
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --dry-run
 
 # Migrate to specific version
-pnpm mzen-migrate --config ./migrate.config.js \\
+pnpm @datacapy/migrate --config ./migrate.config.js \\
   --datasource db \\
   --target 2024-02-05_1430
 
 # Verbose output
-pnpm mzen-migrate --config ./migrate.config.js --datasource db --verbose
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --verbose
 ```
 
 ## Configuration
@@ -129,7 +129,7 @@ pnpm mzen-migrate --config ./migrate.config.js --datasource db --verbose
 The config file should export an async function that returns a `MigrationConfig` object:
 
 ```typescript
-import { ModelManager } from "mzen-om";
+import { ModelManager } from "@datacapy/om";
 
 export default async () => {
   return {
@@ -188,8 +188,8 @@ migrate/
 #### Simple Table Creation
 
 ```typescript
-import { DatabasePatchInterface } from "mzen-migrate";
-import { ModelManager } from "mzen-om";
+import { DatabasePatchInterface } from "@datacapy/migrate";
+import { ModelManager } from "@datacapy/om";
 
 export default class AddUsersTable implements DatabasePatchInterface {
   version = "2024-02-05_1430";
@@ -298,14 +298,14 @@ export default class AddProjectStatus implements DatabasePatchInterface {
 
 ## Multi-Datasource Migrations
 
-mzen-migrate supports migrating multiple datasources independently:
+@datacapy/migrate supports migrating multiple datasources independently:
 
 ### Account-Level Migrations
 
 Migrate the main account database:
 
 ```bash
-pnpm mzen-migrate --config ./migrate.config.js --datasource db
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 ```
 
 ### Project-Level Migrations
@@ -313,7 +313,7 @@ pnpm mzen-migrate --config ./migrate.config.js --datasource db
 Migrate a specific project's database:
 
 ```bash
-pnpm mzen-migrate --config ./migrate.config.js \\
+pnpm @datacapy/migrate --config ./migrate.config.js \\
   --datasource project \\
   --context projectId=abc123
 ```
@@ -324,7 +324,7 @@ pnpm mzen-migrate --config ./migrate.config.js \\
 # Get all project IDs, then migrate each
 for projectId in $(get-project-ids); do
   echo "Migrating project $projectId..."
-  pnpm mzen-migrate --config ./migrate.config.js \\
+  pnpm @datacapy/migrate --config ./migrate.config.js \\
     --datasource project \\
     --context projectId=$projectId
 done
@@ -387,13 +387,13 @@ If a migration fails:
 
 ```bash
 # First run - patches 1 and 2 succeed, patch 3 fails
-$ pnpm mzen-migrate --config ./migrate.config.js --datasource db
+$ pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 # ✓ Patch 1 applied
 # ✓ Patch 2 applied
 # ✗ Patch 3 failed - rolled back
 
 # Fix the issue in patch 3 and run again
-$ pnpm mzen-migrate --config ./migrate.config.js --datasource db
+$ pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 # Skipping patch 1 (already applied)
 # Skipping patch 2 (already applied)
 # ✓ Patch 3 applied
@@ -415,7 +415,7 @@ Migration status is tracked in a `migrationMeta` table (customisable via `metaTa
 ### Querying Migration Status
 
 ```typescript
-import { MetaTable } from "mzen-migrate";
+import { MetaTable } from "@datacapy/migrate";
 
 // Get current database version
 const metaTable = new MetaTable(dataSource, "migrationMeta");
@@ -434,10 +434,10 @@ const isApplied = await metaTable.isPatchApplied("2024-02-05_1430");
 
 ## Programmatic Usage
 
-You can also use mzen-migrate programmatically:
+You can also use @datacapy/migrate programmatically:
 
 ```typescript
-import { MigrationManager } from "mzen-migrate";
+import { MigrationManager } from "@datacapy/migrate";
 import modelManager from "./src/model-manager";
 
 const config = {
@@ -468,7 +468,7 @@ if (result.failedCount > 0) {
 ### 1. Always Use Dry Run First
 
 ```bash
-pnpm mzen-migrate --config ./migrate.config.js --datasource db --dry-run
+pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --dry-run
 ```
 
 ### 2. Commit Patches to Version Control
@@ -502,7 +502,7 @@ export default class MiscChanges implements DatabasePatchInterface {
 Use DataSourceMock to test patches:
 
 ```typescript
-import { DataSourceMock } from "mzen-om";
+import { DataSourceMock } from "@datacapy/om";
 import AddUsersTable from "./2024-02-05_1430_add-users-table";
 
 describe("AddUsersTable patch", () => {
@@ -567,7 +567,7 @@ export default class SeedData implements DatabasePatchInterface {
 **Solution:** Dynamic datasources need context:
 
 ```bash
-pnpm mzen-migrate --config ./migrate.config.js \\
+pnpm @datacapy/migrate --config ./migrate.config.js \\
   --datasource project \\
   --context projectId=abc123
 ```

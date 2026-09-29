@@ -33,7 +33,7 @@ When testing code that uses dynamic datasources:
 Example:
 
 ```typescript
-import { DataSourceContext, DataSourceLookup } from 'mzen-om'
+import { DataSourceContext, DataSourceLookup } from '@datacapy/om'
 
 describe('Dynamic datasource tests', () => {
   let mockLookup: DataSourceLookup
@@ -73,7 +73,7 @@ details.
 ### Using MockDataSource
 
 ```typescript
-import { MockDataSource } from 'mzen-om'
+import { MockDataSource } from '@datacapy/om'
 
 const mockDataSource = new MockDataSource({
   data: {

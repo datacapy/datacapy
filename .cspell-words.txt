@@ -1,4 +1,5 @@
 mzen
+datacapy
 bcryptjs
 typecheck
 commitizen

@@ -27,7 +27,7 @@ import {
   COLUMN_SIZE_DEFAULT,
 } from './mysql/mysql-constants'
 import { MysqlSqlBuilder } from './mysql/mysql-sql-builder'
-import { ObjectPathAccessor } from 'mzen-schema'
+import { ObjectPathAccessor } from '@datacapy/schema'
 
 export interface DataSourceMysqlConfig extends PoolOptions {
   ensureDatabase?: boolean

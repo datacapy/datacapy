@@ -1,4 +1,4 @@
-import { Schema, SchemaValidationResult } from 'mzen-om'
+import { Schema, SchemaValidationResult } from '@datacapy/om'
 import {
   LoggerInterface,
   RequestInterface,

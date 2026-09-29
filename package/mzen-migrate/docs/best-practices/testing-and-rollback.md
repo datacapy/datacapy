@@ -7,7 +7,7 @@
 ```typescript
 // __tests__/migrations/2024-02-05_1000.test.ts
 import AddUsersTable from "../migrate/2024/02/2024-02-05_1000_add-users-table";
-import { DataSourceMock } from "mzen-om";
+import { DataSourceMock } from "@datacapy/om";
 
 describe("AddUsersTable Migration", () => {
   it("should have correct version", () => {
@@ -55,7 +55,7 @@ docker run -d --name test-mysql -e MYSQL_ROOT_PASSWORD=test -p 3307:3306 mysql:8
 sleep 10
 
 # 3. Run migrations
-MYSQL_HOST=localhost MYSQL_PORT=3307 mzen-migrate --config ./migrate.config.js --datasource db
+MYSQL_HOST=localhost MYSQL_PORT=3307 @datacapy/migrate --config ./migrate.config.js --datasource db
 
 # 4. Verify results
 mysql -h localhost -P 3307 -u root -ptest -e "SELECT * FROM migrationMeta"
@@ -75,7 +75,7 @@ Migrations are forward-only. For rollback scenarios:
 mysqldump -u user -p database > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Run migrations
-mzen-migrate --config ./migrate.config.js --datasource db
+@datacapy/migrate --config ./migrate.config.js --datasource db
 
 # If issues occur, restore
 mysql -u user -p database < backup_20240205_143000.sql

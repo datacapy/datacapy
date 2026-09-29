@@ -1,4 +1,4 @@
-# mzen-migrate
+# @datacapy/migrate
 
 ## 0.1.0
 

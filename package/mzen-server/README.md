@@ -1,9 +1,9 @@
 <!-- cspell:ignore noteget -->
 
-# mzen-server
+# @datacapy/server
 
 An HTTP API layer for [mzen](../../README.md) applications. You describe each
-endpoint in a plain config object; mzen-server maps it to an
+endpoint in a plain config object; @datacapy/server maps it to an
 [Express](https://expressjs.com) route, validates and casts the request data,
 checks access rules, calls a method on one of your services or repositories, and
 turns the result or the error into an HTTP response.
@@ -13,7 +13,7 @@ turns the result or the error into an HTTP response.
 - **Explicit exposure**: nothing is reachable until you declare an endpoint for
   it
 - **Request validation and type-casting** using
-  [mzen-schema](../mzen-schema/README.md)
+  [@datacapy/schema](../mzen-schema/README.md)
 - **Access control** with ordered allow and deny rules and pluggable role
   assessors that decide, per request, whether a caller holds a role
 - **Error mapping**: throw a typed error in your service and get the right HTTP
@@ -21,19 +21,19 @@ turns the result or the error into an HTTP response.
 - **Lifecycle hooks** for start-up and shutdown work
 - **Plain Express underneath**: use any Express middleware
 
-mzen-server does not authenticate anyone. It gives you the place to do it: a
-role assessor reads whatever credential your application uses and decides which
-roles the request has. See [Access control](#access-control).
+@datacapy/server does not authenticate anyone. It gives you the place to do it:
+a role assessor reads whatever credential your application uses and decides
+which roles the request has. See [Access control](#access-control).
 
 ## Install
 
 ```bash
-npm install mzen-server
+npm install @datacapy/server
 ```
 
-It depends on `mzen-om` (models, services, repositories) and `express`.
-Everything `mzen-om` exports, including `Service`, `Repo`, `ModelManager` and
-`Schema`, is re-exported from `mzen-server`.
+It depends on `@datacapy/om` (models, services, repositories) and `express`.
+Everything `@datacapy/om` exports, including `Service`, `Repo`, `ModelManager`
+and `Schema`, is re-exported from `@datacapy/server`.
 
 ## Quick start
 
@@ -44,7 +44,7 @@ import Server, {
   Service,
   ServerAclRoleAssessor,
   ServerErrorNotFound,
-} from 'mzen-server'
+} from '@datacapy/server'
 
 class NoteService extends Service {
   private notes = [{ id: 1, text: 'Hello', owner: 'kevin' }]
@@ -213,7 +213,7 @@ data: {
 `{ src: 'container', srcPath: 'response' }` gives your method the Express
 response object.
 
-Validation uses [mzen-schema](../mzen-schema/README.md). A failure returns
+Validation uses [@datacapy/schema](../mzen-schema/README.md). A failure returns
 **403** with `{ "validationErrors": { field: [messages] } }`. This check runs
 before the access rules, so an unauthorised caller who sends invalid data sees
 the validation error, not a 401.
@@ -412,7 +412,13 @@ Use this to switch endpoints off per environment without editing the config.
 ## Server configuration
 
 ```ts
-new Server({ port: 3838, path: '/api', model: {/* ModelManager config */} })
+new Server({
+  port: 3838,
+  path: '/api',
+  model: {
+    /* ModelManager config */
+  },
+})
 new Server(config, existingModelManager)
 ```
 

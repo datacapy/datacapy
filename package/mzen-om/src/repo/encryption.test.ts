@@ -1,5 +1,5 @@
 import { generateKeyPairSync } from 'crypto'
-import Schema from 'mzen-schema'
+import Schema from '@datacapy/schema'
 import { SchemaEncryptionServiceRsa } from 'encryption/encryption-service-rsa'
 import Repo from 'repo'
 import MockDataSource from 'data-source/mock'

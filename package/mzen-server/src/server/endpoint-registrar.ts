@@ -1,4 +1,4 @@
-import { Repo, Service } from 'mzen-om'
+import { Repo, Service } from '@datacapy/om'
 
 import {
   ConfigurationManagerInterface,

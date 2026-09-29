@@ -1,7 +1,7 @@
 /**
  * CommandParser
  *
- * Parses command-line arguments for the mzen-migrate CLI
+ * Parses command-line arguments for the @datacapy/migrate CLI
  */
 
 export interface CliArguments {
@@ -131,10 +131,10 @@ export class CommandParser {
    */
   static getHelpText(): string {
     return `
-mzen-migrate - Database migration tool for mzen-om applications
+@datacapy/migrate - Database migration tool for @datacapy/om applications
 
 USAGE:
-  mzen-migrate [OPTIONS]
+  @datacapy/migrate [OPTIONS]
 
 REQUIRED OPTIONS:
   -c, --config <file>        Path to migration config file
@@ -156,22 +156,22 @@ OPTIONAL OPTIONS:
 
 EXAMPLES:
   # Migrate account-level database
-  mzen-migrate --config ./migrate.config.js --datasource db
+  @datacapy/migrate --config ./migrate.config.js --datasource db
 
   # Migrate specific project database
-  mzen-migrate --config ./migrate.config.js --datasource project --context projectId=abc123
+  @datacapy/migrate --config ./migrate.config.js --datasource project --context projectId=abc123
 
   # Migrate ALL project databases (batch migration)
-  mzen-migrate --config ./migrate.config.js --datasource project --context-lookup "*"
+  @datacapy/migrate --config ./migrate.config.js --datasource project --context-lookup "*"
 
   # Dry run to preview changes
-  mzen-migrate --config ./migrate.config.js --datasource db --dry-run
+  @datacapy/migrate --config ./migrate.config.js --datasource db --dry-run
 
   # Migrate to specific version
-  mzen-migrate --config ./migrate.config.js --datasource db --target 2024-02-05_1430
+  @datacapy/migrate --config ./migrate.config.js --datasource db --target 2024-02-05_1430
 
   # Verbose output
-  mzen-migrate --config ./migrate.config.js --datasource db --verbose
+  @datacapy/migrate --config ./migrate.config.js --datasource db --verbose
 
 CONFIG FILE FORMAT:
   The config file should export an async function that returns a MigrationConfig object:
@@ -192,8 +192,8 @@ PATCH FILE FORMAT:
 
   Example patch:
   // migrate/2024/02/2024-02-05_1430_add-users-table.ts
-  import { DatabasePatchInterface } from 'mzen-migrate'
-  import { ModelManager } from 'mzen-om'
+  import { DatabasePatchInterface } from '@datacapy/migrate'
+  import { ModelManager } from '@datacapy/om'
 
   export default class AddUsersTable implements DatabasePatchInterface {
     version = '2024-02-05_1430'

@@ -181,7 +181,7 @@ const dataSource = await modelManager.getDataSourceDynamic(
 **Use Case:** Migrate individual project databases
 
 ```bash
-mzen-migrate --config ./migrate.config.js \
+@datacapy/migrate --config ./migrate.config.js \
   --datasource project \
   --context projectId=abc123
 ```

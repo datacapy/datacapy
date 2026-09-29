@@ -1,4 +1,4 @@
-# mzen-om
+# @datacapy/om
 
 NodeJS Object Document Mapping (ODM) framework for MongoDB and MySQL, with
 support for schemas, repositories, and services.
@@ -23,7 +23,7 @@ support for schemas, repositories, and services.
 ### Define a Schema
 
 ```typescript
-import { Schema } from 'mzen-om'
+import { Schema } from '@datacapy/om'
 
 const userSchema = new Schema({
   name: { type: String, required: true },
@@ -35,7 +35,7 @@ const userSchema = new Schema({
 ### Create a Repository
 
 ```typescript
-import { Repo } from 'mzen-om'
+import { Repo } from '@datacapy/om'
 
 export class RepoUser extends Repo<User> {
   constructor() {
@@ -114,7 +114,7 @@ See [Validation Documentation](docs/validation.md) for details.
 Multi-tenant support with runtime datasource routing:
 
 ```typescript
-import { DataSourceContext } from 'mzen-om'
+import { DataSourceContext } from '@datacapy/om'
 
 // Create context for routing
 const context = DataSourceContext.fromDataSources({
@@ -153,7 +153,7 @@ See [DataSource Context Documentation](docs/dynamic-datasource.md) for details.
 ### Register Lookup Implementation
 
 ```typescript
-import { DataSourceLookup } from 'mzen-om'
+import { DataSourceLookup } from '@datacapy/om'
 
 const projectLookup: DataSourceLookup = {
   async lookup(dataSourceName, lookupKey) {

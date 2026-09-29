@@ -2,7 +2,8 @@
 
 # Mzen Agent Documentation
 
-This document provides context for AI agents working on the mzen-om project.
+This document provides context for AI agents working on the @datacapy/om
+project.
 
 ## Purpose
 
@@ -36,9 +37,9 @@ docs in the `docs/` directory and [README.md](README.md).
   RSA+AES-256-GCM hybrid implementation (Node.js only)
 - **[src/model-manager.ts](src/model-manager.ts)**:
   `ModelManagerConfig.encryptionService`, propagation in `initSchemas`
-- **[mzen-schema/src/encryption/encryption-service.ts](../../mzen-schema/src/encryption/encryption-service.ts)**:
+- **[@datacapy/schema/src/encryption/encryption-service.ts](../../mzen-schema/src/encryption/encryption-service.ts)**:
   `SchemaEncryptionService` interface
-- **[mzen-schema/src/schema.ts](../../mzen-schema/src/schema.ts)**:
+- **[@datacapy/schema/src/schema.ts](../../mzen-schema/src/schema.ts)**:
   `applyEncrypt`, `applyEncryptPaths`, `applyDecrypt`
 
 #### Relation System
@@ -150,13 +151,13 @@ See [docs/encryption.md](docs/encryption.md) for usage and configuration.
 
 ### Design Decisions
 
-- **RSA+AES hybrid**: pure RSA has a message size limit (~190 bytes for
-  2048-bit key with SHA-256). AES-256-GCM encrypts the field value; RSA-OAEP
-  encrypts a random AES key. No size limit on field values.
-- **mzen-schema holds the interface; mzen-om holds the implementation**:
-  `mzen-schema` is framework-agnostic and does not depend on Node.js.
-  `SchemaEncryptionServiceRsa` lives in `mzen-om` which already requires
-  Node.js.
+- **RSA+AES hybrid**: pure RSA has a message size limit (~190 bytes for 2048-bit
+  key with SHA-256). AES-256-GCM encrypts the field value; RSA-OAEP encrypts a
+  random AES key. No size limit on field values.
+- **@datacapy/schema holds the interface; @datacapy/om holds the
+  implementation**: `@datacapy/schema` is framework-agnostic and does not depend
+  on Node.js. `SchemaEncryptionServiceRsa` lives in `@datacapy/om` which already
+  requires Node.js.
 - **`applyEncrypt`/`applyDecrypt` use `schemaIterator.iterate`**: same pattern
   as `applyFilters`. `applyEncryptPaths` uses `iteratePaths` for partial `$set`
   updates.
@@ -171,9 +172,8 @@ See [docs/encryption.md](docs/encryption.md) for usage and configuration.
 - **Encrypted fields in queries**: `validateQuery` still runs but matches
   against ciphertext; value-based filters on encrypted fields will not return
   results.
-- **No private key**: encryption works fine (public key only); decryption
-  throws `'Private key not configured'`. Useful for write-only or reporting
-  nodes.
+- **No private key**: encryption works fine (public key only); decryption throws
+  `'Private key not configured'`. Useful for write-only or reporting nodes.
 - **Type preservation**: values are stringified (`String(value)`) before
   encryption. After decryption the schema's normal type-casting is applied
   during subsequent `validate` calls, but callers using `find` get strings back

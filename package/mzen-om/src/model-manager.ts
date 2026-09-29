@@ -10,7 +10,7 @@ import DataSourceManager from 'data-source-manager'
 import Repo from 'repo'
 import RepoPopulator from 'repo/populator'
 import Service from 'service'
-import Schema, { SchemaEncryptionService } from 'mzen-schema'
+import Schema, { SchemaEncryptionService } from '@datacapy/schema'
 
 export interface Logger extends Console {}
 

@@ -86,8 +86,8 @@ export default class ParallelMigration implements DatabasePatchInterface {
 ### Mock DataSource
 
 ```typescript
-import { DataSourceMock } from "mzen-om";
-import { ModelManager } from "mzen-om";
+import { DataSourceMock } from "@datacapy/om";
+import { ModelManager } from "@datacapy/om";
 
 describe("Migration Tests", () => {
   it("should create indexes", async () => {
@@ -112,7 +112,7 @@ describe("Migration Tests", () => {
 
 ```typescript
 // test/integration/migrations.test.ts
-import { MigrationManager } from "mzen-migrate";
+import { MigrationManager } from "@datacapy/migrate";
 import { setupTestDatabase, teardownTestDatabase } from "./helpers";
 
 describe("Migration Integration Tests", () => {

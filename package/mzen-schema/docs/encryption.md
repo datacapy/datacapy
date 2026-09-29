@@ -2,14 +2,14 @@
 
 # Field encryption
 
-`mzen-schema` decides _which_ fields are encrypted and _when_. It does not ship
-a cipher: you supply an encryption service, and the schema calls it for each
-marked field.
+`@datacapy/schema` decides _which_ fields are encrypted and _when_. It does not
+ship a cipher: you supply an encryption service, and the schema calls it for
+each marked field.
 
 ## Marking fields
 
 ```ts
-import { sb } from 'mzen-schema'
+import { sb } from '@datacapy/schema'
 
 const spec = sb
   .schema('patient')
@@ -41,7 +41,7 @@ Pass an implementation as `encryptionService` in the second argument to
 
 ```ts
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
-import { Schema, SchemaEncryptionService } from 'mzen-schema'
+import { Schema, SchemaEncryptionService } from '@datacapy/schema'
 
 class AesService implements SchemaEncryptionService {
   constructor(private key: Buffer) {} // 32 bytes
@@ -78,7 +78,7 @@ const schema = new Schema(spec, {
 
 In production, load the key from a secret store, never from source. For a
 ready-made RSA-OAEP plus AES-256-GCM service with key management, see
-[`mzen-om`'s field encryption](../../mzen-om/docs/encryption.md).
+[`@datacapy/om`'s field encryption](../../mzen-om/docs/encryption.md).
 
 ## Encrypting and decrypting
 
@@ -124,8 +124,8 @@ throws rather than storing plaintext:
 Encryption required for field "ssn" but no encryptionService configured in schema
 ```
 
-## With mzen-om
+## With @datacapy/om
 
-You normally do not call these methods yourself. `mzen-om` calls them on every
-repository write and read, and lets you configure one service for all schemas.
-See [its guide](../../mzen-om/docs/encryption.md).
+You normally do not call these methods yourself. `@datacapy/om` calls them on
+every repository write and read, and lets you configure one service for all
+schemas. See [its guide](../../mzen-om/docs/encryption.md).

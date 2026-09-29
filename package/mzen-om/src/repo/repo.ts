@@ -20,7 +20,7 @@ import Schema, {
   SchemaSpec,
   ObjectPathAccessor,
   SchemaUtility,
-} from 'mzen-schema'
+} from '@datacapy/schema'
 import Service from 'service'
 import { RepoPopulator, RepoRelationConfig } from 'repo/populator'
 import { RepoErrorValidation } from './error'

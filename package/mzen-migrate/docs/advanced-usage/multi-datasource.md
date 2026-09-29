@@ -4,13 +4,13 @@
 
 ### Migrating Multiple Datasources
 
-mzen-migrate supports migrating multiple independent datasources. Each datasource maintains its own migration history.
+@datacapy/migrate supports migrating multiple independent datasources. Each datasource maintains its own migration history.
 
 #### Account-Level Database
 
 ```bash
 # Migrate main account database
-mzen-migrate --config ./migrate.config.js --datasource db
+@datacapy/migrate --config ./migrate.config.js --datasource db
 ```
 
 Patches targeting this datasource:
@@ -32,7 +32,7 @@ export default class InitAccountIndexes implements DatabasePatchInterface {
 
 ```bash
 # Migrate specific project database
-mzen-migrate --config ./migrate.config.js \
+@datacapy/migrate --config ./migrate.config.js \
   --datasource project \
   --context projectId=abc123
 ```
@@ -59,12 +59,12 @@ Use the context lookup feature to migrate all projects with a single command:
 
 ```bash
 # Migrate all project databases sequentially
-mzen-migrate --config ./migrate.config.js \
+@datacapy/migrate --config ./migrate.config.js \
   --datasource project \
   --context-lookup "*"
 
 # With dry-run to preview
-mzen-migrate --config ./migrate.config.js \
+@datacapy/migrate --config ./migrate.config.js \
   --datasource project \
   --context-lookup "*" \
   --dry-run
@@ -96,8 +96,8 @@ export default async () => {
 
 ```typescript
 // src/context/ContextResolverProject.ts
-import { ContextResolver } from "mzen-migrate";
-import { DataSourceInterface } from "mzen-om";
+import { ContextResolver } from "@datacapy/migrate";
+import { DataSourceInterface } from "@datacapy/om";
 
 export class ContextResolverProject implements ContextResolver {
   constructor(private accountDataSource: DataSourceInterface) {}
@@ -139,7 +139,7 @@ PROJECT_IDS=$(mysql -u user -p -D veysurAccount -e "SELECT _id FROM project" -N)
 for projectId in $PROJECT_IDS; do
   echo "Migrating project: $projectId"
 
-  mzen-migrate --config ./migrate.config.js \
+  @datacapy/migrate --config ./migrate.config.js \
     --datasource project \
     --context projectId=$projectId
 
@@ -169,10 +169,10 @@ When you run migrations for a specific datasource, only patches matching that da
 
 ```bash
 # Only executes patches with dataSourceName: 'db'
-mzen-migrate --config ./migrate.config.js --datasource db
+@datacapy/migrate --config ./migrate.config.js --datasource db
 
 # Only executes patches with dataSourceName: 'project'
-mzen-migrate --config ./migrate.config.js --datasource project --context projectId=abc123
+@datacapy/migrate --config ./migrate.config.js --datasource project --context projectId=abc123
 ```
 
 ## Dynamic Context Resolution
@@ -203,7 +203,7 @@ export default class ProjectMigration implements DatabasePatchInterface {
 
 ```bash
 # Provide multiple context values
-mzen-migrate --config ./migrate.config.js \
+@datacapy/migrate --config ./migrate.config.js \
   --datasource project \
   --context projectId=abc123 \
   --context tenantId=xyz789

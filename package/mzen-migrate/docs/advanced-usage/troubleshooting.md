@@ -10,7 +10,7 @@
 
 ```bash
 # Provide context for dynamic datasources
-mzen-migrate --config ./migrate.config.js \
+@datacapy/migrate --config ./migrate.config.js \
   --datasource project \
   --context projectId=abc123
 ```
@@ -63,7 +63,7 @@ export default class AddTable implements DatabasePatchInterface {
 
 ```bash
 # Check current database version
-mzen-migrate --config ./migrate.config.js --datasource db --verbose
+@datacapy/migrate --config ./migrate.config.js --datasource db --verbose
 
 # Check patch files
 ls -la migrate/2024/02/
@@ -86,7 +86,7 @@ ls -la migrate/2024/02/
 
 ```bash
 # Run with verbose logging
-mzen-migrate --config ./migrate.config.js --datasource db --verbose
+@datacapy/migrate --config ./migrate.config.js --datasource db --verbose
 
 # Check database connections
 # (MySQL) SHOW PROCESSLIST;

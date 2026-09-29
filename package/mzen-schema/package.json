@@ -1,12 +1,12 @@
 {
-  "name": "mzen-schema",
+  "name": "@datacapy/schema",
   "type": "commonjs",
   "version": "0.1.0",
-  "description": "Mzen Schema",
+  "description": "Datacapy schema: data schema definition and validation",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "prepublishOnly": "pnpm test",
+    "prepublishOnly": "pnpm build && pnpm test",
     "test": "jest",
     "build": "pnpm run clean && tsc && pnpm run build-minimise",
     "build-minimise": "find ./dist -type d -name '*.test.ts' -exec rm -rf {} +",
@@ -16,19 +16,19 @@
   },
   "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
   "license": "BSD-3-Clause",
-  "homepage": "https://github.com/kevin-foster-uk/mzen#readme",
+  "homepage": "https://github.com/datacapy/datacapy#readme",
   "bugs": {
-    "url": "https://github.com/kevin-foster-uk/mzen/issues"
+    "url": "https://github.com/datacapy/datacapy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kevin-foster-uk/mzen.git",
+    "url": "git+https://github.com/datacapy/datacapy.git",
     "directory": "package/mzen-schema"
   },
   "dependencies": {
     "bson-objectid": "^2.0.4",
     "clone": "^2.1.2",
-    "mzen-id": "workspace:*"
+    "@datacapy/id": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -45,5 +45,8 @@
   "files": [
     "/dist",
     "/tsconfig.json"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

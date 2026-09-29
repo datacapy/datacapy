@@ -1,4 +1,4 @@
-# mzen-schema
+# @datacapy/schema
 
 Data schemas for JavaScript and TypeScript. Define the shape of your data once,
 then use the schema to type-cast, filter, validate, hide private fields and
@@ -22,13 +22,13 @@ encrypt sensitive fields.
 ## Install
 
 ```bash
-npm install mzen-schema
+npm install @datacapy/schema
 ```
 
 ## Quick start
 
 ```ts
-import { Schema, sb } from 'mzen-schema'
+import { Schema, sb } from '@datacapy/schema'
 
 const personSchema = new Schema(
   sb
@@ -79,7 +79,7 @@ and fills defaults, whether or not the data is valid. After the call above
   age: 33,
   tel: '0123456789',
   address: { city: 'Liverpool', postcode: 'L1 8JQ' },
-  _id: 'ecrDWdCQCiXSrf6', // generated: a String field named _id defaults to mzen-id
+  _id: 'ecrDWdCQCiXSrf6', // generated: a String field named _id defaults to @datacapy/id
   createdAt: 2026-09-21T17:32:34.279Z,
 }
 ```
@@ -104,8 +104,8 @@ Both are supported and interchangeable; the guides use the builder. See
 
 ## Related packages
 
-- [`mzen-id`](../mzen-id/README.md) generates the default `_id` values.
-- [`mzen-om`](../mzen-om/README.md) uses `mzen-schema` for repository
+- [`@datacapy/id`](../mzen-id/README.md) generates the default `_id` values.
+- [`@datacapy/om`](../mzen-om/README.md) uses `@datacapy/schema` for repository
   validation, private-field filtering and field encryption.
 
 ## Licence

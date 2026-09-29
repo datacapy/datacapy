@@ -9,7 +9,7 @@ import {
   publicEncrypt,
   randomBytes,
 } from 'crypto'
-import { SchemaEncryptionService } from 'mzen-schema'
+import { SchemaEncryptionService } from '@datacapy/schema'
 
 export interface SchemaEncryptionServiceRsaConfig {
   publicKey: string

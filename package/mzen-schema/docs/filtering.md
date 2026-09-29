@@ -5,7 +5,7 @@ Filters change a value: fill a default, tidy a string, hide a field.
 To run filters without validating, use `applyFilters()`.
 
 ```ts
-import { Schema, sb } from 'mzen-schema'
+import { Schema, sb } from '@datacapy/schema'
 
 const schema = new Schema(
   sb
@@ -36,7 +36,7 @@ sb.string().default(() => crypto.randomUUID())
 
 Object fields default to `{}` and array fields to `[]` without any
 configuration. A `String` field named `_id` defaults to a new
-[`mzen-id`](../../mzen-id/README.md) value.
+[`@datacapy/id`](../../mzen-id/README.md) value.
 
 ## String filters
 

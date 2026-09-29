@@ -1,16 +1,18 @@
+<!-- cspell:ignore deserialisation -->
+
 <!-- cspell:ignore OAEP pubout -->
 
 # Field-Level Encryption
 
 Opt-in at-rest encryption for individual schema fields. Encrypted values are
-transparently encrypted before write and decrypted after read: no changes
-needed in application code beyond configuration.
+transparently encrypted before write and decrypted after read: no changes needed
+in application code beyond configuration.
 
 ## Quick Start
 
 ```typescript
 import fs from 'fs'
-import { Schema, ModelManager, SchemaEncryptionServiceRsa } from 'mzen-om'
+import { Schema, ModelManager, SchemaEncryptionServiceRsa } from '@datacapy/om'
 
 const userSchema = new Schema({
   name: { $type: String },
@@ -99,15 +101,15 @@ config. Encryption works normally; decryption throws
   module. Custom implementations of `SchemaEncryptionService` can target other
   environments.
 - **No built-in key rotation**: rotating keys requires re-encrypting all stored
-  values outside of mzen-om.
+  values outside of @datacapy/om.
 
 ## Custom Encryption Service
 
-Implement `SchemaEncryptionService` from `mzen-schema` to use a different
+Implement `SchemaEncryptionService` from `@datacapy/schema` to use a different
 algorithm or key store (e.g. AWS KMS, HashiCorp Vault):
 
 ```typescript
-import { SchemaEncryptionService } from 'mzen-schema'
+import { SchemaEncryptionService } from '@datacapy/schema'
 
 export class KmsEncryptionService implements SchemaEncryptionService {
   async encrypt(plaintext: string): Promise<string> {
@@ -121,15 +123,15 @@ export class KmsEncryptionService implements SchemaEncryptionService {
 
 ## Source References
 
-- [`mzen-schema/src/encryption/encryption-service.ts`](../../mzen-schema/src/encryption/encryption-service.ts):
+- [`@datacapy/schema/src/encryption/encryption-service.ts`](../../mzen-schema/src/encryption/encryption-service.ts):
   `SchemaEncryptionService` interface
-- [`mzen-om/src/encryption/encryption-service-rsa.ts`](../src/encryption/encryption-service-rsa.ts):
+- [`@datacapy/om/src/encryption/encryption-service-rsa.ts`](../src/encryption/encryption-service-rsa.ts):
   RSA+AES-256-GCM implementation
-- [`mzen-schema/src/spec.ts`](../../mzen-schema/src/spec.ts):
+- [`@datacapy/schema/src/spec.ts`](../../mzen-schema/src/spec.ts):
   `SchemaSpecFilter.encrypt` field
-- [`mzen-schema/src/schema.ts`](../../mzen-schema/src/schema.ts):
+- [`@datacapy/schema/src/schema.ts`](../../mzen-schema/src/schema.ts):
   `applyEncrypt`, `applyEncryptPaths`, `applyDecrypt`
-- [`mzen-om/src/model-manager.ts`](../src/model-manager.ts):
+- [`@datacapy/om/src/model-manager.ts`](../src/model-manager.ts):
   `ModelManagerConfig.encryptionService`, propagation in `initSchemas`
-- [`mzen-om/src/repo/index.ts`](../src/repo/index.ts): call sites in insert,
-  update, and find paths
+- [`@datacapy/om/src/repo/index.ts`](../src/repo/index.ts): call sites in
+  insert, update, and find paths

@@ -1,4 +1,4 @@
-# mzen-om
+# @datacapy/om
 
 ## 0.1.0
 

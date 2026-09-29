@@ -7,7 +7,7 @@
 Instead of using the CLI, you can run migrations programmatically:
 
 ```typescript
-import { MigrationManager } from "mzen-migrate";
+import { MigrationManager } from "@datacapy/migrate";
 import modelManager from "./model-manager";
 
 async function runMigrations() {
@@ -53,7 +53,7 @@ runMigrations().catch(console.error);
 ### Custom Logger
 
 ```typescript
-import { MigrationManager } from "mzen-migrate";
+import { MigrationManager } from "@datacapy/migrate";
 
 const config = {
   modelManager,

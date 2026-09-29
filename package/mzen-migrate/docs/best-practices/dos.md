@@ -4,7 +4,7 @@
 
 ```bash
 # Preview changes before applying
-mzen-migrate --config ./migrate.config.js --datasource db --dry-run
+@datacapy/migrate --config ./migrate.config.js --datasource db --dry-run
 ```
 
 #### 2. Make Migrations Idempotent

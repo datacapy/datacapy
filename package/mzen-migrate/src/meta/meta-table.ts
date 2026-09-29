@@ -1,5 +1,5 @@
-import { DataSourceInterface } from "mzen-om/dist/data-source";
-import { genUniqueId } from "mzen-id";
+import { DataSourceInterface } from "@datacapy/om/dist/data-source";
+import { genUniqueId } from "@datacapy/id";
 
 /**
  * MetaRecord

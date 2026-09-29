@@ -24,7 +24,7 @@ instances with LRU eviction and idle timeout.
 All contexts must explicitly specify datasource names:
 
 ```typescript
-import { DataSourceContext } from 'mzen-om'
+import { DataSourceContext } from '@datacapy/om'
 
 // Single datasource
 const context = DataSourceContext.fromDataSources({
@@ -186,8 +186,8 @@ afterwards.
 
 **The callback receives a new tx-scoped context (`txContext`), not the original
 `context`.** Every nested repo call made inside the transaction must be passed
-`txContext`, not the outer `context`, otherwise that call silently resolves to
-a non-transactional datasource instead of erroring.
+`txContext`, not the outer `context`, otherwise that call silently resolves to a
+non-transactional datasource instead of erroring.
 
 ## Error Handling
 

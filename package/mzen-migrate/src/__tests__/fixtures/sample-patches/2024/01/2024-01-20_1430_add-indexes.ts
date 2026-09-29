@@ -1,5 +1,5 @@
 import { DatabasePatchInterface } from "../../../../../interface/database-patch";
-import { ModelManager } from "mzen-om";
+import { ModelManager } from "@datacapy/om";
 
 export default class AddIndexes implements DatabasePatchInterface {
   version = "2024-01-20_1430";

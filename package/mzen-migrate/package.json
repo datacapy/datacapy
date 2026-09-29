@@ -1,15 +1,15 @@
 {
-  "name": "mzen-migrate",
+  "name": "@datacapy/migrate",
   "type": "commonjs",
   "version": "0.1.0",
-  "description": "Database migration tool for mzen-om applications",
+  "description": "Datacapy migrate: database migration runner",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",
   "bin": {
-    "mzen-migrate": "./dist/cli/index.js"
+    "@datacapy/migrate": "./dist/cli/index.js"
   },
   "scripts": {
-    "prepublishOnly": "pnpm test",
+    "prepublishOnly": "pnpm build && pnpm test",
     "build": "pnpm run clean && tsc && tsc-alias -p tsconfig.json && pnpm run build-minimise",
     "build-minimise": "find ./dist -type d -name '__tests__' -exec rm -rf {} +",
     "clean": "rm -rf ./dist/*",
@@ -19,18 +19,18 @@
   },
   "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
   "license": "BSD-3-Clause",
-  "homepage": "https://github.com/kevin-foster-uk/mzen#readme",
+  "homepage": "https://github.com/datacapy/datacapy#readme",
   "bugs": {
-    "url": "https://github.com/kevin-foster-uk/mzen/issues"
+    "url": "https://github.com/datacapy/datacapy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kevin-foster-uk/mzen.git",
+    "url": "git+https://github.com/datacapy/datacapy.git",
     "directory": "package/mzen-migrate"
   },
   "dependencies": {
-    "mzen-id": "workspace:*",
-    "mzen-om": "workspace:*"
+    "@datacapy/id": "workspace:*",
+    "@datacapy/om": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -45,5 +45,8 @@
   "files": [
     "/dist",
     "/tsconfig.json"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

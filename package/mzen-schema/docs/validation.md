@@ -4,7 +4,7 @@
 every rule. It returns `{ isValid, errors }` and modifies `data` in place.
 
 ```ts
-import { Schema, sb } from 'mzen-schema'
+import { Schema, sb } from '@datacapy/schema'
 
 const schema = new Schema(
   sb

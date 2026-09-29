@@ -1,4 +1,4 @@
-# mzen-schema
+# @datacapy/schema
 
 ## 0.1.0
 

@@ -1,4 +1,4 @@
-import { ModelManagerConfig } from 'mzen-om'
+import { ModelManagerConfig } from '@datacapy/om'
 
 export interface ServerConfig {
   path: string

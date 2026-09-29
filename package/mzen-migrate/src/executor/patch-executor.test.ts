@@ -1,7 +1,7 @@
 import { PatchExecutor } from "./patch-executor";
 import { DatabasePatchInterface } from "../interface/database-patch";
 import { MigrationLogger } from "../logger/migration-logger";
-import { ModelManager, DataSourceContext } from "mzen-om";
+import { ModelManager, DataSourceContext } from "@datacapy/om";
 
 // Mock ModelManager
 class MockModelManager extends ModelManager {

@@ -1,4 +1,4 @@
-import { Schema, ObjectPathAccessor } from 'mzen-om'
+import { Schema, ObjectPathAccessor } from '@datacapy/om'
 import { RequestInterface, ResponseInterface } from './interfaces'
 import { ServerConfig } from '../server-config'
 

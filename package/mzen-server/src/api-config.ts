@@ -1,4 +1,4 @@
-import { Schema } from 'mzen-om'
+import { Schema } from '@datacapy/om'
 
 export interface ServerApiConfigEndpointData {
   // if name is not specified defaults to srcPath

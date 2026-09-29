@@ -5,7 +5,7 @@ import {
   QueryPersistResultBulk,
   QuerySelection,
   QuerySelectionOptions,
-} from "mzen-om/dist/data-source";
+} from "@datacapy/om/dist/data-source";
 
 /**
  * Enhanced mock datasource for testing MetaTable

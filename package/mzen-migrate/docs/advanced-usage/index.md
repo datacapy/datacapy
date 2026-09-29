@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document covers advanced patterns, troubleshooting, and edge cases for mzen-migrate.
+This document covers advanced patterns, troubleshooting, and edge cases for @datacapy/migrate.
 
 ## Contents
 

@@ -36,13 +36,13 @@ If a migration fails:
 
 ```bash
 # First run - patches 1 and 2 succeed, patch 3 fails
-$ mzen-migrate --config ./migrate.config.js --datasource db
+$ @datacapy/migrate --config ./migrate.config.js --datasource db
 # ✓ Patch 1 applied and committed
 # ✓ Patch 2 applied and committed
 # ✗ Patch 3 failed - rolled back, NOT recorded in meta
 
 # Fix the issue in patch 3 and run again
-$ mzen-migrate --config ./migrate.config.js --datasource db
+$ @datacapy/migrate --config ./migrate.config.js --datasource db
 # Skipping patch 1 (already in meta table)
 # Skipping patch 2 (already in meta table)
 # ✓ Patch 3 applied and committed
@@ -111,12 +111,7 @@ For migrations affecting many records:
 // ❌ Bad: Load all records into memory
 const allUsers = await repo.find({});
 for (const user of allUsers) {
-  await repo.updateOne(
-    {
-      /* ... */
-    },
-    { _id: user._id },
-  );
+  await repo.updateOne({/* ... */}, { _id: user._id });
 }
 
 // ✅ Good: Batch updates
@@ -165,7 +160,7 @@ await repo.createIndexes();
 ```bash
 # Fix the issue (code or database)
 # Re-run migration - it will pick up where it left off
-mzen-migrate --config ./migrate.config.js --datasource db
+@datacapy/migrate --config ./migrate.config.js --datasource db
 ```
 
 ### Custom Error Handling

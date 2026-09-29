@@ -5,7 +5,7 @@ builder; methods add rules and return the builder, and `.build()` produces the
 spec that `new Schema()` accepts.
 
 ```ts
-import { Schema, sb } from 'mzen-schema'
+import { Schema, sb } from '@datacapy/schema'
 
 const schema = new Schema(
   sb

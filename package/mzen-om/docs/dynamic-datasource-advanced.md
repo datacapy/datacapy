@@ -3,7 +3,7 @@
 ## Overview
 
 This guide covers advanced features for dynamic datasource management in
-mzen-om. For basic usage of DataSourceContext and DataSourceLookup, see
+@datacapy/om. For basic usage of DataSourceContext and DataSourceLookup, see
 [Dynamic DataSource](dynamic-datasource.md).
 
 **Topics covered:**
@@ -33,7 +33,7 @@ constructor(cacheTTL: number = 10 * 60 * 1000)
 Extend `BaseDataSourceLookup` and implement the abstract `performLookup` method:
 
 ```typescript
-import { BaseDataSourceLookup, DataSourceConnectionDetails } from 'mzen-om'
+import { BaseDataSourceLookup, DataSourceConnectionDetails } from '@datacapy/om'
 
 class DatabaseLookup extends BaseDataSourceLookup {
   constructor(private db: Database) {

@@ -1,7 +1,7 @@
 /**
- * mzen-migrate
+ * @datacapy/migrate
  *
- * Database migration tool for mzen-om applications
+ * Database migration tool for @datacapy/om applications
  */
 
 // Main API exports

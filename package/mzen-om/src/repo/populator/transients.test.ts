@@ -1,4 +1,4 @@
-import { Collection, PropsOf } from 'mzen-schema'
+import { Collection, PropsOf } from '@datacapy/schema'
 
 import Repo from 'repo'
 import MockDataSource from 'data-source/mock'

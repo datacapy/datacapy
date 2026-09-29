@@ -5,7 +5,7 @@ import { CliRunner } from "./runner";
 /**
  * CLI Entry Point
  *
- * This is the main entry point for the mzen-migrate CLI tool.
+ * This is the main entry point for the @datacapy/migrate CLI tool.
  * It parses arguments and executes the migration.
  */
 async function main() {

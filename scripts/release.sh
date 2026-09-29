@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Cuts a release for whichever mzen-* package(s) have pending changesets.
+# Cuts a release for whichever @datacapy/* package(s) have pending changesets.
 # Each package versions independently, so this may bump more than one package
 # at once, each getting its own <package-name>@<version> tag.
 #
@@ -17,7 +17,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 if ! ls .changeset/*.md >/dev/null 2>&1; then
-  echo "No pending changesets in .changeset/ — nothing to release." >&2
+  echo "No pending changesets in .changeset/ - nothing to release." >&2
   exit 1
 fi
 
@@ -34,12 +34,14 @@ git commit -m "chore(release): version packages"
 git push
 
 TAGS=()
+CHANGELOGS=()
 while IFS= read -r f; do
   name=$(node -p "require('./$f').name")
   version=$(node -p "require('./$f').version")
   tag="${name}@${version}"
   git tag "$tag"
   TAGS+=("$tag")
+  CHANGELOGS+=("$(dirname "$f")/CHANGELOG.md")
 done <<<"$CHANGED_PACKAGE_JSON"
 
 git push --tags
@@ -48,7 +50,10 @@ echo
 echo "Tagged and pushed:"
 printf '  %s\n' "${TAGS[@]}"
 echo
+echo "Then publish to npm with ./scripts/publish.sh (run it with --dry-run first)."
+echo
 echo "Next: cut a GitHub release for each tag from its CHANGELOG.md entry, e.g.:"
-for tag in "${TAGS[@]}"; do
-  echo "  gh release create '$tag' --title '$tag' --notes-file <(sed -n '/^## ${tag#*@}\$/,/^## /p' package/${tag%%@*}/CHANGELOG.md | sed '\$d')"
+for i in "${!TAGS[@]}"; do
+  tag="${TAGS[$i]}"
+  echo "  gh release create '$tag' --title '$tag' --notes-file <(sed -n '/^## ${tag##*@}\$/,/^## /p' ${CHANGELOGS[$i]} | sed '\$d')"
 done

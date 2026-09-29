@@ -1,6 +1,6 @@
 import Schema from 'schema'
 import ObjectID from 'bson-objectid'
-import { uniqueIdToBsonId } from 'mzen-id'
+import { uniqueIdToBsonId } from '@datacapy/id'
 
 describe('default value', () => {
   it('should inject default value when undefined', async () => {

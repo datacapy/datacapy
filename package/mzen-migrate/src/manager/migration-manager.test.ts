@@ -5,7 +5,7 @@ import {
   DataSourceInterface,
   BulkWriteOp,
   QueryPersistResultBulk,
-} from "mzen-om";
+} from "@datacapy/om";
 import { MigrationConfig } from "../interface/migration-config";
 
 // Enhanced test datasource for migration testing

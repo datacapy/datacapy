@@ -1,8 +1,8 @@
 {
-  "name": "mzen",
+  "name": "datacapy",
   "version": "0.1.0",
   "private": true,
-  "description": "Mzen",
+  "description": "Datacapy",
   "scripts": {
     "build": "pnpm -r --stream build",
     "test": "pnpm -r --stream test",
@@ -10,25 +10,29 @@
     "format": "pnpm -r --stream format",
     "typecheck": "pnpm -r --stream typecheck",
     "compile": "pnpm format && pnpm build && pnpm typecheck && pnpm test",
-    "build:mzen-id": "pnpm --filter mzen-id build",
-    "build:mzen-schema": "pnpm --filter mzen-schema build",
-    "build:mzen-om": "pnpm --filter mzen-om build",
-    "build:mzen-server": "pnpm --filter mzen-server build",
-    "test:mzen-id": "pnpm --filter mzen-id test",
-    "test:mzen-schema": "pnpm --filter mzen-schema test",
-    "test:mzen-om": "pnpm --filter mzen-om test",
-    "test:mzen-server": "pnpm --filter mzen-server test",
-    "format:mzen-id": "pnpm --filter mzen-id format",
-    "format:mzen-schema": "pnpm --filter mzen-schema format",
-    "format:mzen-om": "pnpm --filter mzen-om format",
-    "format:mzen-server": "pnpm --filter mzen-server format",
-    "typecheck:mzen-id": "pnpm --filter mzen-id typecheck",
-    "typecheck:mzen-schema": "pnpm --filter mzen-schema typecheck",
-    "typecheck:mzen-om": "pnpm --filter mzen-om typecheck",
-    "typecheck:mzen-server": "pnpm --filter mzen-server typecheck",
+    "build:id": "pnpm --filter @datacapy/id build",
+    "build:schema": "pnpm --filter @datacapy/schema build",
+    "build:om": "pnpm --filter @datacapy/om build",
+    "build:server": "pnpm --filter @datacapy/server build",
+    "test:id": "pnpm --filter @datacapy/id test",
+    "test:schema": "pnpm --filter @datacapy/schema test",
+    "test:om": "pnpm --filter @datacapy/om test",
+    "test:server": "pnpm --filter @datacapy/server test",
+    "format:id": "pnpm --filter @datacapy/id format",
+    "format:schema": "pnpm --filter @datacapy/schema format",
+    "format:om": "pnpm --filter @datacapy/om format",
+    "format:server": "pnpm --filter @datacapy/server format",
+    "typecheck:id": "pnpm --filter @datacapy/id typecheck",
+    "typecheck:schema": "pnpm --filter @datacapy/schema typecheck",
+    "typecheck:om": "pnpm --filter @datacapy/om typecheck",
+    "typecheck:server": "pnpm --filter @datacapy/server typecheck",
     "commit": "cz",
     "changeset": "changeset",
-    "prepare": "git config core.hooksPath .githooks && git config commit.template .git-commit-template.txt"
+    "prepare": "git config core.hooksPath .githooks && git config commit.template .git-commit-template.txt",
+    "build:migrate": "pnpm --filter @datacapy/migrate build",
+    "test:migrate": "pnpm --filter @datacapy/migrate test",
+    "format:migrate": "pnpm --filter @datacapy/migrate format",
+    "typecheck:migrate": "pnpm --filter @datacapy/migrate typecheck"
   },
   "config": {
     "commitizen": {
@@ -40,7 +44,7 @@
   },
   "keywords": [
     "monorepo",
-    "mzen"
+    "datacapy"
   ],
   "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
   "pnpm": {

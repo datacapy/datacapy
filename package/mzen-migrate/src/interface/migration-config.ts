@@ -1,5 +1,5 @@
-import { ModelManager } from "mzen-om";
-import { DataSourceContext } from "mzen-om/dist/data-source";
+import { ModelManager } from "@datacapy/om";
+import { DataSourceContext } from "@datacapy/om/dist/data-source";
 import { ContextResolver } from "./context-resolver";
 
 /**

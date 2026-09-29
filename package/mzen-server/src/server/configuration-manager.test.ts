@@ -1,6 +1,6 @@
 import { ConfigurationManager } from './configuration-manager'
 import { ServerConfig } from '../server-config'
-import { ModelManager } from 'mzen-om'
+import { ModelManager } from '@datacapy/om'
 
 describe('ConfigurationManager', () => {
   describe('constructor()', () => {

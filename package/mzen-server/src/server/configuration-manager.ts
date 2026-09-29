@@ -1,4 +1,4 @@
-import { ModelManager } from 'mzen-om'
+import { ModelManager } from '@datacapy/om'
 
 import { ServerConfig } from '../server-config'
 import {

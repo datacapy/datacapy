@@ -5,7 +5,7 @@ import SchemaConfig from '../config'
 import { SchemaValidationMeta } from '../schema'
 import { SchemaIteratorMeta } from '../iterator'
 import SchemaFieldTypeCaster from './field-type-caster'
-import { genUniqueId } from 'mzen-id'
+import { genUniqueId } from '@datacapy/id'
 
 /**
  * Interface for SchemaFieldFilter

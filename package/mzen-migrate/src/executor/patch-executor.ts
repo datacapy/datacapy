@@ -1,6 +1,6 @@
 import { DatabasePatchInterface } from "../interface/database-patch";
 import { PatchResult } from "../interface/migration-result";
-import { ModelManager, DataSourceContext } from "mzen-om";
+import { ModelManager, DataSourceContext } from "@datacapy/om";
 import { MigrationLogger } from "../logger/migration-logger";
 
 /**
@@ -10,7 +10,7 @@ import { MigrationLogger } from "../logger/migration-logger";
  *
  * Transaction safety is the patch's own responsibility: a patch that needs
  * atomicity across its repo calls must wrap them with `repo.transaction(context, fn)`
- * itself (see mzen-om's Repo#transaction). PatchExecutor cannot provide this
+ * itself (see @datacapy/om's Repo#transaction). PatchExecutor cannot provide this
  * generically - transactionStart() returns a dedicated lease scoped to whichever
  * repo/datasource requested it, and repo calls that aren't explicitly handed that
  * lease's context bypass it entirely, so no datasource-level wrapping here would

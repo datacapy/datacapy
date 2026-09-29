@@ -1,4 +1,4 @@
-import { ModelManager, DataSourceContext } from "mzen-om";
+import { ModelManager, DataSourceContext } from "@datacapy/om";
 
 /**
  * DatabasePatchInterface

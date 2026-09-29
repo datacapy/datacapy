@@ -1,4 +1,4 @@
-import { ObjectPathAccessor } from 'mzen-schema'
+import { ObjectPathAccessor } from '@datacapy/schema'
 
 describe('ObjectPathAccessor', () => {
   describe('pathsMatch()', () => {

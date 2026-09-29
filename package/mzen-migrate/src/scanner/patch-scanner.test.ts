@@ -173,7 +173,7 @@ describe("PatchScanner", () => {
         patchPath,
         `
         import { DatabasePatchInterface } from '../../../../../interface/database-patch'
-        import { ModelManager } from 'mzen-om'
+        import { ModelManager } from '@datacapy/om'
 
         export default class BadVersion implements DatabasePatchInterface {
           version = 'invalid-version'
@@ -214,7 +214,7 @@ describe("PatchScanner", () => {
         patchPath,
         `
         import { DatabasePatchInterface } from '../../../../../interface/database-patch'
-        import { ModelManager } from 'mzen-om'
+        import { ModelManager } from '@datacapy/om'
 
         export default class VersionMismatch implements DatabasePatchInterface {
           version = '2024-01-01_1300' // Different from filename

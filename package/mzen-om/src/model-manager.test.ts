@@ -2,7 +2,7 @@ import ModelManager from 'model-manager'
 import Repo from 'repo'
 import Service from 'service'
 import MockDataSource from 'data-source/mock'
-import Schema from 'mzen-schema'
+import Schema from '@datacapy/schema'
 
 describe('ModelManager', () => {
   describe('init()', () => {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides guidelines for writing effective, safe, and maintainable database migrations using mzen-migrate.
+This document provides guidelines for writing effective, safe, and maintainable database migrations using @datacapy/migrate.
 
 ## Contents
 

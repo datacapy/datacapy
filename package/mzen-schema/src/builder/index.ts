@@ -1,7 +1,7 @@
 /**
  * Schema Builder API
  * Provides a fluent builder pattern for defining schemas
- * Inspired by Zod and Joi, adapted for mzen-schema
+ * Inspired by Zod and Joi, adapted for @datacapy/schema
  */
 
 import { SchemaBuilder } from './schema-builder'

@@ -35,11 +35,11 @@ jobs:
 
       - name: Run Migrations (Dry Run)
         run: |
-          pnpm mzen-migrate --config ./migrate.config.js --datasource db --dry-run
+          pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --dry-run
 
       - name: Run Migrations
         run: |
-          pnpm mzen-migrate --config ./migrate.config.js --datasource db
+          pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 
       - name: Verify Application
         run: pnpm run test:integration
@@ -64,7 +64,7 @@ spec:
           command:
             [
               "pnpm",
-              "mzen-migrate",
+              "@datacapy/migrate",
               "--config",
               "./migrate.config.js",
               "--datasource",

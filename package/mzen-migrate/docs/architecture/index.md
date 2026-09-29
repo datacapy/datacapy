@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the technical implementation of the `mzen-migrate` database migration system. For usage instructions, see the [main README](../../README.md).
+This document explains the technical implementation of the `@datacapy/migrate` database migration system. For usage instructions, see the [main README](../../README.md).
 
 ## Contents
 
@@ -12,7 +12,7 @@ This document explains the technical implementation of the `mzen-migrate` databa
 
 ## Summary
 
-The mzen-migrate system provides:
+The @datacapy/migrate system provides:
 
 - ✅ **Controlled** database changes through versioned patches
 - ✅ **Tracked** history in migrationMeta table

@@ -29,7 +29,7 @@ export class CliRunner {
       // Handle version
       if (cliArgs.version) {
         const packageJson = require("../../package.json");
-        console.log(`mzen-migrate v${packageJson.version}`);
+        console.log(`@datacapy/migrate v${packageJson.version}`);
         return 0;
       }
 

@@ -1,5 +1,5 @@
 import { RelationAbstract } from './abstract'
-import { ObjectPathAccessor } from 'mzen-schema'
+import { ObjectPathAccessor } from '@datacapy/schema'
 
 export abstract class RelationEmbeddedAbstract extends RelationAbstract {
   protected getEmbedRelations(path, docs) {

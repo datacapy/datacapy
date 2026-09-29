@@ -1,6 +1,6 @@
 import { Repo } from 'repo'
 import { RelationConfig } from 'repo/populator'
-import { ObjectPathAccessor } from 'mzen-schema'
+import { ObjectPathAccessor } from '@datacapy/schema'
 import clone = require('clone')
 
 export abstract class RelationAbstract {

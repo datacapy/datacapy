@@ -10,11 +10,11 @@ out to be a route collision: an older endpoint, `putProject`, was declared with
 `enable: false` on the individual endpoint config expecting that to disable it,
 but it was still live and registered on the same path pattern, silently
 swallowing every request before the new route could ever be reached. Tracing why
-led to `mzen-server`'s registration code, where two separate `enable` bugs were
-found: one on individual endpoints, one on whole services. Both are documented
-here since they share a root cause (nothing in this package ever actually
-implements "endpoint/service is off"), and whoever picks this up will be
-touching the same function for both.
+led to `@datacapy/server`'s registration code, where two separate `enable` bugs
+were found: one on individual endpoints, one on whole services. Both are
+documented here since they share a root cause (nothing in this package ever
+actually implements "endpoint/service is off"), and whoever picks this up will
+be touching the same function for both.
 
 ## Bug 1: per-endpoint `enable` does not exist at all
 
@@ -43,10 +43,9 @@ Nothing in `EndpointRegistrar.registerEndpointsConfig`
 `ServerRemoteObject.getMiddlewareConfig` (`src/remote-object.ts:129-190`) ever
 reads `endpointConfig.enable`. Grepping both files (and every file under `src/`)
 for `endpointConfig.enable` or `config.enable` inside the per-endpoint loop
-returns nothing: the only mechanism that actually removes an individual
-endpoint before registration is the service-level
-`disable: { endpointName: true }` map, applied in `registerEndpointsConfig`
-(`endpoint-registrar.ts:85-98`):
+returns nothing: the only mechanism that actually removes an individual endpoint
+before registration is the service-level `disable: { endpointName: true }` map,
+applied in `registerEndpointsConfig` (`endpoint-registrar.ts:85-98`):
 
 ```ts
 for (const endpointName in endpoints) {
@@ -80,8 +79,8 @@ request body and updates arbitrary fields (including `ownerId`, `status`,
 with `enable: false` specifically to keep it off pending a safer replacement,
 and has been live in production regardless since it was added. `veysur-api` has
 since been patched to route around this using the service-level `disable` map
-instead (which _does_ work; see Bug 2's caveat below), but the underlying gap
-in `mzen-server` remains and will bite the next person who writes
+instead (which _does_ work; see Bug 2's caveat below), but the underlying gap in
+`@datacapy/server` remains and will bite the next person who writes
 `enable: false` on an endpoint, matching the `bodyParser.json.enable` /
 `bodyParser.urlencoded.enable` naming already used elsewhere in this same
 interface (`api-config.ts:50-58`), a strong signal this is the naming a caller
@@ -117,9 +116,9 @@ cache-management endpoints (`clearProjectCache`, `invalidateSubdomain`,
 `invalidateDataSource`, `getStats`) off. They are routable today regardless.
 Exposure is narrower than Bug 1's example: each endpoint has its own
 `role: 'platformAdmin'` ACL rule requiring a real platform-admin JWT with 2FA
-enabled (`src/acl/role-assessor/PlatformAdmin.ts`), but the intended
-kill-switch does not work, and whoever declared `enable: false` here was relying
-on it doing what it says.
+enabled (`src/acl/role-assessor/PlatformAdmin.ts`), but the intended kill-switch
+does not work, and whoever declared `enable: false` here was relying on it doing
+what it says.
 
 ## Suggested fix
 
@@ -183,8 +182,8 @@ At minimum, add:
 
 Patch bump `package.json` (currently `0.1.209`) once merged, and update the
 version reference in `package/api/AGENTS.md` (`**Version**: 0.1.209` under
-"mzen-server (REST API Server)") to match: that file is manually maintained,
-not generated.
+"@datacapy/server (REST API Server)") to match: that file is manually
+maintained, not generated.
 
 ## Downstream cleanup in `veysur-api` (after this lands)
 
@@ -196,14 +195,14 @@ correct once this bug is fixed:
   this handoff) rather than the broken inline `enable: false`. No change
   required; either mechanism will work correctly after this fix, so leaving it
   on `disable` is fine.
-- `package/api/src/endpoint/platform/project-cache.ts`: once `mzen-server` is
-  rebuilt and `veysur-api` picks up the new version, this service's
+- `package/api/src/endpoint/platform/project-cache.ts`: once `@datacapy/server`
+  is rebuilt and `veysur-api` picks up the new version, this service's
   `enable: false` will actually take effect for the first time and its four
   endpoints will start returning 404 instead of being routable. **Flag this to
-  whoever owns that file before merging**: confirm the service was in fact
-  meant to stay off (it reads like an in-progress feature), since this fix will
-  change its live behaviour the moment the dependency is bumped, not just
-  silence a lint warning.
+  whoever owns that file before merging**: confirm the service was in fact meant
+  to stay off (it reads like an in-progress feature), since this fix will change
+  its live behaviour the moment the dependency is bumped, not just silence a
+  lint warning.
 
 ## Verification
 
@@ -212,8 +211,8 @@ correct once this bug is fixed:
    after the fix. Don't just add passing tests; confirm they'd have caught both
    bugs.
 3. Bump the workspace dependency in `veysur-api` (`workspace:*` already resolves
-   to the local build, so just rebuild `mzen-server` and restart the API), then
-   hit `POST /platform/project-cache/stats` (or any of its siblings) as a
+   to the local build, so just rebuild `@datacapy/server` and restart the API),
+   then hit `POST /platform/project-cache/stats` (or any of its siblings) as a
    `platformAdmin`: should now 404.
 4. Re-run `package/api`'s `project` endpoint/service test suites
    (`pnpm --filter veysur-api test -- src/model/service/ServiceProject src/endpoint/shared/project`)
