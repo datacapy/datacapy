@@ -41,15 +41,19 @@ function guard(methodName: 'error' | 'warn') {
 export function installConsoleGuard(): void {
   let errorSpy: jest.SpyInstance
   let warnSpy: jest.SpyInstance
+  let logSpy: jest.SpyInstance
 
   beforeEach(() => {
     errorSpy = guard('error')
     warnSpy = guard('warn')
+    // Lifecycle logging from DataSourceRegistry/DataSourceManager is informational only.
+    logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined)
   })
 
   afterEach(() => {
     errorSpy.mockRestore()
     warnSpy.mockRestore()
+    logSpy.mockRestore()
   })
 }
 
