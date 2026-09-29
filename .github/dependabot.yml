@@ -6,6 +6,10 @@ updates:
       interval: daily
     labels:
       - dependencies
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: npm
     directory: /package/id
@@ -13,6 +17,10 @@ updates:
       interval: daily
     labels:
       - dependencies
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: npm
     directory: /package/migrate
@@ -20,6 +28,10 @@ updates:
       interval: daily
     labels:
       - dependencies
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: npm
     directory: /package/om
@@ -27,6 +39,10 @@ updates:
       interval: daily
     labels:
       - dependencies
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: npm
     directory: /package/schema
@@ -34,6 +50,10 @@ updates:
       interval: daily
     labels:
       - dependencies
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: npm
     directory: /package/server
@@ -41,3 +61,7 @@ updates:
       interval: daily
     labels:
       - dependencies
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
