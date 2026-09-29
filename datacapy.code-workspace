@@ -4,16 +4,16 @@
       "path": ".",
     },
     {
-      "path": "package/mzen-om",
+      "path": "package/om",
     },
     {
-      "path": "package/mzen-schema",
+      "path": "package/schema",
     },
     {
-      "path": "package/mzen-server",
+      "path": "package/server",
     },
     {
-      "path": "package/mzen-id",
+      "path": "package/id",
     },
   ],
   "settings": {},

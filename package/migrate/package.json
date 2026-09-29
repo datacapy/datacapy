@@ -1,0 +1,52 @@
+{
+  "name": "@datacapy/migrate",
+  "type": "commonjs",
+  "version": "0.1.0",
+  "description": "Datacapy migrate: database migration runner",
+  "main": "./dist/index",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "@datacapy/migrate": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "prepublishOnly": "pnpm build && pnpm test",
+    "build": "pnpm run clean && tsc && tsc-alias -p tsconfig.json && pnpm run build-minimise",
+    "build-minimise": "find ./dist -type d -name '__tests__' -exec rm -rf {} +",
+    "clean": "rm -rf ./dist/*",
+    "test": "jest",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/datacapy/datacapy#readme",
+  "bugs": {
+    "url": "https://github.com/datacapy/datacapy/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datacapy/datacapy.git",
+    "directory": "package/migrate"
+  },
+  "dependencies": {
+    "@datacapy/id": "workspace:*",
+    "@datacapy/om": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.9.8",
+    "jest": "^30.5.2",
+    "prettier": "^3.9.9",
+    "ts-jest": "^29.4.14",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "1.9.1",
+    "typescript": "^6.0.3"
+  },
+  "files": [
+    "/dist",
+    "/tsconfig.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

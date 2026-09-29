@@ -54,8 +54,7 @@ Timestamp fields use the `xxxAt` suffix (e.g. `createdAt`, `updatedAt`, `deleted
 Each `@datacapy/*` package (`id`, `migrate`, `om`, `schema`, `server`) has its own
 independent semver line, tracked via [Changesets](https://github.com/changesets/changesets)
 (`.changeset/`). They are published to npm under the `@datacapy` scope, and `veysur`
-consumes them via the pnpm `workspace:*` protocol. The directories under `package/` keep
-their `mzen-*` names; only the npm package names changed.
+consumes them via the pnpm `workspace:*` protocol.
 
 - When a PR changes one or more packages' behaviour, add a changeset:
   `pnpm changeset`, picking the affected package(s), the bump level (patch/minor/major), and

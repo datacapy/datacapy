@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "baseUrl": "./dist"
+  },
+  "include": ["dist", "examples"],
+  "exclude": ["node_modules", "**/_tests"]
+}

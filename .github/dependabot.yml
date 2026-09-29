@@ -8,35 +8,35 @@ updates:
       - dependencies
 
   - package-ecosystem: npm
-    directory: /package/mzen-id
+    directory: /package/id
     schedule:
       interval: daily
     labels:
       - dependencies
 
   - package-ecosystem: npm
-    directory: /package/mzen-migrate
+    directory: /package/migrate
     schedule:
       interval: daily
     labels:
       - dependencies
 
   - package-ecosystem: npm
-    directory: /package/mzen-om
+    directory: /package/om
     schedule:
       interval: daily
     labels:
       - dependencies
 
   - package-ecosystem: npm
-    directory: /package/mzen-schema
+    directory: /package/schema
     schedule:
       interval: daily
     labels:
       - dependencies
 
   - package-ecosystem: npm
-    directory: /package/mzen-server
+    directory: /package/server
     schedule:
       interval: daily
     labels:

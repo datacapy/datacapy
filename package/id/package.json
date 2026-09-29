@@ -1,0 +1,43 @@
+{
+  "name": "@datacapy/id",
+  "type": "commonjs",
+  "version": "0.1.0",
+  "description": "Datacapy id: object id type and helpers",
+  "main": "./dist/index",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "prepublishOnly": "pnpm build && pnpm test",
+    "test": "jest",
+    "build": "pnpm run clean && tsc && pnpm run build-minimise",
+    "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} +",
+    "clean": "rm -rf ./dist/*",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/datacapy/datacapy#readme",
+  "bugs": {
+    "url": "https://github.com/datacapy/datacapy/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datacapy/datacapy.git",
+    "directory": "package/id"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.9.8",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "files": [
+    "/dist",
+    "/tsconfig.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -16,7 +16,7 @@ Utility for generating short, time-ordered Base62 string IDs (12 bytes, 15
 characters), designed as a relational database-friendly alternative to MongoDB's
 ObjectId format. Used by `@datacapy/schema` to default `_id` fields.
 
-See the [`@datacapy/id` README](package/mzen-id/README.md).
+See the [`@datacapy/id` README](package/id/README.md).
 
 ### @datacapy/schema
 
@@ -32,14 +32,14 @@ Schema validation, formatting, and filtering library. Provides:
 Used by `@datacapy/om` for repository validation and by `@datacapy/server` for request
 validation.
 
-See the [`@datacapy/schema` README](package/mzen-schema/README.md), or go straight to
+See the [`@datacapy/schema` README](package/schema/README.md), or go straight to
 a guide:
 
-- [Builder](package/mzen-schema/docs/builder.md): every builder and method, and the equivalent plain spec
-- [Validation](package/mzen-schema/docs/validation.md): rules, error messages, strict mode, casting, query validation
-- [Filtering](package/mzen-schema/docs/filtering.md): defaults, string filters, conditional and custom filters, private fields
-- [Encryption](package/mzen-schema/docs/encryption.md): marking fields and the encryption service interface
-- [Composition](package/mzen-schema/docs/composition.md): schema references, arrays, `$or`, dynamic keys, constructors
+- [Builder](package/schema/docs/builder.md): every builder and method, and the equivalent plain spec
+- [Validation](package/schema/docs/validation.md): rules, error messages, strict mode, casting, query validation
+- [Filtering](package/schema/docs/filtering.md): defaults, string filters, conditional and custom filters, private fields
+- [Encryption](package/schema/docs/encryption.md): marking fields and the encryption service interface
+- [Composition](package/schema/docs/composition.md): schema references, arrays, `$or`, dynamic keys, constructors
 
 ### @datacapy/om
 
@@ -52,29 +52,29 @@ Supports multiple data sources including MongoDB and MySQL, with features like:
 - Field-level at-rest encryption
 - Service layer abstraction
 
-See the [`@datacapy/om` README](package/mzen-om/README.md), or go straight to a
+See the [`@datacapy/om` README](package/om/README.md), or go straight to a
 guide:
 
-- [Architecture](package/mzen-om/docs/architecture.md): system design and components
-- [Relations](package/mzen-om/docs/relations.md) and [Composite Keys](package/mzen-om/docs/composite-keys.md)
-- [Validation](package/mzen-om/docs/validation.md): data validation and type-casting
-- [Encryption](package/mzen-om/docs/encryption.md): field-level at-rest encryption
-- [DataSource Context](package/mzen-om/docs/dynamic-datasource.md), with [advanced](package/mzen-om/docs/dynamic-datasource-advanced.md) and [multiple](package/mzen-om/docs/dynamic-datasource-multiple.md) usage
-- [MySQL Indexes](package/mzen-om/docs/mysql-indexes.md) and [Update Operators](package/mzen-om/docs/update-operators.md) (MySQL)
-- [Upsert Operations](package/mzen-om/docs/upsert.md)
-- [Performance](package/mzen-om/docs/performance.md), [Testing](package/mzen-om/docs/testing.md) and [Debugging](package/mzen-om/docs/debugging.md)
+- [Architecture](package/om/docs/architecture.md): system design and components
+- [Relations](package/om/docs/relations.md) and [Composite Keys](package/om/docs/composite-keys.md)
+- [Validation](package/om/docs/validation.md): data validation and type-casting
+- [Encryption](package/om/docs/encryption.md): field-level at-rest encryption
+- [DataSource Context](package/om/docs/dynamic-datasource.md), with [advanced](package/om/docs/dynamic-datasource-advanced.md) and [multiple](package/om/docs/dynamic-datasource-multiple.md) usage
+- [MySQL Indexes](package/om/docs/mysql-indexes.md) and [Update Operators](package/om/docs/update-operators.md) (MySQL)
+- [Upsert Operations](package/om/docs/upsert.md)
+- [Performance](package/om/docs/performance.md), [Testing](package/om/docs/testing.md) and [Debugging](package/om/docs/debugging.md)
 
 ### @datacapy/migrate
 
 Database migration runner for Datacapy data sources, with versioned patches, dry-run
 mode and multi-datasource support.
 
-See the [`@datacapy/migrate` README](package/mzen-migrate/README.md), or go straight
+See the [`@datacapy/migrate` README](package/migrate/README.md), or go straight
 to a guide:
 
-- [Architecture](package/mzen-migrate/docs/architecture/index.md): components, execution flow, runtime safety
-- [Best Practices](package/mzen-migrate/docs/best-practices/index.md): dos and don'ts, testing and rollback, common patterns
-- [Advanced Usage](package/mzen-migrate/docs/advanced-usage/index.md): multi-datasource migrations, custom workflows, troubleshooting
+- [Architecture](package/migrate/docs/architecture/index.md): components, execution flow, runtime safety
+- [Best Practices](package/migrate/docs/best-practices/index.md): dos and don'ts, testing and rollback, common patterns
+- [Advanced Usage](package/migrate/docs/advanced-usage/index.md): multi-datasource migrations, custom workflows, troubleshooting
 
 ### @datacapy/server
 
@@ -85,9 +85,9 @@ REST API server framework for exposing models as HTTP endpoints. Features:
 - Express.js integration
 - Configurable endpoints and middleware
 
-See the [`@datacapy/server` README](package/mzen-server/README.md) for endpoint
+See the [`@datacapy/server` README](package/server/README.md) for endpoint
 configuration, ACL rules and server options, and
-[`example1.js`](package/mzen-server/examples/example1.js) for a runnable setup.
+[`example1.js`](package/server/examples/example1.js) for a runnable setup.
 
 ## Installation
 

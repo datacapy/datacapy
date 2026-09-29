@@ -1,0 +1,76 @@
+{
+  "name": "@datacapy/om",
+  "type": "commonjs",
+  "version": "0.1.0",
+  "description": "Datacapy object model: repositories, relations and data sources",
+  "main": "./dist/index",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "prepublishOnly": "pnpm build && pnpm test",
+    "build": "pnpm run clean && tsc && tsc-alias -p tsconfig.json && pnpm run build-minimise",
+    "build-minimise": "find ./dist -type d -name '_tests' -exec rm -rf {} + && find ./dist -type f -name '*.test.*' -delete",
+    "clean": "rm -fr ./dist/*",
+    "test": "jest",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json}\"",
+    "typecheck": "tsc --noEmit",
+    "test-fixtures-build": "cd ./src/__tests__/fixtures && tsc",
+    "test-fixtures-clean": "find ./src/__tests__/fixtures -type f \\( -name '*.js' -or -name '*.js.map' -or -name '*.d.ts' \\) -delete"
+  },
+  "author": "Kevin Foster <kevin.foster.uk@gmail.com>",
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/datacapy/datacapy#readme",
+  "bugs": {
+    "url": "https://github.com/datacapy/datacapy/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datacapy/datacapy.git",
+    "directory": "package/om"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bcrypt": "^6.0.0",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.9.8",
+    "eslint": "^10.11.0",
+    "husky": "^9.1.7",
+    "jest": "^30.5.2",
+    "lint-staged": "^15.5.2",
+    "mongodb": "^6.21.0",
+    "mysql2": "^3.24.4",
+    "prettier": "3.8.1",
+    "ts-jest": "^29.4.14",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "1.9.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0"
+  },
+  "dependencies": {
+    "clone": "^2.1.2",
+    "@datacapy/schema": "workspace:*"
+  },
+  "peerDependencies": {
+    "ioredis": "^5.0.0",
+    "mongodb": "^6.16.0",
+    "mysql2": "^3.14.1"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    },
+    "mongodb": {
+      "optional": true
+    }
+  },
+  "files": [
+    "/dist",
+    "/tsconfig.json"
+  ],
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
