@@ -1,3 +1,5 @@
+![DataCapy logo](https://avatars.githubusercontent.com/u/335510707?s=400&u=c6a305817c43d305a8340061261e48cd2a0ca3d8&v=4 DataCapy)
+
 # Datacapy
 
 An object mapper for Node.js and TypeScript. Describe your data with schemas, map
