@@ -90,8 +90,8 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@26.6.3)(typescript@6.0.3)
       tsc-alias:
-        specifier: 1.9.5
-        version: 1.9.5
+        specifier: 1.9.1
+        version: 1.9.1
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -136,8 +136,8 @@ importers:
         specifier: ^17.6.0
         version: 17.6.0
       mongodb:
-        specifier: ^6.21.0
-        version: 6.21.0
+        specifier: ^7.6.0
+        version: 7.7.0
       mysql2:
         specifier: ^3.24.4
         version: 3.24.4(@types/node@26.6.3)
@@ -151,8 +151,8 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@26.6.3)(typescript@6.0.3)
       tsc-alias:
-        specifier: 1.9.5
-        version: 1.9.5
+        specifier: 1.9.1
+        version: 1.9.1
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -194,8 +194,8 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@26.6.3)(typescript@6.0.3)
       tsc-alias:
-        specifier: 1.9.5
-        version: 1.9.5
+        specifier: 1.9.1
+        version: 1.9.1
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1910,12 +1910,6 @@ packages:
         integrity: sha512-CiJJvcRtIgzadHCYXw7dqEnMNRjhGZlYK05Mj9OyktqV8uVT8fD2BFOB7S1uwBE3Kj2Z+4UyPmFw/Ixgw/LAlA==,
       }
 
-  "@types/whatwg-url@11.0.5":
-    resolution:
-      {
-        integrity: sha512-coYR071JRaHa+xoEvvYqvnIHaVqaYrLPbsufM9BF63HkwI5Lgmy2QR8Q5K/lYDYo5AK82wOvSOS0UsLTpTG7uQ==,
-      }
-
   "@types/whatwg-url@13.0.0":
     resolution:
       {
@@ -2533,13 +2527,6 @@ packages:
       {
         integrity: sha512-vgnKAUzcDoa+AeyYwXCoHyF2q6u/8H46dxu5JN+4/TZeq/Dlinn0K6GvxsCLb3LHUJl0m/TLiEK31kUwtgocMQ==,
       }
-
-  bson@6.10.4:
-    resolution:
-      {
-        integrity: sha512-WIsKqkSC0ABoBJuT1LEX+2HEvNmNKKgnTAyd0fL8qzK4SH2i9NXg+t08YtdZp/V9IZ33cxe3iV4yM0qg8lMQng==,
-      }
-    engines: { node: ">=16.20.1" }
 
   bson@7.3.3:
     resolution:
@@ -4766,48 +4753,12 @@ packages:
       }
     hasBin: true
 
-  mongodb-connection-string-url@3.0.2:
-    resolution:
-      {
-        integrity: sha512-rMO7CGo/9BFwyZABcKAWL8UJwH/Kc2x0g72uhDWzG48URRax5TCIcJ7Rc3RZqffZzO/Gwff/jyKwCU9TN8gehA==,
-      }
-
   mongodb-connection-string-url@7.0.2:
     resolution:
       {
         integrity: sha512-ZoS07RoFqpKYQwAk59qmrx8+jJHNHU30UjlU96QktiGn1ltvDr+vCznLX5DiUBLEpMAHatHNWV1nM/74ul66kA==,
       }
     engines: { node: ">=20.19.0" }
-
-  mongodb@6.21.0:
-    resolution:
-      {
-        integrity: sha512-URyb/VXMjJ4da46OeSXg+puO39XH9DeQpWCslifrRn9JWugy0D+DvvBvkm2WxmHe61O/H19JM66p1z7RHVkZ6A==,
-      }
-    engines: { node: ">=16.20.1" }
-    peerDependencies:
-      "@aws-sdk/credential-providers": ^3.188.0
-      "@mongodb-js/zstd": ^1.1.0 || ^2.0.0
-      gcp-metadata: ^5.2.0
-      kerberos: ^2.0.1
-      mongodb-client-encryption: ">=6.0.0 <7"
-      snappy: ^7.3.2
-      socks: ^2.7.1
-    peerDependenciesMeta:
-      "@aws-sdk/credential-providers":
-        optional: true
-      "@mongodb-js/zstd":
-        optional: true
-      gcp-metadata:
-        optional: true
-      kerberos:
-        optional: true
-      mongodb-client-encryption:
-        optional: true
-      snappy:
-        optional: true
-      socks:
-        optional: true
 
   mongodb@7.7.0:
     resolution:
@@ -5880,10 +5831,10 @@ packages:
       "@swc/wasm":
         optional: true
 
-  tsc-alias@1.9.5:
+  tsc-alias@1.9.1:
     resolution:
       {
-        integrity: sha512-B2M3D2Fsb8dPT04Jc52R2Erp9u7QUjXpjb648dvKb0esKVmo0CC28KFe98sFkjmnY36D+PFqnAE/UDbHGbV+mA==,
+        integrity: sha512-sFZdVFthH8uvdplPJrOYGOHcxu6UPtcAcY678JPwEQiMzgLZYFO7Qc/rzELp7ingTc+OxtzH6n+8Pn2eVQep6w==,
       }
     engines: { node: ">=16.20.2" }
     hasBin: true
@@ -7299,10 +7250,6 @@ snapshots:
 
   "@types/webidl-conversions@7.0.3": {}
 
-  "@types/whatwg-url@11.0.5":
-    dependencies:
-      "@types/webidl-conversions": 7.0.3
-
   "@types/whatwg-url@13.0.0":
     dependencies:
       "@types/webidl-conversions": 7.0.3
@@ -7674,8 +7621,6 @@ snapshots:
       node-int64: 0.4.0
 
   bson-objectid@2.0.4: {}
-
-  bson@6.10.4: {}
 
   bson@7.3.3: {}
 
@@ -9195,21 +9140,10 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
-  mongodb-connection-string-url@3.0.2:
-    dependencies:
-      "@types/whatwg-url": 11.0.5
-      whatwg-url: 14.2.0
-
   mongodb-connection-string-url@7.0.2:
     dependencies:
       "@types/whatwg-url": 13.0.0
       whatwg-url: 14.2.0
-
-  mongodb@6.21.0:
-    dependencies:
-      "@mongodb-js/saslprep": 1.5.4
-      bson: 6.10.4
-      mongodb-connection-string-url: 3.0.2
 
   mongodb@7.7.0:
     dependencies:
@@ -9780,7 +9714,7 @@ snapshots:
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
-  tsc-alias@1.9.5:
+  tsc-alias@1.9.1:
     dependencies:
       chokidar: 3.6.0
       commander: 9.5.0
