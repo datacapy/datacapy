@@ -16,7 +16,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-if ! ls .changeset/*.md >/dev/null 2>&1; then
+if ! find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
   echo "No pending changesets in .changeset/ - nothing to release." >&2
   exit 1
 fi
