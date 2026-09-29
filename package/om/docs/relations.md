@@ -2,9 +2,9 @@
 
 ## Overview
 
-Mzen uses a sophisticated relation system for joining data across repositories,
-similar to ORMs. The system supports automatic population of related documents
-with query optimisation.
+Datacapy uses a sophisticated relation system for joining data across
+repositories, similar to ORMs. The system supports automatic population of
+related documents with query optimisation.
 
 ## Relation Types
 

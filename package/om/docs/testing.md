@@ -2,7 +2,7 @@
 
 ## Test Coverage
 
-Mzen has comprehensive test coverage for all core features:
+Datacapy has comprehensive test coverage for all core features:
 
 - **Relation tests** - All relation types (belongsTo, has, embedded)
 - **Backward compatibility tests** - Ensure existing single-key relations work

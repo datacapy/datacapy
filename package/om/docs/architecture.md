@@ -2,7 +2,7 @@
 
 ## Core Concepts Overview
 
-Mzen provides an Object Document Mapping (ODM) framework for NodeJS
+Datacapy provides an Object Document Mapping (ODM) framework for NodeJS
 applications, supporting both MongoDB and MySQL databases.
 
 ## Model Elements

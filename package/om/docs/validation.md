@@ -2,8 +2,8 @@
 
 ## Overview
 
-Mzen provides comprehensive data validation and type-casting capabilities for
-document schemas.
+Datacapy provides comprehensive data validation and type-casting capabilities
+for document schemas.
 
 ## Schema Definition
 
@@ -180,7 +180,7 @@ Cast failures produce validation errors:
 
 ## ObjectID Support
 
-Mzen supports MongoDB's BSON ObjectID type:
+Datacapy supports MongoDB's BSON ObjectID type:
 
 ```typescript
 {

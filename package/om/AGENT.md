@@ -1,6 +1,6 @@
 <!-- cspell:ignore OAEP -->
 
-# Mzen Agent Documentation
+# Datacapy Agent Documentation
 
 This document provides context for AI agents working on the @datacapy/om
 project.
