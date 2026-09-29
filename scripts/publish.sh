@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# cspell:ignore npmjs USERCONFIG
 
 # Publishes the @datacapy/* packages to npm.
 #
@@ -12,7 +13,11 @@ set -euo pipefail
 #   ./scripts/publish.sh --dry-run   build, test, and show each tarball without publishing
 #   ./scripts/publish.sh             the same, then confirm and publish for real
 #
-# npm asks for a one-time password when the account has 2FA enabled.
+# A real publish needs an npm granular access token with read/write on @datacapy and
+# "Bypass two-factor authentication" ticked (npm rejects 2FA-less publishes otherwise).
+# Set NPM_TOKEN, or the script prompts for it (input hidden). The token is written to a
+# throwaway 0600 npmrc that is deleted on exit; ~/.npmrc is never touched. A dry run uses
+# your existing npm login instead.
 
 cd "$(dirname "$0")/.."
 
@@ -27,6 +32,23 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+if [[ "$DRY_RUN" == false ]]; then
+  if [[ -z "${NPM_TOKEN:-}" ]]; then
+    read -r -s -p "npm access token (input hidden): " NPM_TOKEN
+    echo
+  fi
+  if [[ -z "$NPM_TOKEN" ]]; then
+    echo "No npm token provided." >&2
+    exit 1
+  fi
+  TMP_NPMRC=$(mktemp)
+  trap 'rm -f "$TMP_NPMRC"' EXIT
+  chmod 600 "$TMP_NPMRC"
+  printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" >"$TMP_NPMRC"
+  unset NPM_TOKEN
+  export NPM_CONFIG_USERCONFIG="$TMP_NPMRC"
+fi
 
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "Working tree not clean. Commit or stash changes first." >&2
