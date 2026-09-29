@@ -15,7 +15,22 @@ without hand-writing queries. Two companion libraries cover validation
 `@datacapy/id` (short, time-ordered IDs) and `@datacapy/migrate` (database
 migrations) support them.
 
-## Quick look
+## Quick start
+
+### 1. Install
+
+```bash
+npm install @datacapy/om mysql2
+```
+
+`@datacapy/om` re-exports everything from `@datacapy/schema`, so one package is
+enough to start. `mysql2` is a peer dependency; add `mongodb` instead if you use
+MongoDB. Add `@datacapy/server` for REST endpoints (it re-exports
+`@datacapy/om`), and `@datacapy/migrate` for database migrations.
+
+### 2. Define and query
+
+The example below runs against an in-memory datasource, so it needs no database.
 
 ```ts
 import { ModelManager, Repo, DataSourceMock, sb } from "@datacapy/om";
@@ -68,18 +83,12 @@ const found = await artists.find({}, { populate: { albums: true } });
 // [{ _id: '7', name: 'Radiohead', albums: [{ name: 'The Bends', ... }, ...] }]
 ```
 
-Add `@datacapy/server` when you want the same services and repositories
-reachable over REST; see its [quick start](package/server/README.md#quick-start).
+### 3. Next steps
 
-## Install
-
-```bash
-npm install @datacapy/om @datacapy/schema @datacapy/server
-```
-
-`@datacapy/om` re-exports everything from `@datacapy/schema`, and
-`@datacapy/server` re-exports everything from `@datacapy/om`, so one package is
-enough to start.
+- Swap `DataSourceMock` for `DataSourceMysql` or `DataSourceMongodb`; see the
+  [`om` README](package/om/README.md).
+- Expose the same services and repositories over REST with `@datacapy/server`;
+  see its [quick start](package/server/README.md#quick-start).
 
 ## Packages
 
