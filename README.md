@@ -6,7 +6,7 @@
 
 **Define your data once, then use it everywhere.**
 
-- The same document query runs against any supported database.
+- One document query API, whichever database you choose to use.
 - Relations between documents are declared once and loaded in a single call.
 - The same schema validates in your browser and on your server.
 - Your services become REST endpoints with a short config.
@@ -16,24 +16,28 @@ companion libraries: `schema`, `server`, `migrate` and `id`.
 
 ## The problems it solves
 
-### One repository interface, any database
+### One document query API for every database
 
-Write your repositories against a MongoDB-style query language. Change the datasource
-and the same code runs on a different database.
+Whichever database you choose, you work with it the same way. Repositories give you
+one set of methods and one MongoDB-style query language, so there is no separate
+client library, query dialect or result shape to learn for each store. A project can
+use several types of database server side by side and still read and write them all alike.
 
 ```ts
 const artists = await artistRepo.find({ name: { $in: ["Radiohead", "Portishead"] } });
 ```
+
+The datasource is configuration. The query above is the same on each of these:
 
 ```ts
 modelManager.addDataSource("db", new DataSourceMysql({ host, user, password, database }));
 // or: new DataSourceMongodb({ url })   (also bundled: Redis, and an in-memory mock for tests)
 ```
 
-MySQL, MongoDB, Redis and an in-memory mock ship with `@datacapy/om`. For anything
-else, write an adaptor that implements the
-[`DataSource`](package/om/src/data-source/interface.ts) interface and repositories
-use it unchanged.
+MySQL, MongoDB, Redis and an in-memory mock ship with `@datacapy/om`. If your database
+is not covered, write an adaptor that implements the
+[`DataSource`](package/om/src/data-source/interface.ts) interface and it gets the same
+API as the rest.
 
 ### Document relations, defined and queried
 
