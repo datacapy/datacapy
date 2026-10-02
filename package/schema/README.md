@@ -22,7 +22,7 @@ encrypt sensitive fields.
 ## Install
 
 ```bash
-npm install @datacapy/schema
+pnpm add @datacapy/schema
 ```
 
 ## Quick start

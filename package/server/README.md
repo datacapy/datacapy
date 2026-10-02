@@ -28,7 +28,7 @@ which roles the request has. See [Access control](#access-control).
 ## Install
 
 ```bash
-npm install @datacapy/server
+pnpm add @datacapy/server
 ```
 
 It depends on `@datacapy/om` (models, services, repositories) and `express`.
@@ -415,9 +415,7 @@ Use this to switch endpoints off per environment without editing the config.
 new Server({
   port: 3838,
   path: '/api',
-  model: {
-    /* ModelManager config */
-  },
+  model: {/* ModelManager config */},
 })
 new Server(config, existingModelManager)
 ```

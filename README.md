@@ -24,13 +24,18 @@ client library, query dialect or result shape to learn for each store. A project
 use several types of database server side by side and still read and write them all alike.
 
 ```ts
-const artists = await artistRepo.find({ name: { $in: ["Radiohead", "Portishead"] } });
+const artists = await artistRepo.find({
+  name: { $in: ["Radiohead", "Portishead"] },
+});
 ```
 
 The datasource is configuration. The query above is the same on each of these:
 
 ```ts
-modelManager.addDataSource("db", new DataSourceMysql({ host, user, password, database }));
+modelManager.addDataSource(
+  "db",
+  new DataSourceMysql({ host, user, password, database }),
+);
 // or: new DataSourceMongodb({ url })   (also bundled: Redis, and an in-memory mock for tests)
 ```
 
@@ -52,7 +57,10 @@ relations: {
 ```
 
 ```ts
-const artist = await artistRepo.findOne({ _id: "7" }, { populate: { albums: true, label: true } });
+const artist = await artistRepo.findOne(
+  { _id: "7" },
+  { populate: { albums: true, label: true } },
+);
 // { _id: '7', name: 'Radiohead', albums: [{ name: 'OK Computer' }, ...], label: { name: 'EMI' } }
 ```
 
@@ -79,7 +87,10 @@ export const personSchema = new Schema(
     .build(),
 );
 
-const { isValid, errors } = await personSchema.validate({ name: "  Paul ", age: "33" });
+const { isValid, errors } = await personSchema.validate({
+  name: "  Paul ",
+  age: "33",
+});
 // isValid: true, and the object is now { name: 'Paul', age: 33, ... }: cast, trimmed, defaulted
 ```
 
@@ -123,13 +134,52 @@ The full example is in the [`server` quick start](package/server/README.md#quick
 ## Quick start
 
 ```bash
-npm install @datacapy/om mysql2
+pnpm add @datacapy/om mysql2
 ```
 
 `@datacapy/om` re-exports everything from `@datacapy/schema`, so one package is
 enough to start. `mysql2` is a peer dependency; add `mongodb` instead if you use
 MongoDB. Add `@datacapy/server` for REST endpoints (it re-exports `@datacapy/om`),
 and `@datacapy/migrate` for database migrations.
+
+### Use from a git checkout
+
+To use Datacapy straight from source in your own pnpm workspace, without
+installing it from the npm registry, add the checkout as a submodule:
+
+```bash
+git submodule add https://github.com/datacapy/datacapy external/datacapy
+```
+
+List its packages in your `pnpm-workspace.yaml`:
+
+```yaml
+packages:
+  - "package/*"
+  - "external/datacapy/package/*"
+```
+
+Depend on them with the workspace protocol in your `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@datacapy/om": "workspace:*",
+    "mysql2": "^3.0.0"
+  }
+}
+```
+
+Then install and build once, because each package's `main` points at `dist/`:
+
+```bash
+pnpm install
+pnpm --filter "@datacapy/*" build
+```
+
+Run `pnpm install` from your own workspace root only; it installs the checkout's
+dependencies too, so there is no separate install inside `external/datacapy`.
+Rebuild a package after changing its source.
 
 The example below runs against an in-memory datasource, so it needs no database.
 
@@ -186,13 +236,13 @@ const found = await artists.find({}, { populate: { albums: true } });
 
 ## Packages
 
-| Package                                       | What it does                                                                                           |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| [`@datacapy/om`](package/om/README.md)        | The mapper: repositories, relations and population, encryption, multi-tenant datasources, adaptors    |
-| [`@datacapy/schema`](package/schema/README.md) | Define, cast, filter and validate data. Runs in Node and the browser                                  |
-| [`@datacapy/server`](package/server/README.md) | Config-driven Express endpoints with request validation and access control                           |
-| [`@datacapy/migrate`](package/migrate/README.md) | Database migration runner with versioned patches and dry-run mode                                   |
-| [`@datacapy/id`](package/id/README.md)        | Short, time-ordered Base62 IDs (15 characters)                                                         |
+| Package                                          | What it does                                                                                       |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| [`@datacapy/om`](package/om/README.md)           | The mapper: repositories, relations and population, encryption, multi-tenant datasources, adaptors |
+| [`@datacapy/schema`](package/schema/README.md)   | Define, cast, filter and validate data. Runs in Node and the browser                               |
+| [`@datacapy/server`](package/server/README.md)   | Config-driven Express endpoints with request validation and access control                         |
+| [`@datacapy/migrate`](package/migrate/README.md) | Database migration runner with versioned patches and dry-run mode                                  |
+| [`@datacapy/id`](package/id/README.md)           | Short, time-ordered Base62 IDs (15 characters)                                                     |
 
 ### Guides
 
