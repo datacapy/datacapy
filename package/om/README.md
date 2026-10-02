@@ -236,4 +236,4 @@ relations: {
 
 ## License
 
-[Add your license here]
+[BSD-3-Clause](https://github.com/datacapy/datacapy/blob/master/LICENSE)
