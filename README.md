@@ -1,25 +1,122 @@
-![DataCapy logo](https://avatars.githubusercontent.com/u/335510707?s=400&u=c6a305817c43d305a8340061261e48cd2a0ca3d8&v=4 "DataCapy")
+<p align="center">
+  <img src="asset/datacapy.png" alt="DataCapy: a capybara resting on curly and square brackets" width="420">
+</p>
 
-# Datacapy
+# DataCapy
 
-An object mapper for Node.js and TypeScript. Describe your data with schemas, map
-it to repositories with relations, and read and write it on MySQL or MongoDB
-without hand-writing queries. Two companion libraries cover validation
-(`@datacapy/schema`) and exposing your services over HTTP (`@datacapy/server`).
+**Define your data once, then use it everywhere.**
 
-- **[`@datacapy/om`](package/om/README.md)**: the object mapper. Repositories,
-  relations and population, field-level encryption, multi-tenant datasources.
-- **[`@datacapy/schema`](package/schema/README.md)**: define, cast, filter and
-  validate data. Used by `om` for repositories and by `server` for requests.
-- **[`@datacapy/server`](package/server/README.md)**: config-driven Express
-  endpoints with access control, over your services and repositories.
+- The same document query runs against any supported database.
+- Relations between documents are declared once and loaded in a single call.
+- The same schema validates in your browser and on your server.
+- Your services become REST endpoints with a short config.
 
-`@datacapy/id` (short, time-ordered IDs) and `@datacapy/migrate` (database
-migrations) support them.
+DataCapy is an object-document mapper (ODM) for Node.js and TypeScript, with four
+companion libraries: `schema`, `server`, `migrate` and `id`.
+
+## The problems it solves
+
+### One repository interface, any database
+
+Write your repositories against a MongoDB-style query language. Change the datasource
+and the same code runs on a different database.
+
+```ts
+const artists = await artistRepo.find({ name: { $in: ["Radiohead", "Portishead"] } });
+```
+
+```ts
+modelManager.addDataSource("db", new DataSourceMysql({ host, user, password, database }));
+// or: new DataSourceMongodb({ url })   (also bundled: Redis, and an in-memory mock for tests)
+```
+
+MySQL, MongoDB, Redis and an in-memory mock ship with `@datacapy/om`. For anything
+else, write an adaptor that implements the
+[`DataSource`](package/om/src/data-source/interface.ts) interface and repositories
+use it unchanged.
+
+### Document relations, defined and queried
+
+Declare how documents relate, then populate them in one call. No hand-written joins,
+and a relation can span datasources, so a MySQL document can point at a MongoDB one.
+
+```ts
+relations: {
+  albums: { type: "hasMany", repo: "album", key: "artistId" },
+  label: { type: "belongsToOne", repo: "label", key: "labelId" },
+}
+```
+
+```ts
+const artist = await artistRepo.findOne({ _id: "7" }, { populate: { albums: true, label: true } });
+// { _id: '7', name: 'Radiohead', albums: [{ name: 'OK Computer' }, ...], label: { name: 'EMI' } }
+```
+
+Has-one, has-many, belongs-to-one, belongs-to-many, counts, embedded relations and
+composite keys are supported. See [Relations](package/om/docs/relations.md).
+
+### Share schemas between client and server
+
+A schema is plain TypeScript with no server-only dependencies. Define it once in a
+shared package. The server validates writes with it, and the browser runs the same
+rules to show errors before anything is sent.
+
+```ts
+import { Schema, sb } from "@datacapy/schema";
+
+export const personSchema = new Schema(
+  sb
+    .schema("person")
+    .shape({
+      name: sb.string().required().trim().length(2, 50),
+      email: sb.string().email().lowercase(),
+      age: sb.number(),
+    })
+    .build(),
+);
+
+const { isValid, errors } = await personSchema.validate({ name: "  Paul ", age: "33" });
+// isValid: true, and the object is now { name: 'Paul', age: 33, ... }: cast, trimmed, defaulted
+```
+
+### Expose data over REST
+
+Describe each endpoint in a config object. Nothing is reachable until you declare it.
+DataCapy validates and casts the request, checks access rules, calls your service and
+maps errors to HTTP statuses.
+
+```ts
+server.addApiConfig({
+  service: "note",
+  acl: { rules: [{ allow: true, role: "authed" }] },
+  endpoints: {
+    getOne: {
+      path: "/:id",
+      method: "get",
+      verbs: ["get"],
+      data: { id: { src: "param", type: Number, required: true } },
+    },
+  },
+});
+```
+
+```
+GET /api/note/1    (no credentials)  401
+GET /api/note/99                     404 {"message":"No such note"}
+GET /api/note/abc                    403 {"validationErrors":{"id":["'abc' of type String cannot be cast to type Number"]}}
+GET /api/note/1                      200 {"id":1,"text":"Hello"}
+```
+
+The full example is in the [`server` quick start](package/server/README.md#quick-start).
+
+## Also included
+
+- **Field-level encryption**: mark a schema field and it is encrypted at rest, with your own encryption service.
+- **Multi-tenant datasources**: route each request to a different database at runtime.
+- **Migrations**: versioned patches with dry-run and multi-datasource support.
+- **Time-ordered IDs**: short Base62 strings, friendlier to relational indexes than ObjectId.
 
 ## Quick start
-
-### 1. Install
 
 ```bash
 npm install @datacapy/om mysql2
@@ -27,17 +124,15 @@ npm install @datacapy/om mysql2
 
 `@datacapy/om` re-exports everything from `@datacapy/schema`, so one package is
 enough to start. `mysql2` is a peer dependency; add `mongodb` instead if you use
-MongoDB. Add `@datacapy/server` for REST endpoints (it re-exports
-`@datacapy/om`), and `@datacapy/migrate` for database migrations.
-
-### 2. Define and query
+MongoDB. Add `@datacapy/server` for REST endpoints (it re-exports `@datacapy/om`),
+and `@datacapy/migrate` for database migrations.
 
 The example below runs against an in-memory datasource, so it needs no database.
 
 ```ts
 import { ModelManager, Repo, DataSourceMock, sb } from "@datacapy/om";
 
-class ArtistRepo extends Repo {
+class ArtistRepo extends Repo<unknown> {
   constructor() {
     super({
       name: "artist",
@@ -56,7 +151,7 @@ class ArtistRepo extends Repo {
   }
 }
 
-class AlbumRepo extends Repo {
+class AlbumRepo extends Repo<unknown> {
   constructor() {
     super({ name: "album", dataSource: "db" });
   }
@@ -85,64 +180,21 @@ const found = await artists.find({}, { populate: { albums: true } });
 // [{ _id: '7', name: 'Radiohead', albums: [{ name: 'The Bends', ... }, ...] }]
 ```
 
-### 3. Next steps
-
-- Swap `DataSourceMock` for `DataSourceMysql` or `DataSourceMongodb`; see the
-  [`om` README](package/om/README.md).
-- Expose the same services and repositories over REST with `@datacapy/server`;
-  see its [quick start](package/server/README.md#quick-start).
-
 ## Packages
 
-### @datacapy/om
+| Package                                       | What it does                                                                                           |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| [`@datacapy/om`](package/om/README.md)        | The mapper: repositories, relations and population, encryption, multi-tenant datasources, adaptors    |
+| [`@datacapy/schema`](package/schema/README.md) | Define, cast, filter and validate data. Runs in Node and the browser                                  |
+| [`@datacapy/server`](package/server/README.md) | Config-driven Express endpoints with request validation and access control                           |
+| [`@datacapy/migrate`](package/migrate/README.md) | Database migration runner with versioned patches and dry-run mode                                   |
+| [`@datacapy/id`](package/id/README.md)        | Short, time-ordered Base62 IDs (15 characters)                                                         |
 
-Repositories, relations (has-one, has-many, belongs-to), query population,
-field-level at-rest encryption and dynamic datasource routing. See the
-[README](package/om/README.md), or a guide:
+### Guides
 
-- [Architecture](package/om/docs/architecture.md): system design and components
-- [Relations](package/om/docs/relations.md) and [Composite Keys](package/om/docs/composite-keys.md)
-- [Validation](package/om/docs/validation.md): data validation and type-casting
-- [Encryption](package/om/docs/encryption.md): field-level at-rest encryption
-- [DataSource Context](package/om/docs/dynamic-datasource.md), with [advanced](package/om/docs/dynamic-datasource-advanced.md) and [multiple](package/om/docs/dynamic-datasource-multiple.md) usage
-- [MySQL Indexes](package/om/docs/mysql-indexes.md) and [Update Operators](package/om/docs/update-operators.md) (MySQL)
-- [Upsert Operations](package/om/docs/upsert.md)
-- [Performance](package/om/docs/performance.md), [Testing](package/om/docs/testing.md) and [Debugging](package/om/docs/debugging.md)
-
-### @datacapy/schema
-
-A fluent builder (`sb`) for defining schemas, with validation, type-casting,
-filtering, private fields and encryption marking. See the
-[README](package/schema/README.md), or a guide:
-
-- [Builder](package/schema/docs/builder.md): every builder and method, and the equivalent plain spec
-- [Validation](package/schema/docs/validation.md): rules, error messages, strict mode, casting, query validation
-- [Filtering](package/schema/docs/filtering.md): defaults, string filters, conditional and custom filters, private fields
-- [Encryption](package/schema/docs/encryption.md): marking fields and the encryption service interface
-- [Composition](package/schema/docs/composition.md): schema references, arrays, `$or`, dynamic keys, constructors
-
-### @datacapy/server
-
-Maps a config object per service or repository to an Express route, with
-request validation, ordered allow and deny rules, and error-to-status mapping.
-See the [README](package/server/README.md) and the runnable
-[`example1.js`](package/server/examples/example1.js).
-
-### @datacapy/id
-
-Short, time-ordered Base62 string IDs (15 characters), a relational-friendly
-alternative to MongoDB's ObjectId. Schemas use it to default `_id` fields. See
-the [README](package/id/README.md).
-
-### @datacapy/migrate
-
-Database migration runner with versioned patches, dry-run mode and
-multi-datasource support. See the [README](package/migrate/README.md), or a
-guide:
-
-- [Architecture](package/migrate/docs/architecture/index.md): components, execution flow, runtime safety
-- [Best Practices](package/migrate/docs/best-practices/index.md): dos and don'ts, testing and rollback, common patterns
-- [Advanced Usage](package/migrate/docs/advanced-usage/index.md): multi-datasource migrations, custom workflows, troubleshooting
+- **om**: [Architecture](package/om/docs/architecture.md), [Relations](package/om/docs/relations.md), [Composite Keys](package/om/docs/composite-keys.md), [Validation](package/om/docs/validation.md), [Encryption](package/om/docs/encryption.md), [DataSource Context](package/om/docs/dynamic-datasource.md), [MySQL Indexes](package/om/docs/mysql-indexes.md), [Update Operators](package/om/docs/update-operators.md), [Upsert](package/om/docs/upsert.md), [Performance](package/om/docs/performance.md), [Testing](package/om/docs/testing.md), [Debugging](package/om/docs/debugging.md)
+- **schema**: [Builder](package/schema/docs/builder.md), [Validation](package/schema/docs/validation.md), [Filtering](package/schema/docs/filtering.md), [Encryption](package/schema/docs/encryption.md), [Composition](package/schema/docs/composition.md)
+- **migrate**: [Architecture](package/migrate/docs/architecture/index.md), [Best Practices](package/migrate/docs/best-practices/index.md), [Advanced Usage](package/migrate/docs/advanced-usage/index.md)
 
 ## Development
 
