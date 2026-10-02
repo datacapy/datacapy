@@ -2,6 +2,8 @@
 
 # @datacapy/id
 
+Part of the [DataCapy monorepo](https://github.com/datacapy/datacapy).
+
 Short, time-ordered string IDs for relational databases.
 
 `@datacapy/id` generates a 12-byte value (the same size as a MongoDB ObjectId) and

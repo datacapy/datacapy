@@ -1,5 +1,7 @@
 # @datacapy/om
 
+Part of the [DataCapy monorepo](https://github.com/datacapy/datacapy).
+
 NodeJS Object Document Mapping (ODM) framework for MongoDB and MySQL, with
 support for schemas, repositories, and services.
 

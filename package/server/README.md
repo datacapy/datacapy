@@ -2,6 +2,8 @@
 
 # @datacapy/server
 
+Part of the [DataCapy monorepo](https://github.com/datacapy/datacapy).
+
 An HTTP API layer for [Datacapy](../../README.md) applications. You describe
 each endpoint in a plain config object; @datacapy/server maps it to an
 [Express](https://expressjs.com) route, validates and casts the request data,

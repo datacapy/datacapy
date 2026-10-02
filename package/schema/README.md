@@ -1,5 +1,7 @@
 # @datacapy/schema
 
+Part of the [DataCapy monorepo](https://github.com/datacapy/datacapy).
+
 Data schemas for JavaScript and TypeScript. Define the shape of your data once,
 then use the schema to type-cast, filter, validate, hide private fields and
 encrypt sensitive fields.

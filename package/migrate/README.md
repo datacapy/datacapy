@@ -1,5 +1,7 @@
 # @datacapy/migrate
 
+Part of the [DataCapy monorepo](https://github.com/datacapy/datacapy).
+
 Database migration tool for @datacapy/om applications. Manage schema changes, data transformations, and database versioning across multiple datasources with transaction safety and rollback support.
 
 ## Features
