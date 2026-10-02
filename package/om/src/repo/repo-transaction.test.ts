@@ -12,7 +12,7 @@ function makeLease(): jest.Mocked<
 }
 
 describe('Repo#transaction', () => {
-  const dataSourceName = 'project'
+  const dataSourceName = 'workspace'
 
   function makeRepoAndDataSource(lease: any) {
     const dataSource = {

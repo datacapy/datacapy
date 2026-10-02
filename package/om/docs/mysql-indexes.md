@@ -57,8 +57,7 @@ calendar day, the byte at index 10 (`'T'` vs `' '`: the where-builder formats
 query params as `'YYYY-MM-DD HH:mm:ss'`, not ISO) makes the stored value compare
 as "greater" than it should, so `<=` queries can incorrectly exclude rows that
 are actually due/expired until the calendar date rolls over. This exact bug
-caused a production scheduler outage (see `RepoTask`'s `enabled` index in
-`veysur-dev`).
+caused a production scheduler outage.
 
 **Any index spec containing a Date-typed schema field must set
 `typeHint: 'datetime'`/`'timestamp'` for that field**: there is no safe default

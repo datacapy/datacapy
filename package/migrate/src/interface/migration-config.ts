@@ -17,7 +17,7 @@ export interface MigrationConfig {
   // Target datasource (required)
   /**
    * Name of the datasource to migrate
-   * Examples: 'db', 'project', 'tenant'
+   * Examples: 'db', 'workspace'
    * Only patches with matching dataSourceName will be executed
    */
   dataSourceName: string;
@@ -25,16 +25,16 @@ export interface MigrationConfig {
   // Context for dynamic datasources (optional)
   /**
    * Context for resolving dynamic datasources
-   * Required for dynamic datasources like 'project'
-   * Example: { project: { lookupKey: 'abc123' } }
-   * Can also be a simple key-value map: { projectId: 'abc123' }
+   * Required for dynamic datasources like 'workspace'
+   * Example: { workspace: { lookupKey: 'abc123' } }
+   * Can also be a simple key-value map: { workspaceId: 'abc123' }
    */
   context?: DataSourceContext | Record<string, string>;
 
   // Context lookup for batch migrations (optional)
   /**
    * Context lookup pattern for batch migrations across multiple contexts
-   * Example: "*" for all projects, "ownerId=xyz" for filtered
+   * Example: "*" for all workspaces, "ownerId=xyz" for filtered
    * Requires contextResolver to be provided
    */
   contextLookup?: string;
@@ -42,7 +42,7 @@ export interface MigrationConfig {
   /**
    * Context resolver for expanding lookup patterns into context values
    * Required when contextLookup is provided
-   * Example: ContextResolverProject to resolve "*" into all project IDs
+   * Example: ContextResolverWorkspace to resolve "*" into all workspace IDs
    */
   contextResolver?: ContextResolver;
 

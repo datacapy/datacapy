@@ -14,12 +14,12 @@ data isolation scenarios.
 When all entities share the same isolation boundary:
 
 ```typescript
-// All repos use the same 'project' datasource
+// All repos use the same 'workspace' datasource
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 
-// Works for all repos configured with dataSource: 'project'
+// Works for all repos configured with dataSource: 'workspace'
 await repoSurvey.find(query, { context })
 await repoQuestion.find(query, { context })
 ```
@@ -31,18 +31,18 @@ levels:
 
 **Example**: Multi-level tenant isolation
 
-- `survey` uses datasource 'project' (isolated by projectId)
+- `survey` uses datasource 'workspace' (isolated by workspaceId)
 - `organization` uses datasource 'tenant' (isolated by tenantId)
 - `survey` has a relation to `organization`
 
 ```typescript
 // Multi-datasource context
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
 })
 
-// Survey repo uses 'project' context
+// Survey repo uses 'workspace' context
 // Organization repo (when populated) uses 'tenant' context
 await repoSurvey.findOne(
   { _id: surveyId },
@@ -79,7 +79,7 @@ Creates a multi-datasource context:
 
 ```typescript
 DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
   customer: { lookupKey: customerId },
 })
@@ -90,7 +90,7 @@ DataSourceContext.fromDataSources({
 ```typescript
 // Alternative: direct constructor usage
 new DataSourceContext({
-  project: { lookupKey: 'project-123' },
+  workspace: { lookupKey: 'workspace-123' },
   tenant: { lookupKey: 'tenant456' },
 })
 ```
@@ -103,12 +103,12 @@ Gets the context for a specific datasource:
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: 'proj1' },
+  workspace: { lookupKey: 'ws1' },
   tenant: { lookupKey: 'tenant1' },
 })
 
-context.getForDataSource('project')
-// Returns: { lookupKey: 'proj1' }
+context.getForDataSource('workspace')
+// Returns: { lookupKey: 'ws1' }
 
 context.getForDataSource('tenant')
 // Returns: { lookupKey: 'tenant1' }
@@ -134,18 +134,18 @@ entry:
 ```typescript
 // Service layer
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
-  account: { lookupKey: accountId },
+  workspace: { lookupKey: workspaceId },
+  customer: { lookupKey: customerId },
 })
 
-// Survey repo (dataSource: 'project')
+// Survey repo (dataSource: 'workspace')
 await repoSurvey.findOne(
   { _id: surveyId },
   {
     context,
     populate: {
-      questions: true, // Same datasource ('project')
-      account: true, // Different datasource ('account')
+      questions: true, // Same datasource ('workspace')
+      customer: true, // Different datasource ('customer')
     },
   }
 )
@@ -154,19 +154,19 @@ await repoSurvey.findOne(
 **Resolution steps:**
 
 1. `repoSurvey.getDataSource(context)`:
-   - Calls `context.getForDataSource('project')`
-   - Gets `{ lookupKey: projectId }`
+   - Calls `context.getForDataSource('workspace')`
+   - Gets `{ lookupKey: workspaceId }`
    - Lookup resolves to actual connection
 
 2. When populating `questions` relation:
    - `repoQuestion.getDataSource(context)`
-   - Calls `context.getForDataSource('project')`
+   - Calls `context.getForDataSource('workspace')`
    - Uses same context (same datasource)
 
-3. When populating `account` relation:
-   - `repoAccount.getDataSource(context)`
-   - Calls `context.getForDataSource('account')`
-   - Gets `{ lookupKey: accountId }`
+3. When populating `customer` relation:
+   - `repoCustomer.getDataSource(context)`
+   - Calls `context.getForDataSource('customer')`
+   - Gets `{ lookupKey: customerId }`
    - Lookup resolves to different connection
 
 ### Internal Behaviour
@@ -185,7 +185,7 @@ export class RepoSurvey extends Repo<Survey> {
   constructor() {
     super({
       name: 'survey',
-      dataSource: 'project', // Used for context lookup
+      dataSource: 'workspace', // Used for context lookup
     })
   }
 }
@@ -207,17 +207,17 @@ uses.
 
 ### Pattern 1: Hierarchical Tenancy
 
-Organisations > Projects > Data
+Organisations > Workspaces > Data
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
   org: { lookupKey: orgId }, // Organisation-level data
-  project: { lookupKey: projectId }, // Project-level data
+  workspace: { lookupKey: workspaceId }, // Workspace-level data
 })
 
 // Repos automatically use appropriate datasource
 await repoOrganization.find({}, { context }) // Uses 'org'
-await repoSurvey.find({}, { context }) // Uses 'project'
+await repoSurvey.find({}, { context }) // Uses 'workspace'
 ```
 
 ### Pattern 2: Cross-Tenant Relations
@@ -225,10 +225,10 @@ await repoSurvey.find({}, { context }) // Uses 'project'
 Data spans multiple tenant boundaries:
 
 ```typescript
-// User in global datasource, documents in project datasource
+// User in global datasource, documents in workspace datasource
 const context = DataSourceContext.fromDataSources({
   global: { useDefault: true },
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 
 await repoDocument.findOne(
@@ -269,7 +269,7 @@ Relations can span datasources without extra configuration at the query site:
 
 ```typescript
 // Entity definitions
-@Entity('surveys', { dataSource: 'project' })
+@Entity('surveys', { dataSource: 'workspace' })
 class Survey {
   @ManyToOne(() => Organization, { dataSource: 'tenant' })
   organization: Ref<Organization>
@@ -283,7 +283,7 @@ class Organization {
 
 // Usage
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
 })
 
@@ -305,7 +305,7 @@ The framework automatically routes each entity to its configured datasource.
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 
 await repoSurvey.find(query, { context })
@@ -317,7 +317,7 @@ Simply add additional datasource entries:
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
   global: { useDefault: true },
 })
@@ -346,7 +346,7 @@ Provide context with lookupKey or dataSourceKey in query options.
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId }, // Add this
+  workspace: { lookupKey: workspaceId }, // Add this
 })
 ```
 
@@ -355,7 +355,7 @@ const context = DataSourceContext.fromDataSources({
 **Error:**
 
 ```
-Error: No DataSourceLookup configured for datasource "project".
+Error: No DataSourceLookup configured for datasource "workspace".
 Available datasources: tenant, customer
 ```
 
@@ -364,7 +364,7 @@ Available datasources: tenant, customer
 **Solution:** Register the lookup:
 
 ```typescript
-modelManager.setDataSourceLookup('project', projectLookup)
+modelManager.setDataSourceLookup('workspace', workspaceLookup)
 ```
 
 ### Undefined Lookup Key
@@ -372,7 +372,7 @@ modelManager.setDataSourceLookup('project', projectLookup)
 **Error:**
 
 ```
-Error: DataSourceLookup for "project" returned undefined for key: undefined
+Error: DataSourceLookup for "workspace" returned undefined for key: undefined
 ```
 
 **Cause:** Context has `lookupKey: undefined`
@@ -380,10 +380,10 @@ Error: DataSourceLookup for "project" returned undefined for key: undefined
 **Solution:** Ensure valid lookup key:
 
 ```typescript
-if (!projectId) throw new Error('Project ID required')
+if (!workspaceId) throw new Error('Workspace ID required')
 
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 ```
 
@@ -396,7 +396,7 @@ Always create context with all required datasources:
 ```typescript
 // Good: explicit and clear
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
 })
 ```
@@ -406,12 +406,12 @@ const context = DataSourceContext.fromDataSources({
 Validate keys before creating context:
 
 ```typescript
-if (!projectId || !tenantId) {
+if (!workspaceId || !tenantId) {
   throw new Error('Required tenant identifiers missing')
 }
 
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
 })
 ```
@@ -421,16 +421,16 @@ const context = DataSourceContext.fromDataSources({
 Use consistent datasource names across repositories:
 
 ```typescript
-// All project-scoped repos use 'project'
+// All workspace-scoped repos use 'workspace'
 class RepoSurvey extends Repo<Survey> {
   constructor() {
-    super({ name: 'survey', dataSource: 'project' })
+    super({ name: 'survey', dataSource: 'workspace' })
   }
 }
 
 class RepoQuestion extends Repo<Question> {
   constructor() {
-    super({ name: 'question', dataSource: 'project' })
+    super({ name: 'question', dataSource: 'workspace' })
   }
 }
 ```
@@ -441,7 +441,7 @@ Clearly document which entities belong to which datasource:
 
 ```typescript
 /**
- * Project-scoped repositories (dataSource: 'project')
+ * Workspace-scoped repositories (dataSource: 'workspace')
  * - Survey
  * - Question
  * - Response
@@ -459,10 +459,10 @@ Clearly document which entities belong to which datasource:
 Each datasource maintains its own connection pool. Configure appropriately:
 
 ```typescript
-registry.register('project', {
+registry.register('workspace', {
   type: 'postgres',
   host: 'localhost',
-  database: 'project_db',
+  database: 'workspace_db',
   poolSize: 20, // Per-datasource pool
 })
 
@@ -479,7 +479,7 @@ registry.register('tenant', {
 Consider caching at the lookup level:
 
 ```typescript
-class CachedProjectLookup extends BaseDataSourceLookup {
+class CachedWorkspaceLookup extends BaseDataSourceLookup {
   private cache = new Map<string, string>()
 
   async lookup(lookupKey: string): Promise<string | undefined> {

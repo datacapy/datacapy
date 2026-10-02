@@ -163,27 +163,27 @@ const dataSource = modelManager.getDataSource("db");
 
 ### Dynamic Datasources
 
-For context-specific databases (like project databases):
+For context-specific databases (like workspace databases):
 
 ```typescript
 // Requires context
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: "project-123" },
+  workspace: { lookupKey: "workspace-123" },
 });
 
 // Resolved dynamically
 const dataSource = await modelManager.getDataSourceDynamic(
-  "project",
-  context.getForDataSource("project"),
+  "workspace",
+  context.getForDataSource("workspace"),
 );
 ```
 
-**Use Case:** Migrate individual project databases
+**Use Case:** Migrate individual workspace databases
 
 ```bash
 @datacapy/migrate --config ./migrate.config.js \
-  --datasource project \
-  --context projectId=abc123
+  --datasource workspace \
+  --context workspaceId=abc123
 ```
 
 ## Related Documentation

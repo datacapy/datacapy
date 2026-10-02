@@ -53,7 +53,7 @@
 interface DatabasePatchInterface {
   version: string; // Unique identifier (e.g., "2024-02-05_1000")
   description: string; // Human-readable description
-  dataSourceName: string; // Target datasource ('db', 'project', etc.)
+  dataSourceName: string; // Target datasource ('db', 'workspace', etc.)
   update(modelManager: ModelManager): Promise<void>; // Migration logic
 }
 ```

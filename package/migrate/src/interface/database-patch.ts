@@ -21,7 +21,7 @@ export interface DatabasePatchInterface {
 
   /**
    * Target datasource name that this patch operates on
-   * Examples: 'db', 'project', 'tenant'
+   * Examples: 'db', 'workspace'
    * Only patches matching the CLI --datasource argument will be executed
    */
   dataSourceName: string;

@@ -494,14 +494,14 @@ describe('Repo', () => {
       const { DataSourceContext } = require('data-source/context')
       const { DataSourceDynamic } = require('data-source/dynamic')
 
-      const repo = new Repo({ name: 'r1', dataSource: 'project' })
+      const repo = new Repo({ name: 'r1', dataSource: 'workspace' })
       // Mark the repo's static datasource as dynamic so a registry lookup would normally be
       // attempted - but no modelManager is wired up, so any registry-path resolution would throw.
       repo.dataSource = new DataSourceDynamic()
 
       const lease = new MockDataSource({})
       const context = new DataSourceContext().withActiveDataSource(
-        'project',
+        'workspace',
         lease
       )
 

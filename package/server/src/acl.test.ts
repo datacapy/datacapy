@@ -183,22 +183,22 @@ describe('ServerAcl', function () {
     it('denies when a role returning conditions is matched by an allow:false rule', async () => {
       const config = {
         endpoints: {},
-        rules: [{ allow: false, role: 'projectAdmin' }],
+        rules: [{ allow: false, role: 'workspaceAdmin' }],
       }
 
-      class AclAssessorProjectAdmin extends ServerAclRoleAssessor {
+      class AclAssessorWorkspaceAdmin extends ServerAclRoleAssessor {
         constructor() {
-          super('projectAdmin')
+          super('workspaceAdmin')
         }
         hasRole(context) {
           // Returns a conditions object, same shape as the real
-          // projectAdmin/projectOwner assessors, whenever the role applies.
-          return Promise.resolve(!!context ? { projectAdmin: ['p1'] } : false)
+          // workspaceAdmin/workspaceOwner assessors, whenever the role applies.
+          return Promise.resolve(!!context ? { workspaceAdmin: ['p1'] } : false)
         }
       }
 
       const acl = new ServerAcl(config)
-      acl.addRoleAssessor(new AclAssessorProjectAdmin())
+      acl.addRoleAssessor(new AclAssessorWorkspaceAdmin())
       const permitted = await acl.isPermitted('test', {})
       expect(permitted).toBe(false)
     })

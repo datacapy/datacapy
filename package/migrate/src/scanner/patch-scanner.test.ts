@@ -55,13 +55,13 @@ describe("PatchScanner", () => {
       const patches = await scanner.scanPatches();
 
       const dbPatches = patches.filter((p) => p.patch.dataSourceName === "db");
-      const projectPatches = patches.filter(
-        (p) => p.patch.dataSourceName === "project",
+      const workspacePatches = patches.filter(
+        (p) => p.patch.dataSourceName === "workspace",
       );
 
       expect(dbPatches).toHaveLength(3);
-      expect(projectPatches).toHaveLength(1);
-      expect(projectPatches[0].version).toBe("2024-02-10_0900");
+      expect(workspacePatches).toHaveLength(1);
+      expect(workspacePatches[0].version).toBe("2024-02-10_0900");
     });
 
     it("should throw error if patch directory does not exist", async () => {

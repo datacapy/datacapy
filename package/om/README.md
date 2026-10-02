@@ -120,7 +120,7 @@ import { DataSourceContext } from '@datacapy/om'
 
 // Create context for routing
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 
 // Use context in queries
@@ -157,22 +157,22 @@ See [DataSource Context Documentation](docs/dynamic-datasource.md) for details.
 ```typescript
 import { DataSourceLookup } from '@datacapy/om'
 
-const projectLookup: DataSourceLookup = {
+const workspaceLookup: DataSourceLookup = {
   async lookup(dataSourceName, lookupKey) {
-    // Fetch project configuration
-    const project = await db.projects.findOne({ _id: lookupKey })
+    // Fetch workspace configuration
+    const workspace = await db.workspaces.findOne({ _id: lookupKey })
 
     return {
       type: 'mongodb',
       config: {
-        uri: project.databaseUri,
-        database: project.databaseName,
+        uri: workspace.databaseUri,
+        database: workspace.databaseName,
       },
     }
   },
 }
 
-modelManager.setDataSourceLookup('project', projectLookup)
+modelManager.setDataSourceLookup('workspace', workspaceLookup)
 ```
 
 ### Configure Repositories
@@ -182,7 +182,7 @@ export class RepoSurvey extends Repo<Survey> {
   constructor() {
     super({
       name: 'survey',
-      dataSource: 'project', // Dynamic routing
+      dataSource: 'workspace', // Dynamic routing
     })
   }
 }
@@ -191,9 +191,9 @@ export class RepoSurvey extends Repo<Survey> {
 ### Use in Services
 
 ```typescript
-async getAll({ projectId }) {
+async getAll({ workspaceId }) {
   const context = DataSourceContext.fromDataSources({
-    project: { lookupKey: projectId }
+    workspace: { lookupKey: workspaceId }
   })
 
   return await this.getRepo('survey').find({}, { context })
@@ -206,7 +206,7 @@ async getAll({ projectId }) {
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
 })
 
@@ -228,7 +228,7 @@ relations: {
     key: 'participantId',
     keys: {
       surveyId: 'surveyId',
-      projectId: 'projectId'
+      workspaceId: 'workspaceId'
     }
   }
 }

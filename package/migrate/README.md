@@ -6,7 +6,7 @@ Database migration tool for @datacapy/om applications. Manage schema changes, da
 
 ## Features
 
-- **Multi-Datasource Support**: Migrate account-level databases, project-specific databases, or any custom datasource
+- **Multi-Datasource Support**: Migrate main databases, workspace-specific databases, or any custom datasource
 - **Transaction Safety**: Each patch runs in a transaction with automatic rollback on failure
 - **Version Tracking**: Track applied migrations in a metadata table
 - **Dry Run Mode**: Preview changes without applying them
@@ -68,7 +68,7 @@ export default class AddUsersTable implements DatabasePatchInterface {
 ### 3. Run Migration
 
 ```bash
-# Migrate account-level database
+# Migrate main database
 pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 
 # Preview changes first
@@ -89,7 +89,7 @@ pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --verbose
 ### Required Options
 
 - `-c, --config <file>` - Path to migration config file
-- `--datasource <name>` - Target datasource name (e.g., 'db', 'project')
+- `--datasource <name>` - Target datasource name (e.g., 'db', 'workspace')
 
 ### Optional Options
 
@@ -104,13 +104,13 @@ pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --verbose
 ### Examples
 
 ```bash
-# Migrate account-level database
+# Migrate main database
 pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 
-# Migrate specific project database (dynamic datasource)
+# Migrate specific workspace database (dynamic datasource)
 pnpm @datacapy/migrate --config ./migrate.config.js \\
-  --datasource project \\
-  --context projectId=abc123
+  --datasource workspace \\
+  --context workspaceId=abc123
 
 # Dry run to preview changes
 pnpm @datacapy/migrate --config ./migrate.config.js --datasource db --dry-run
@@ -165,7 +165,7 @@ All patches must implement `DatabasePatchInterface`:
 export interface DatabasePatchInterface {
   version: string; // Format: YYYY-MM-DD_HHMM
   description: string; // Human-readable description
-  dataSourceName: string; // Target datasource: 'db', 'project', etc.
+  dataSourceName: string; // Target datasource: 'db', 'workspace', etc.
   update(modelManager: ModelManager): Promise<void>;
 }
 ```
@@ -274,20 +274,20 @@ export default class SeedDefaultRoles implements DatabasePatchInterface {
 }
 ```
 
-#### Project-Specific Migration
+#### Workspace-Specific Migration
 
 ```typescript
-export default class AddProjectStatus implements DatabasePatchInterface {
+export default class AddWorkspaceStatus implements DatabasePatchInterface {
   version = "2024-02-08_1000";
   description = "Add status field to surveys";
-  dataSourceName = "project"; // Targets dynamic project datasource
+  dataSourceName = "workspace"; // Targets dynamic workspace datasource
 
   async update(modelManager: ModelManager): Promise<void> {
-    // Get project datasource (resolved via CLI --context)
-    const projectDS = modelManager.getDataSource("project");
+    // Get workspace datasource (resolved via CLI --context)
+    const workspaceDS = modelManager.getDataSource("workspace");
 
-    // Update all surveys in this project
-    await projectDS.updateMany(
+    // Update all surveys in this workspace
+    await workspaceDS.updateMany(
       "surveys",
       {},
       {
@@ -302,33 +302,33 @@ export default class AddProjectStatus implements DatabasePatchInterface {
 
 @datacapy/migrate supports migrating multiple datasources independently:
 
-### Account-Level Migrations
+### Main-Database Migrations
 
-Migrate the main account database:
+Migrate the main database:
 
 ```bash
 pnpm @datacapy/migrate --config ./migrate.config.js --datasource db
 ```
 
-### Project-Level Migrations
+### Workspace-Level Migrations
 
-Migrate a specific project's database:
+Migrate a specific workspace's database:
 
 ```bash
 pnpm @datacapy/migrate --config ./migrate.config.js \\
-  --datasource project \\
-  --context projectId=abc123
+  --datasource workspace \\
+  --context workspaceId=abc123
 ```
 
-### Migrating Multiple Projects
+### Migrating Multiple Workspaces
 
 ```bash
-# Get all project IDs, then migrate each
-for projectId in $(get-project-ids); do
-  echo "Migrating project $projectId..."
+# Get all workspace IDs, then migrate each
+for workspaceId in $(get-workspace-ids); do
+  echo "Migrating workspace $workspaceId..."
   pnpm @datacapy/migrate --config ./migrate.config.js \\
-    --datasource project \\
-    --context projectId=$projectId
+    --datasource workspace \\
+    --context workspaceId=$workspaceId
 done
 ```
 
@@ -564,14 +564,14 @@ export default class SeedData implements DatabasePatchInterface {
 
 ### Migration Fails with "Datasource not found"
 
-**Problem:** Cannot find datasource 'project'
+**Problem:** Cannot find datasource 'workspace'
 
 **Solution:** Dynamic datasources need context:
 
 ```bash
 pnpm @datacapy/migrate --config ./migrate.config.js \\
-  --datasource project \\
-  --context projectId=abc123
+  --datasource workspace \\
+  --context workspaceId=abc123
 ```
 
 ### Patch Throws "Duplicate key error"

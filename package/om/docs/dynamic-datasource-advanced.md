@@ -45,19 +45,19 @@ class DatabaseLookup extends BaseDataSourceLookup {
     key: string
   ): Promise<DataSourceConnectionDetails | null> {
     // Query database for connection details
-    const project = await this.db.projects.findOne({ _id: key })
+    const workspace = await this.db.workspaces.findOne({ _id: key })
 
-    if (!project || !project.database) {
+    if (!workspace || !workspace.database) {
       return null
     }
 
     return {
       type: 'mysql',
-      host: project.database.host,
-      database: project.database.name,
-      user: project.database.user,
-      password: project.database.password,
-      port: project.database.port,
+      host: workspace.database.host,
+      database: workspace.database.name,
+      user: workspace.database.user,
+      password: workspace.database.password,
+      port: workspace.database.port,
     }
   }
 }
@@ -212,7 +212,7 @@ The registry runs one background task:
 Get or create a datasource for the given key:
 
 ```typescript
-const dataSource = await registry.getOrCreate('project-123', async () => {
+const dataSource = await registry.getOrCreate('workspace-123', async () => {
   return await registry.createDataSourceFromDetails({
     type: 'mysql',
     host: 'localhost',
@@ -239,7 +239,7 @@ const dataSource = await registry.getOrCreate('project-123', async () => {
 Decrement reference count after using a datasource:
 
 ```typescript
-registry.release('project-123')
+registry.release('workspace-123')
 ```
 
 **`has(key): boolean`**
@@ -247,7 +247,7 @@ registry.release('project-123')
 Check if a datasource exists in the registry:
 
 ```typescript
-if (registry.has('project-123')) {
+if (registry.has('workspace-123')) {
   // Datasource exists
 }
 ```
@@ -257,7 +257,7 @@ if (registry.has('project-123')) {
 Remove and close a specific datasource:
 
 ```typescript
-await registry.remove('project-123', 'configuration-changed')
+await registry.remove('workspace-123', 'configuration-changed')
 ```
 
 - Waits up to 30 seconds for active queries to complete (`refCount === 0`)
@@ -335,13 +335,13 @@ const dataSource = await registry.createDataSourceFromDetails({
 Use `BaseDataSourceLookup` with external cache invalidation:
 
 ```typescript
-class ProjectLookup extends BaseDataSourceLookup {
+class WorkspaceLookup extends BaseDataSourceLookup {
   constructor(private eventBus: EventBus) {
     super(10 * 60 * 1000)
 
-    // Listen for project configuration changes
-    this.eventBus.on('project:updated', async (projectId) => {
-      await this.invalidate('project', projectId)
+    // Listen for workspace configuration changes
+    this.eventBus.on('workspace:updated', async (workspaceId) => {
+      await this.invalidate('workspace', workspaceId)
     })
   }
 
@@ -430,7 +430,7 @@ class DistributedLookup extends BaseDataSourceLookup {
     }
 
     // Layer 2: Database lookup
-    const details = await this.database.lookupProject(key)
+    const details = await this.database.lookupWorkspace(key)
 
     // Cache in Redis (10 minutes)
     if (details) {

@@ -223,7 +223,7 @@ Relation population (`hasOne`, `hasMany`, `belongsToOne`, `belongsToMany`)
 builds its query purely from the relation's declared foreign-key mapping - it
 has no concept of ACL, tenant, or ownership scoping, and applies none. If a
 document returned by an already-scoped top-level query has a foreign key
-pointing at a record belonging to a different tenant/project (e.g. corrupted
+pointing at a record belonging to a different tenant/workspace (e.g. corrupted
 data, or a bug elsewhere that let a cross-tenant reference get written),
 population will attach that other tenant's record with no additional check.
 

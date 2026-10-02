@@ -22,7 +22,7 @@ import {
  * 3. Throws helpful errors if methods are called directly
  * 4. Signals to repos that they need context to resolve the actual datasource
  *
- * Used for project-specific, tenant-specific, or other context-dependent datasources.
+ * Used for workspace-specific, tenant-specific, or other context-dependent datasources.
  */
 export class DataSourceDynamic implements DataSourceInterface {
   private config: Record<string, any>

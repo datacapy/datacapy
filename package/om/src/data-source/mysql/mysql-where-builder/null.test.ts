@@ -105,14 +105,14 @@ describe('MysqlWhereBuilder - Null Handling', () => {
       // exists and is explicitly set to null, not records where the field is missing
       const query = {
         surveyId: '123',
-        projectId: '456',
+        workspaceId: '456',
         stopped: null,
       }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
 
       expect(stripped).toBe(
-        "jdoc->>'$.surveyId' = ? AND jdoc->>'$.projectId' = ? AND JSON_TYPE(JSON_EXTRACT(jdoc, '$.stopped')) = 'NULL'"
+        "jdoc->>'$.surveyId' = ? AND jdoc->>'$.workspaceId' = ? AND JSON_TYPE(JSON_EXTRACT(jdoc, '$.stopped')) = 'NULL'"
       )
       expect(result.params).toEqual(['123', '456'])
     })

@@ -6,7 +6,7 @@ This document covers advanced patterns, troubleshooting, and edge cases for @dat
 
 ## Contents
 
-- [Multi-Datasource Migrations](./multi-datasource.md) - Account vs. project databases, wildcard migration, dynamic context resolution
+- [Multi-Datasource Migrations](./multi-datasource.md) - Main vs. workspace databases, wildcard migration, dynamic context resolution
 - [Custom Workflows](./custom-workflows.md) - Programmatic usage, custom loggers, conditional migrations, patch dependencies, external data loading
 - [Troubleshooting](./troubleshooting.md) - Common errors and how to resolve them
 - [Performance and Testing](./performance-and-testing.md) - Batch operations, parallel processing, mock and integration testing

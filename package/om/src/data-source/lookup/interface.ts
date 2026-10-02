@@ -6,7 +6,7 @@
  *
  * The interface is deliberately generic. The meaning of `key` is
  * application-specific:
- * - In veysur: key = projectId (multi-project isolation)
+ * - Multi-workspace apps: key = workspaceId
  * - Other apps: key could be tenantId, userId, orgId, etc.
  *
  * Example implementations:
@@ -19,8 +19,8 @@ export interface DataSourceLookup {
   /**
    * Look up connection details by datasource name and generic key.
    *
-   * @param dataSourceName - The logical datasource name (e.g., 'project', 'tenant')
-   * @param key - Application-specific identifier (projectId, tenantId, etc.)
+   * @param dataSourceName - The logical datasource name (e.g., 'workspace', 'tenant')
+   * @param key - Application-specific identifier (workspaceId, tenantId, etc.)
    * @returns Connection details or null if not found
    * @throws Error if lookup fails (network error, etc.)
    */

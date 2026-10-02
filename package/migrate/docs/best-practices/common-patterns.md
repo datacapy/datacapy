@@ -9,7 +9,7 @@ export default class InitIndexes implements DatabasePatchInterface {
   dataSourceName = "db";
 
   async update(modelManager: ModelManager): Promise<void> {
-    const repoNames = ["user", "project", "subscription"];
+    const repoNames = ["user", "workspace", "subscription"];
 
     for (const repoName of repoNames) {
       try {

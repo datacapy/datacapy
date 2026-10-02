@@ -100,12 +100,12 @@ describe('MysqlWhereBuilder - $exists Operator', () => {
     const query = {
       stopped: null,
       active: { $exists: false },
-      projectId: '123',
+      workspaceId: '123',
     }
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
     expect(stripped).toBe(
-      "JSON_TYPE(JSON_EXTRACT(jdoc, '$.stopped')) = 'NULL' AND NOT JSON_CONTAINS_PATH(jdoc, 'one', '$.active') AND jdoc->>'$.projectId' = ?"
+      "JSON_TYPE(JSON_EXTRACT(jdoc, '$.stopped')) = 'NULL' AND NOT JSON_CONTAINS_PATH(jdoc, 'one', '$.active') AND jdoc->>'$.workspaceId' = ?"
     )
     expect(result.params).toEqual(['123'])
   })

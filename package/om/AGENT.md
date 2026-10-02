@@ -93,11 +93,11 @@ key operations. Single-key joins are composite keys with one field.
 Use composite keys when:
 
 - Multi-tenant applications need to scope relations by
-  tenant/project/organisation
+  tenant/workspace/organisation
 - Sharded data requires matching on multiple dimensions
 - Natural keys involve multiple fields
 - Business rules require matching on multiple fields (e.g., same survey, same
-  project)
+  workspace)
 
 #### When NOT to Use Composite Keys
 
@@ -110,10 +110,10 @@ Stick with single keys when:
 #### Service Layer Pattern
 
 ```typescript
-async getAll({ projectId, ...params }) {
+async getAll({ workspaceId, ...params }) {
   // Always create context for dynamic datasources
   const context = DataSourceContext.fromDataSources({
-    project: { lookupKey: projectId }
+    workspace: { lookupKey: workspaceId }
   })
 
   const repo = this.getRepo('survey')
@@ -135,11 +135,11 @@ const mockLookup: DataSourceLookup = {
   },
 }
 
-modelManager.setDataSourceLookup('project', mockLookup)
+modelManager.setDataSourceLookup('workspace', mockLookup)
 
 // Create context and test
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: 'proj123' },
+  workspace: { lookupKey: 'ws123' },
 })
 
 await repo.find({}, { context })
@@ -229,7 +229,7 @@ separately.
 
 **Rationale:**
 
-- Supports multiple dynamic datasources (e.g., project + tenant)
+- Supports multiple dynamic datasources (e.g., workspace + tenant)
 - Clear separation of concerns
 - Easy to extend
 

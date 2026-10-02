@@ -108,7 +108,7 @@ describe('MysqlWhereBuilder - SQL Injection Protection', () => {
 
   describe('unregistered operator fail-closed behaviour', () => {
     it('rejects an unregistered top-level operator instead of silently dropping it', async () => {
-      const query = { projectId: { $elemMatch: { foo: 'bar' } } }
+      const query = { workspaceId: { $elemMatch: { foo: 'bar' } } }
       await expect(whereBuilder.buildWhereClause(query)).rejects.toThrow(
         'Invalid query operator'
       )
@@ -117,13 +117,13 @@ describe('MysqlWhereBuilder - SQL Injection Protection', () => {
     it('does not produce an empty clause for a query made entirely of unregistered operators', async () => {
       // Regression: previously this silently produced { clause: '', params: [] },
       // which a caller could mistake for "no filter" and use unscoped.
-      const query = { projectId: { $elemMatch: { foo: 'bar' } } }
+      const query = { workspaceId: { $elemMatch: { foo: 'bar' } } }
       await expect(whereBuilder.buildWhereClause(query)).rejects.toThrow()
     })
 
     it('still rejects an unregistered operator when mixed with a valid one on a different field', async () => {
       const query = {
-        projectId: { $in: [1, 2, 3] },
+        workspaceId: { $in: [1, 2, 3] },
         secretOwnerId: { $elemMatch: { foo: 'bar' } },
       }
       await expect(whereBuilder.buildWhereClause(query)).rejects.toThrow(

@@ -13,7 +13,7 @@ For composite key relations, create compound indexes on the matching fields:
 // MongoDB example
 db.surveyParticipant.createIndex({
   surveyId: 1,
-  projectId: 1,
+  workspaceId: 1,
   _id: 1,
 })
 ```
@@ -23,9 +23,9 @@ db.surveyParticipant.createIndex({
 Order indexes with constant fields first, then variant fields:
 
 ```javascript
-// Optimal for queries where projectId and surveyId are constant
+// Optimal for queries where workspaceId and surveyId are constant
 db.responses.createIndex({
-  projectId: 1, // Constant field
+  workspaceId: 1, // Constant field
   surveyId: 1, // Constant field
   participantId: 1, // Variant field
 })
@@ -66,7 +66,7 @@ vs variant fields:
 
 **Example:**
 
-- 100 documents with same `projectId` and `surveyId`, varying `participantId`
+- 100 documents with same `workspaceId` and `surveyId`, varying `participantId`
 - **Unoptimised:** 100 `$or` clauses
 - **Optimised:** 2 constant equality conditions + 1 `$in` with 100 values
 
@@ -74,7 +74,7 @@ vs variant fields:
 
 ```javascript
 {
-  projectId: 'proj1',                    // Constant
+  workspaceId: 'ws1',                    // Constant
   surveyId: 's1',                        // Constant
   participantId: { $in: [/* 100 IDs */] }  // Variant
 }
@@ -139,7 +139,7 @@ datasources:
 Implement caching in your DataSourceLookup to avoid repeated database queries:
 
 ```typescript
-class CachedProjectLookup implements DataSourceLookup {
+class CachedWorkspaceLookup implements DataSourceLookup {
   private cache = new LRUCache<string, DataSourceDetails>({
     max: 100,
     ttl: 10 * 60 * 1000, // 10 minutes
@@ -158,13 +158,13 @@ class CachedProjectLookup implements DataSourceLookup {
   }
 
   private async fetchFromDatabase(lookupKey: string) {
-    // Fetch project configuration from database
-    const project = await db.projects.findOne({ _id: lookupKey })
+    // Fetch workspace configuration from database
+    const workspace = await db.workspaces.findOne({ _id: lookupKey })
     return {
       type: 'mongodb',
       config: {
-        uri: project.databaseUri,
-        database: project.databaseName,
+        uri: workspace.databaseUri,
+        database: workspace.databaseName,
       },
     }
   }
@@ -262,14 +262,14 @@ When optimising performance:
 
 ### Issue: Slow Datasource Resolution
 
-**Symptoms:** First query to a project is slow
+**Symptoms:** First query to a workspace is slow
 
 **Solutions:**
 
 1. Implement lookup caching
 2. Pre-warm frequently accessed datasources
 3. Increase cache TTL for stable configurations
-4. Consider static datasources for high-traffic projects
+4. Consider static datasources for high-traffic workspaces
 
 ## See Also
 

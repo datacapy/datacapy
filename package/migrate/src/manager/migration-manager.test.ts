@@ -251,8 +251,8 @@ describe("MigrationManager", () => {
     testDataSource = new TestDataSource();
     modelManager = new ModelManager({});
     modelManager.addDataSource("db", testDataSource);
-    // Add project datasource for testing datasource filtering
-    modelManager.addDataSource("project", new TestDataSource());
+    // Add workspace datasource for testing datasource filtering
+    modelManager.addDataSource("workspace", new TestDataSource());
     // MigrationManager logs via MigrationLogger, a CLI logger that prints to console by
     // design - suppress its output during tests.
     logSpy = jest.spyOn(console, "log").mockImplementation();
@@ -278,7 +278,7 @@ describe("MigrationManager", () => {
       const manager = new MigrationManager(config);
       const result = await manager.migrate();
 
-      expect(result.totalPatches).toBe(3); // Only 'db' patches, not 'project'
+      expect(result.totalPatches).toBe(3); // Only 'db' patches, not 'workspace'
       expect(result.successCount).toBe(3);
       expect(result.failedCount).toBe(0);
       expect(result.skippedCount).toBe(0);
@@ -290,7 +290,7 @@ describe("MigrationManager", () => {
     it("should filter patches by datasource name", async () => {
       const config: MigrationConfig = {
         modelManager,
-        dataSourceName: "project",
+        dataSourceName: "workspace",
         patchDirectory: fixturesPath,
         verbose: false,
       };
@@ -298,7 +298,7 @@ describe("MigrationManager", () => {
       const manager = new MigrationManager(config);
       const result = await manager.migrate();
 
-      expect(result.totalPatches).toBe(1); // Only 'project' patch
+      expect(result.totalPatches).toBe(1); // Only 'workspace' patch
       expect(result.successCount).toBe(1);
       expect(result.patchResults[0].version).toBe("2024-02-10_0900");
     });
@@ -482,7 +482,7 @@ describe("MigrationManager", () => {
     // These tests target the reference leak fixed alongside this test suite:
     // resolveDataSource() acquires a dynamic datasource reference that must be
     // released once migrate() is done with it, on both success and error paths.
-    const registryKey = "project:proj1";
+    const registryKey = "workspace:proj1";
     const dynamicModelManagers: ModelManager[] = [];
 
     afterEach(async () => {
@@ -502,7 +502,7 @@ describe("MigrationManager", () => {
       // Registry entry is pre-seeded directly so resolveDataSource()'s acquire
       // resolves without needing a real DataSourceLookup/connection. The lookup
       // below must never actually be invoked as a result.
-      dynamicModelManager.setDataSourceLookup("project", {
+      dynamicModelManager.setDataSourceLookup("workspace", {
         lookup: async () => {
           throw new Error("lookup() should not be called when pre-seeded");
         },
@@ -520,8 +520,8 @@ describe("MigrationManager", () => {
 
       const config: MigrationConfig = {
         modelManager: dynamicModelManager,
-        dataSourceName: "project",
-        context: { projectId: "proj1" },
+        dataSourceName: "workspace",
+        context: { workspaceId: "proj1" },
         patchDirectory: fixturesPath,
         verbose: false,
       };
@@ -543,8 +543,8 @@ describe("MigrationManager", () => {
 
       const config: MigrationConfig = {
         modelManager: dynamicModelManager,
-        dataSourceName: "project",
-        context: { projectId: "proj1" },
+        dataSourceName: "workspace",
+        context: { workspaceId: "proj1" },
         patchDirectory: "/nonexistent/path",
         verbose: false,
       };

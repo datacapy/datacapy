@@ -11,38 +11,38 @@ describe('Composite Keys', function () {
           _id: 'response1',
           participantId: 'p1',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           answer: 'Yes',
         },
         {
           _id: 'response2',
           participantId: 'p1',
           surveyId: 's2',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           answer: 'No',
         },
       ],
       surveyParticipant: [
-        // Match: p1 + s1 + proj1
+        // Match: p1 + s1 + ws1
         {
           _id: 'p1',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           name: 'John Doe',
         },
-        // No match: p1 + s2 + proj1 (different surveyId)
+        // No match: p1 + s2 + ws1 (different surveyId)
         {
           _id: 'p1',
           surveyId: 's2',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           name: 'John in Survey 2',
         },
-        // No match: different projectId
+        // No match: different workspaceId
         {
           _id: 'p1',
           surveyId: 's1',
-          projectId: 'proj2',
-          name: 'John in Project 2',
+          workspaceId: 'ws2',
+          name: 'John in Workspace 2',
         },
       ],
     }
@@ -59,46 +59,46 @@ describe('Composite Keys', function () {
         key: 'participantId',
         keys: {
           surveyId: 'surveyId',
-          projectId: 'projectId',
+          workspaceId: 'workspaceId',
         },
         alias: 'participant',
       },
       data.surveyResponse
     )
 
-    // First response should match John Doe (s1 + proj1)
+    // First response should match John Doe (s1 + ws1)
     expect(docs[0].participant.name).toBe('John Doe')
     expect(docs[0].participant.surveyId).toBe('s1')
-    expect(docs[0].participant.projectId).toBe('proj1')
+    expect(docs[0].participant.workspaceId).toBe('ws1')
 
-    // Second response should match John in Survey 2 (s2 + proj1)
+    // Second response should match John in Survey 2 (s2 + ws1)
     expect(docs[1].participant.name).toBe('John in Survey 2')
     expect(docs[1].participant.surveyId).toBe('s2')
-    expect(docs[1].participant.projectId).toBe('proj1')
+    expect(docs[1].participant.workspaceId).toBe('ws1')
   })
 
   it('should populate hasMany with composite keys', async () => {
     const data = {
-      project: [
+      workspace: [
         {
-          _id: 'proj1',
+          _id: 'ws1',
           surveyId: 's1',
-          name: 'Project Alpha',
+          name: 'Workspace Alpha',
         },
         {
-          _id: 'proj2',
+          _id: 'ws2',
           surveyId: 's2',
-          name: 'Project Beta',
+          name: 'Workspace Beta',
         },
       ],
       response: [
-        // Match proj1 + s1
-        { _id: 'r1', projectId: 'proj1', surveyId: 's1', answer: 'A' },
-        { _id: 'r2', projectId: 'proj1', surveyId: 's1', answer: 'B' },
+        // Match ws1 + s1
+        { _id: 'r1', workspaceId: 'ws1', surveyId: 's1', answer: 'A' },
+        { _id: 'r2', workspaceId: 'ws1', surveyId: 's1', answer: 'B' },
         // No match: wrong surveyId
-        { _id: 'r3', projectId: 'proj1', surveyId: 's2', answer: 'C' },
-        // Match proj2 + s2
-        { _id: 'r4', projectId: 'proj2', surveyId: 's2', answer: 'D' },
+        { _id: 'r3', workspaceId: 'ws1', surveyId: 's2', answer: 'C' },
+        // Match ws2 + s2
+        { _id: 'r4', workspaceId: 'ws2', surveyId: 's2', answer: 'D' },
       ],
     }
 
@@ -112,20 +112,20 @@ describe('Composite Keys', function () {
       response,
       {
         keys: {
-          _id: 'projectId',
+          _id: 'workspaceId',
           surveyId: 'surveyId',
         },
         alias: 'responses',
       },
-      data.project
+      data.workspace
     )
 
-    // Project Alpha should have 2 responses (r1, r2)
+    // Workspace Alpha should have 2 responses (r1, r2)
     expect(docs[0].responses.length).toBe(2)
     expect(docs[0].responses[0].answer).toBe('A')
     expect(docs[0].responses[1].answer).toBe('B')
 
-    // Project Beta should have 1 response (r4)
+    // Workspace Beta should have 1 response (r4)
     expect(docs[1].responses.length).toBe(1)
     expect(docs[1].responses[0].answer).toBe('D')
   })

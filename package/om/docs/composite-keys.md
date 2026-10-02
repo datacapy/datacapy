@@ -15,7 +15,7 @@ relations: {
 ```
 
 This was insufficient for multi-tenant scenarios where you need to match on
-multiple fields (e.g., `participantId` + `surveyId` + `projectId`).
+multiple fields (e.g., `participantId` + `surveyId` + `workspaceId`).
 
 ## Solution: Unified Composite Keys
 
@@ -34,7 +34,7 @@ relations: {
     key: 'participantId',      // Legacy: still supported
     keys: {                     // NEW: Composite keys
       surveyId: 'surveyId',     // source field -> target field
-      projectId: 'projectId'    // must match both
+      workspaceId: 'workspaceId'    // must match both
     }
   }
 }
@@ -82,8 +82,8 @@ The `getCompositeRelationIds` method extracts field values from source
 documents:
 
 ```typescript
-// Source docs: [{ participantId: 'p1', surveyId: 's1', projectId: 'proj1' }]
-// Output: [{ participantId: 'p1', surveyId: 's1', projectId: 'proj1' }]
+// Source docs: [{ participantId: 'p1', surveyId: 's1', workspaceId: 'ws1' }]
+// Output: [{ participantId: 'p1', surveyId: 's1', workspaceId: 'ws1' }]
 ```
 
 **Special cases:**
@@ -110,8 +110,8 @@ documents:
 // Uses $or with compound conditions
 {
   $or: [
-    { participantId: 'p1', surveyId: 's1', projectId: 'proj1' },
-    { participantId: 'p2', surveyId: 's2', projectId: 'proj2' },
+    { participantId: 'p1', surveyId: 's1', workspaceId: 'ws1' },
+    { participantId: 'p2', surveyId: 's2', workspaceId: 'ws2' },
   ]
 }
 ```
@@ -122,7 +122,7 @@ The `createCompositeKey` method groups results using composite key strings:
 
 ```typescript
 // Single key: "p1"
-// Multiple keys: "p1||s1||proj1"
+// Multiple keys: "p1||s1||ws1"
 ```
 
 This allows efficient lookup during population.
@@ -149,9 +149,9 @@ constant vs variant across documents.
 
 ```javascript
 ;[
-  { participantId: 'p1', surveyId: 's1', projectId: 'proj1' },
-  { participantId: 'p2', surveyId: 's1', projectId: 'proj1' },
-  { participantId: 'p3', surveyId: 's1', projectId: 'proj1' },
+  { participantId: 'p1', surveyId: 's1', workspaceId: 'ws1' },
+  { participantId: 'p2', surveyId: 's1', workspaceId: 'ws1' },
+  { participantId: 'p3', surveyId: 's1', workspaceId: 'ws1' },
 ]
 ```
 
@@ -160,9 +160,9 @@ constant vs variant across documents.
 ```javascript
 {
   $or: [
-    { _id: 'p1', surveyId: 's1', projectId: 'proj1' },
-    { _id: 'p2', surveyId: 's1', projectId: 'proj1' },
-    { _id: 'p3', surveyId: 's1', projectId: 'proj1' },
+    { _id: 'p1', surveyId: 's1', workspaceId: 'ws1' },
+    { _id: 'p2', surveyId: 's1', workspaceId: 'ws1' },
+    { _id: 'p3', surveyId: 's1', workspaceId: 'ws1' },
   ]
 }
 ```
@@ -172,7 +172,7 @@ constant vs variant across documents.
 ```javascript
 {
   surveyId: 's1',         // Constant field (simple equality)
-  projectId: 'proj1',     // Constant field (simple equality)
+  workspaceId: 'ws1',     // Constant field (simple equality)
   _id: { $in: ['p1', 'p2', 'p3'] }  // Variant field ($in)
 }
 ```
@@ -240,7 +240,7 @@ The optimisation is handled by `buildOptimizedCompositeQuery()` in
 ### Multi-Tenant Participant Matching
 
 ```typescript
-// Survey response has: participantId, surveyId, projectId
+// Survey response has: participantId, surveyId, workspaceId
 // Need to find participant where ALL fields match
 
 relations: {
@@ -250,7 +250,7 @@ relations: {
     key: 'participantId',
     keys: {
       surveyId: 'surveyId',
-      projectId: 'projectId'
+      workspaceId: 'workspaceId'
     }
   }
 }
@@ -258,7 +258,7 @@ relations: {
 // This will only match surveyParticipant records where:
 // - _id === participantId (from key)
 // - surveyId === surveyId (from keys)
-// - projectId === projectId (from keys)
+// - workspaceId === workspaceId (from keys)
 ```
 
 ### Triple Composite Key
@@ -282,11 +282,11 @@ relations: {
 Use composite keys when:
 
 - Multi-tenant applications need to scope relations by
-  tenant/project/organisation
+  tenant/workspace/organisation
 - Sharded data requires matching on multiple dimensions
 - Natural keys involve multiple fields
 - You need to ensure relations match on business rules (e.g., same survey, same
-  project)
+  workspace)
 
 ## When NOT to Use Composite Keys
 

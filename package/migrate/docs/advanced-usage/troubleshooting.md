@@ -2,7 +2,7 @@
 
 ### "Datasource not found"
 
-**Problem:** Cannot find datasource 'project'
+**Problem:** Cannot find datasource 'workspace'
 
 **Cause:** Dynamic datasources need context to resolve
 
@@ -11,8 +11,8 @@
 ```bash
 # Provide context for dynamic datasources
 @datacapy/migrate --config ./migrate.config.js \
-  --datasource project \
-  --context projectId=abc123
+  --datasource workspace \
+  --context workspaceId=abc123
 ```
 
 ### "Duplicate key error"

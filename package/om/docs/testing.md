@@ -48,12 +48,12 @@ describe('Dynamic datasource tests', () => {
       },
     }
 
-    modelManager.setDataSourceLookup('project', mockLookup)
+    modelManager.setDataSourceLookup('workspace', mockLookup)
   })
 
   it('should query correct datasource', async () => {
     const context = DataSourceContext.fromDataSources({
-      project: { lookupKey: 'proj123' },
+      workspace: { lookupKey: 'ws123' },
     })
 
     const results = await repo.find({}, { context })
@@ -78,12 +78,12 @@ import { MockDataSource } from '@datacapy/om'
 const mockDataSource = new MockDataSource({
   data: {
     users: [
-      { _id: '1', name: 'Alice', projectId: 'p1' },
-      { _id: '2', name: 'Bob', projectId: 'p2' },
+      { _id: '1', name: 'Alice', workspaceId: 'p1' },
+      { _id: '2', name: 'Bob', workspaceId: 'p2' },
     ],
     posts: [
-      { _id: '10', title: 'Post 1', authorId: '1', projectId: 'p1' },
-      { _id: '11', title: 'Post 2', authorId: '2', projectId: 'p2' },
+      { _id: '10', title: 'Post 1', authorId: '1', workspaceId: 'p1' },
+      { _id: '11', title: 'Post 2', authorId: '2', workspaceId: 'p2' },
     ],
   },
 })
@@ -135,10 +135,10 @@ it('should match on composite keys', async () => {
   const mockDataSource = new MockDataSource({
     data: {
       responses: [
-        { _id: '1', participantId: 'p1', surveyId: 's1', projectId: 'proj1' },
+        { _id: '1', participantId: 'p1', surveyId: 's1', workspaceId: 'ws1' },
       ],
       participants: [
-        { _id: 'p1', surveyId: 's1', projectId: 'proj1', name: 'Alice' },
+        { _id: 'p1', surveyId: 's1', workspaceId: 'ws1', name: 'Alice' },
       ],
     },
   })
@@ -176,7 +176,7 @@ it('should validate email format', async () => {
 describe('Multi-tenant queries', () => {
   it('should route to correct datasource', async () => {
     const context = DataSourceContext.fromDataSources({
-      project: { lookupKey: 'project-123' },
+      workspace: { lookupKey: 'workspace-123' },
     })
 
     const surveys = await repoSurvey.find({}, { context })

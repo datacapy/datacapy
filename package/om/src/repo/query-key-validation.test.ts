@@ -38,8 +38,10 @@ describe('Repo — unknown query key warning', () => {
 
   it('warns for a query key not present in the schema', async () => {
     const repo = makeRepo({ name: { $type: String } })
-    await repo.find({ projectId: 'project-1' } as Record<string, unknown>)
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('"projectId"'))
+    await repo.find({ workspaceId: 'workspace-1' } as Record<string, unknown>)
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"workspaceId"')
+    )
   })
 
   it('does not warn for the primary key field even when absent from the schema spec', async () => {
@@ -81,13 +83,13 @@ describe('Repo — unknown query key warning', () => {
   it('does not warn in production even for an unknown key', async () => {
     process.env.NODE_ENV = 'production'
     const repo = makeRepo({ name: { $type: String } })
-    await repo.find({ projectId: 'project-1' } as Record<string, unknown>)
+    await repo.find({ workspaceId: 'workspace-1' } as Record<string, unknown>)
     expect(warnSpy).not.toHaveBeenCalled()
   })
 
   it('never blocks the query, even when it warns', async () => {
     const repo = makeRepo({ name: { $type: String } })
-    const docs = await repo.find({ projectId: 'project-1' } as Record<
+    const docs = await repo.find({ workspaceId: 'workspace-1' } as Record<
       string,
       unknown
     >)
@@ -96,8 +98,11 @@ describe('Repo — unknown query key warning', () => {
 
   it('also warns on findOne and count, not just find', async () => {
     const repo = makeRepo({ name: { $type: String } })
-    await repo.findOne({ projectId: 'project-1' } as Record<string, unknown>)
-    await repo.count({ projectId: 'project-1' } as Record<string, unknown>)
+    await repo.findOne({ workspaceId: 'workspace-1' } as Record<
+      string,
+      unknown
+    >)
+    await repo.count({ workspaceId: 'workspace-1' } as Record<string, unknown>)
     expect(warnSpy).toHaveBeenCalledTimes(2)
   })
 })

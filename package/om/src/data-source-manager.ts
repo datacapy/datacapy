@@ -197,7 +197,7 @@ export class DataSourceManager {
   /**
    * Set the datasource lookup implementation for a specific datasource
    *
-   * @param name - Datasource name (e.g., 'project')
+   * @param name - Datasource name (e.g., 'workspace')
    * @param lookup - DataSourceLookup implementation
    */
   setDataSourceLookup(name: string, lookup: DataSourceLookup) {
@@ -250,7 +250,7 @@ export class DataSourceManager {
   /**
    * Initialize all dynamic repos for a specific datasource name
    *
-   * @param dsName - Name of the dynamic datasource (e.g., 'project')
+   * @param dsName - Name of the dynamic datasource (e.g., 'workspace')
    * @param context - DataSourceContext with lookupKey for datasource resolution
    * @param repos - Map of repos to use for lookup
    */

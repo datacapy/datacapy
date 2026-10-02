@@ -57,13 +57,13 @@ describe('relation', function () {
     class Response {
       _id: string
       surveyId: string
-      projectId: string
+      workspaceId: string
       participantId: string
       completed: boolean
       constructor() {
         this._id = ''
         this.surveyId = ''
-        this.projectId = ''
+        this.workspaceId = ''
         this.participantId = ''
         this.completed = false
       }
@@ -71,12 +71,12 @@ describe('relation', function () {
     class Participant {
       _id: string
       surveyId: string
-      projectId: string
+      workspaceId: string
       surveyResponse?: Response
       constructor() {
         this._id = ''
         this.surveyId = ''
-        this.projectId = ''
+        this.workspaceId = ''
       }
     }
 
@@ -85,13 +85,13 @@ describe('relation', function () {
         {
           _id: 'r1',
           surveyId: 's1',
-          projectId: 'p1',
+          workspaceId: 'p1',
           participantId: 'part1',
           completed: true,
           answers: { some: 'answer-data-not-projected' },
         },
       ],
-      surveyParticipant: [{ _id: 'part1', surveyId: 's1', projectId: 'p1' }],
+      surveyParticipant: [{ _id: 'part1', surveyId: 's1', workspaceId: 'p1' }],
     }
     var dataSource = new MockDataSource(data)
 
@@ -104,8 +104,8 @@ describe('relation', function () {
           repo: 'surveyResponse',
           key: 'participantId',
           pkey: '_id',
-          keys: { surveyId: 'surveyId', projectId: 'projectId' },
-          // Deliberately omits surveyId/projectId - only the fields we want
+          keys: { surveyId: 'surveyId', workspaceId: 'workspaceId' },
+          // Deliberately omits surveyId/workspaceId - only the fields we want
           // displayed are listed, matching the shape of the original bug.
           fields: { completed: 1, participantId: 1 },
           autoPopulate: true,

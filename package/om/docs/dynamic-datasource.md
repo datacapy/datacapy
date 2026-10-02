@@ -12,7 +12,7 @@ different databases based on request context.
 resolution. Flows from request → service → repo → datasource.
 
 **DataSourceLookup** - Interface for resolving datasource connection details
-based on a lookup key (e.g., projectId, tenantId).
+based on a lookup key (e.g., workspaceId, tenantId).
 
 **DataSourceRegistry** - Manages a pool of dynamically-created datasource
 instances with LRU eviction and idle timeout.
@@ -28,12 +28,12 @@ import { DataSourceContext } from '@datacapy/om'
 
 // Single datasource
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 
 // Multiple datasources
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
 })
 ```
@@ -43,8 +43,8 @@ const context = DataSourceContext.fromDataSources({
 Each datasource must have a registered lookup implementation:
 
 ```typescript
-// Configure lookup for 'project' datasource
-modelManager.setDataSourceLookup('project', projectLookup)
+// Configure lookup for 'workspace' datasource
+modelManager.setDataSourceLookup('workspace', workspaceLookup)
 
 // Configure lookup for 'tenant' datasource
 modelManager.setDataSourceLookup('tenant', tenantLookup)
@@ -58,8 +58,8 @@ Implement this interface to provide datasource details:
 interface DataSourceLookup {
   /**
    * Look up datasource connection details
-   * @param dataSourceName - Name of datasource (e.g., 'project', 'tenant')
-   * @param lookupKey - Key to resolve (e.g., projectId, tenantId)
+   * @param dataSourceName - Name of datasource (e.g., 'workspace', 'tenant')
+   * @param lookupKey - Key to resolve (e.g., workspaceId, tenantId)
    * @returns Connection details or undefined if not found
    */
   lookup(
@@ -72,20 +72,20 @@ interface DataSourceLookup {
 **Example implementation:**
 
 ```typescript
-class ProjectLookup implements DataSourceLookup {
+class WorkspaceLookup implements DataSourceLookup {
   async lookup(dataSourceName: string, lookupKey: string) {
-    // Look up project configuration from database
-    const project = await db.projects.findOne({ _id: lookupKey })
+    // Look up workspace configuration from database
+    const workspace = await db.workspaces.findOne({ _id: lookupKey })
 
-    if (!project) {
+    if (!workspace) {
       return undefined
     }
 
     return {
       type: 'mongodb',
       config: {
-        uri: project.databaseUri,
-        database: project.databaseName,
+        uri: workspace.databaseUri,
+        database: workspace.databaseName,
       },
     }
   }
@@ -115,7 +115,7 @@ export class RepoSurvey extends Repo<Survey> {
   constructor() {
     super({
       name: 'survey',
-      dataSource: 'project', // Dynamic datasource
+      dataSource: 'workspace', // Dynamic datasource
     })
   }
 }
@@ -135,9 +135,9 @@ export class RepoUser extends Repo<User> {
 ### Service Layer
 
 ```typescript
-async getAll({ projectId, ...params }) {
+async getAll({ workspaceId, ...params }) {
   const context = DataSourceContext.fromDataSources({
-    project: { lookupKey: projectId }
+    workspace: { lookupKey: workspaceId }
   })
 
   const repo = this.getRepo('survey')
@@ -149,9 +149,9 @@ async getAll({ projectId, ...params }) {
 ### Cross-Datasource Relations
 
 ```typescript
-// Survey (project datasource) has relation to Tenant (tenant datasource)
+// Survey (workspace datasource) has relation to Tenant (tenant datasource)
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
   tenant: { lookupKey: tenantId },
 })
 
@@ -171,7 +171,7 @@ shared datasource; use `repo.transaction()` instead:
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 
 const repo = this.getRepo('survey')
@@ -194,14 +194,14 @@ non-transactional datasource instead of erroring.
 ### Missing Lookup Configuration
 
 ```
-Error: No DataSourceLookup configured for datasource "project".
+Error: No DataSourceLookup configured for datasource "workspace".
 Available datasources: tenant, customer
 ```
 
 **Solution:** Register the lookup:
 
 ```typescript
-modelManager.setDataSourceLookup('project', lookup)
+modelManager.setDataSourceLookup('workspace', lookup)
 ```
 
 ### Missing Context
@@ -215,7 +215,7 @@ Provide context with lookupKey or dataSourceKey in query options.
 
 ```typescript
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: projectId },
+  workspace: { lookupKey: workspaceId },
 })
 await repo.find(query, { context })
 ```
@@ -229,7 +229,7 @@ await repo.find(query, { context })
 2. **Per-Datasource Lookup Registration** - Each datasource has its own lookup
    implementation
    - Rationale: Supports future scenarios with multiple dynamic datasources
-     (e.g., project + tenant)
+     (e.g., workspace + tenant)
 
 3. **Map-Based Lookup Storage** -
    `dataSourceLookups: Map<string, DataSourceLookup>`
@@ -252,7 +252,7 @@ await repo.find(query, { context })
 Implement caching in your DataSourceLookup implementation:
 
 ```typescript
-class CachedProjectLookup implements DataSourceLookup {
+class CachedWorkspaceLookup implements DataSourceLookup {
   private cache = new Map<string, DataSourceDetails>()
   private cacheTTL = 10 * 60 * 1000 // 10 minutes
 
@@ -307,10 +307,10 @@ const mockLookup: DataSourceLookup = {
   },
 }
 
-modelManager.setDataSourceLookup('project', mockLookup)
+modelManager.setDataSourceLookup('workspace', mockLookup)
 
 const context = DataSourceContext.fromDataSources({
-  project: { lookupKey: 'proj123' },
+  workspace: { lookupKey: 'ws123' },
 })
 
 await repo.find({}, { context })

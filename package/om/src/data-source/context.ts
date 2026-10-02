@@ -16,7 +16,7 @@ import { DataSourceInterface } from './interface'
 export interface DataSourceContextEntry {
   /**
    * Generic key used to look up datasource connection details.
-   * Application-specific meaning (projectId, tenantId, etc.)
+   * Application-specific meaning (workspaceId, tenantId, etc.)
    */
   lookupKey?: string
 
@@ -35,7 +35,7 @@ export interface DataSourceContextEntry {
 
 /**
  * Map of datasource names to their context options.
- * Key is datasource name (e.g., 'project', 'tenant')
+ * Key is datasource name (e.g., 'workspace', 'tenant')
  */
 export type DataSourceContextOptions = Record<string, DataSourceContextEntry>
 
@@ -101,7 +101,7 @@ export class DataSourceContext {
    *
    * @example
    * const context = DataSourceContext.fromDataSources({
-   *   project: { lookupKey: projectId },
+   *   workspace: { lookupKey: workspaceId },
    *   tenant: { lookupKey: tenantId },
    * })
    */

@@ -343,14 +343,14 @@ A role is defined by a class extending `ServerAclRoleAssessor`. Register it with
 | `this.repos`                                  | The model's repositories, for lookups                                                                       |
 
 ```ts
-class ProjectAdmin extends ServerAclRoleAssessor {
+class WorkspaceAdmin extends ServerAclRoleAssessor {
   constructor() {
-    super('projectAdmin')
+    super('workspaceAdmin')
   }
 
-  async hasRole({ jwt, projectId }) {
+  async hasRole({ jwt, workspaceId }) {
     const ids: string[] = jwt?.adminOf ?? []
-    return ids.includes(projectId)
+    return ids.includes(workspaceId)
   }
 }
 ```
@@ -382,7 +382,7 @@ Use conditions only for roles you allow, and put them last.
   `initContext`, and never declare request data whose name matches an ACL
   context key.
 - Scope by role, not by a check inside the method. For an endpoint that acts on
-  one project, use a role that checks the caller's rights on the `projectId`
+  one workspace, use a role that checks the caller's rights on the `workspaceId`
   argument, rather than a generic role plus a lookup.
 
 ## Body parsing

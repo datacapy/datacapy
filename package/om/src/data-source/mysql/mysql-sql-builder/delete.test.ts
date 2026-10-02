@@ -29,7 +29,7 @@ describe('MysqlSqlBuilder - buildDeleteQuery', () => {
     // Regression: previously an unregistered operator was silently dropped
     // from the WHERE clause, so this produced `DELETE FROM \`users\`` with
     // no WHERE clause at all - deleting every row instead of throwing.
-    const query = { projectId: { $elemMatch: { foo: 'bar' } } }
+    const query = { workspaceId: { $elemMatch: { foo: 'bar' } } }
     await expect(sqlBuilder.buildDeleteQuery('users', query)).rejects.toThrow(
       'Invalid query operator'
     )

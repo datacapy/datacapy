@@ -16,8 +16,8 @@ const unusedLookup: DataSourceLookup = {
 }
 
 describe('DataSourceManager', () => {
-  const dsName = 'project'
-  const lookupKey = 'proj1'
+  const dsName = 'workspace'
+  const lookupKey = 'ws1'
   const registryKey = `${dsName}:${lookupKey}`
 
   function buildManager(repoCount: number) {
@@ -57,8 +57,8 @@ describe('DataSourceManager', () => {
     expect(entry?.refCount).toBe(1)
 
     // repo.dataSource must stay unset - wiring it directly (the pre-a33a58a9
-    // behaviour) let one project's resolved datasource leak onto the shared
-    // repo singleton and silently misroute every other project's queries.
+    // behaviour) let one workspace's resolved datasource leak onto the shared
+    // repo singleton and silently misroute every other workspace's queries.
     Object.values(repos).forEach((repo) => {
       expect(repo.dataSource).toBeUndefined()
     })

@@ -138,13 +138,13 @@ USAGE:
 
 REQUIRED OPTIONS:
   -c, --config <file>        Path to migration config file
-  --datasource <name>        Target datasource name (e.g., 'db', 'project')
+  --datasource <name>        Target datasource name (e.g., 'db', 'workspace')
 
 OPTIONAL OPTIONS:
   --context <key=value>      Context for dynamic datasources (can be specified multiple times)
-                             Example: --context projectId=abc123
+                             Example: --context workspaceId=abc123
   --context-lookup <pattern> Lookup pattern for batch migrations across multiple contexts
-                             Example: --context-lookup "*" (migrate all projects)
+                             Example: --context-lookup "*" (migrate all workspaces)
                              Requires contextResolver to be configured
   -d, --patch-dir <dir>      Patch directory (default: ./migrate)
   -t, --target <version>     Target version to migrate to (default: latest)
@@ -155,14 +155,14 @@ OPTIONAL OPTIONS:
   --version                  Show package version
 
 EXAMPLES:
-  # Migrate account-level database
+  # Migrate main database
   @datacapy/migrate --config ./migrate.config.js --datasource db
 
-  # Migrate specific project database
-  @datacapy/migrate --config ./migrate.config.js --datasource project --context projectId=abc123
+  # Migrate specific workspace database
+  @datacapy/migrate --config ./migrate.config.js --datasource workspace --context workspaceId=abc123
 
-  # Migrate ALL project databases (batch migration)
-  @datacapy/migrate --config ./migrate.config.js --datasource project --context-lookup "*"
+  # Migrate ALL workspace databases (batch migration)
+  @datacapy/migrate --config ./migrate.config.js --datasource workspace --context-lookup "*"
 
   # Dry run to preview changes
   @datacapy/migrate --config ./migrate.config.js --datasource db --dry-run

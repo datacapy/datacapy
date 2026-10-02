@@ -6,7 +6,7 @@ import MockDataSource from 'data-source/mock'
 describe('Composite Keys Query Optimization', function () {
   it('should optimize query when all but one field is constant', async () => {
     // This simulates a common multi-tenant scenario:
-    // - projectId is constant (same project)
+    // - workspaceId is constant (same workspace)
     // - surveyId is constant (same survey)
     // - participantId varies (different participants)
     const data = {
@@ -15,21 +15,21 @@ describe('Composite Keys Query Optimization', function () {
           _id: 'r1',
           participantId: 'p1',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           answer: 'A',
         },
         {
           _id: 'r2',
           participantId: 'p2',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           answer: 'B',
         },
         {
           _id: 'r3',
           participantId: 'p3',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           answer: 'C',
         },
       ],
@@ -37,26 +37,26 @@ describe('Composite Keys Query Optimization', function () {
         {
           _id: 'p1',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           name: 'Alice',
         },
         {
           _id: 'p2',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           name: 'Bob',
         },
         {
           _id: 'p3',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           name: 'Charlie',
         },
         // Should not match: different survey
         {
           _id: 'p1',
           surveyId: 's2',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           name: 'Alice in S2',
         },
       ],
@@ -74,7 +74,7 @@ describe('Composite Keys Query Optimization', function () {
         key: 'participantId',
         keys: {
           surveyId: 'surveyId',
-          projectId: 'projectId',
+          workspaceId: 'workspaceId',
         },
         alias: 'participant',
       },
@@ -89,41 +89,41 @@ describe('Composite Keys Query Optimization', function () {
     // The optimized query should be:
     // {
     //   surveyId: 's1',
-    //   projectId: 'proj1',
+    //   workspaceId: 'ws1',
     //   _id: { $in: ['p1', 'p2', 'p3'] }
     // }
     // Instead of:
     // {
     //   $or: [
-    //     { _id: 'p1', surveyId: 's1', projectId: 'proj1' },
-    //     { _id: 'p2', surveyId: 's1', projectId: 'proj1' },
-    //     { _id: 'p3', surveyId: 's1', projectId: 'proj1' }
+    //     { _id: 'p1', surveyId: 's1', workspaceId: 'ws1' },
+    //     { _id: 'p2', surveyId: 's1', workspaceId: 'ws1' },
+    //     { _id: 'p3', surveyId: 's1', workspaceId: 'ws1' }
     //   ]
     // }
   })
 
   it('should optimize hasMany query with constant fields', async () => {
     const data = {
-      project: [
+      workspace: [
         {
-          _id: 'proj1',
+          _id: 'ws1',
           surveyId: 's1',
-          name: 'Project Alpha',
+          name: 'Workspace Alpha',
         },
         {
-          _id: 'proj2',
+          _id: 'ws2',
           surveyId: 's1',
-          name: 'Project Beta',
+          name: 'Workspace Beta',
         },
       ],
       response: [
         // All have same surveyId (constant)
-        { _id: 'r1', projectId: 'proj1', surveyId: 's1', answer: 'A' },
-        { _id: 'r2', projectId: 'proj1', surveyId: 's1', answer: 'B' },
-        { _id: 'r3', projectId: 'proj2', surveyId: 's1', answer: 'C' },
-        { _id: 'r4', projectId: 'proj2', surveyId: 's1', answer: 'D' },
+        { _id: 'r1', workspaceId: 'ws1', surveyId: 's1', answer: 'A' },
+        { _id: 'r2', workspaceId: 'ws1', surveyId: 's1', answer: 'B' },
+        { _id: 'r3', workspaceId: 'ws2', surveyId: 's1', answer: 'C' },
+        { _id: 'r4', workspaceId: 'ws2', surveyId: 's1', answer: 'D' },
         // Should not match: different surveyId
-        { _id: 'r5', projectId: 'proj1', surveyId: 's2', answer: 'E' },
+        { _id: 'r5', workspaceId: 'ws1', surveyId: 's2', answer: 'E' },
       ],
     }
 
@@ -137,12 +137,12 @@ describe('Composite Keys Query Optimization', function () {
       response,
       {
         keys: {
-          _id: 'projectId',
+          _id: 'workspaceId',
           surveyId: 'surveyId',
         },
         alias: 'responses',
       },
-      data.project
+      data.workspace
     )
 
     expect(docs[0].responses.length).toBe(2)
@@ -151,7 +151,7 @@ describe('Composite Keys Query Optimization', function () {
     // The optimized query should be:
     // {
     //   surveyId: 's1',
-    //   projectId: { $in: ['proj1', 'proj2'] }
+    //   workspaceId: { $in: ['ws1', 'ws2'] }
     // }
   })
 
@@ -308,51 +308,51 @@ describe('Composite Keys Query Optimization', function () {
   })
 
   it('should optimize when multiple documents share some constant fields', async () => {
-    // Realistic scenario: multiple survey responses from same survey/project
+    // Realistic scenario: multiple survey responses from same survey/workspace
     // but different questions and participants
     const data = {
       questionResponse: [
-        // Survey s1, Project proj1, varying question and participant
+        // Survey s1, Workspace ws1, varying question and participant
         {
           _id: 'qr1',
           questionId: 'q1',
           participantId: 'p1',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
         },
         {
           _id: 'qr2',
           questionId: 'q2',
           participantId: 'p1',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
         },
         {
           _id: 'qr3',
           questionId: 'q1',
           participantId: 'p2',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
         },
       ],
       question: [
         {
           questionId: 'q1',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           text: 'Question 1',
         },
         {
           questionId: 'q2',
           surveyId: 's1',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           text: 'Question 2',
         },
         // Different survey - should not match
         {
           questionId: 'q1',
           surveyId: 's2',
-          projectId: 'proj1',
+          workspaceId: 'ws1',
           text: 'Q1 in Survey 2',
         },
       ],
@@ -370,7 +370,7 @@ describe('Composite Keys Query Optimization', function () {
         keys: {
           questionId: 'questionId',
           surveyId: 'surveyId',
-          projectId: 'projectId',
+          workspaceId: 'workspaceId',
         },
         alias: 'question',
       },
@@ -384,7 +384,7 @@ describe('Composite Keys Query Optimization', function () {
     // Optimized query should be:
     // {
     //   surveyId: 's1',
-    //   projectId: 'proj1',
+    //   workspaceId: 'ws1',
     //   questionId: { $in: ['q1', 'q2'] }
     // }
   })

@@ -199,8 +199,7 @@ export class DataSourceRegistry {
       // Never close a pool that's still in use - doing so breaks any in-flight caller with a
       // "Pool is closed" error. Leave the entry in the registry; it will be reconsidered on a
       // later eviction/idle-check pass once it actually goes idle. This is a soft, probabilistic
-      // constraint on registry.maxSize/idleTimeout, not a hard guarantee - see
-      // package/api/docs/project-databases.md.
+      // constraint on registry.maxSize/idleTimeout, not a hard guarantee.
       this.config.logger.error(
         `[DataSourceRegistry] Timed out waiting for active references/leases to clear, skipping close to avoid breaking in-flight callers: ${key}`
       )
@@ -415,7 +414,7 @@ export class DataSourceRegistry {
 
   /**
    * Build the registry key used to look up a dynamic datasource entry, given the datasource
-   * name (e.g. 'project') and the context lookup key (e.g. a projectId). Centralised here so
+   * name (e.g. 'workspace') and the context lookup key (e.g. a workspaceId). Centralised here so
    * every caller (DataSourceManager, Repo) constructs the same key format.
    *
    * @param dsName - Datasource name

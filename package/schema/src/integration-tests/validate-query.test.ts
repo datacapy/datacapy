@@ -146,7 +146,7 @@ describe('validateQuery', () => {
 
     const schema = new Schema(
       sb
-        .schema('project')
+        .schema('workspace')
         .shape({
           subdomain: sb.string().regex(/^[a-z0-9-]+\.[a-z0-9-]+$/),
         })

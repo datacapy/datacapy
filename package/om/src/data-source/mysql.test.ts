@@ -112,7 +112,7 @@ describe('DataSourceMysql', () => {
           [JSON_DOCUMENT_COLUMN_NAME]: {
             _id: 'event-123',
             surveyId: 'survey-456',
-            projectId: 'project-789',
+            workspaceId: 'workspace-789',
             stopped: null,
           },
         },
@@ -124,7 +124,7 @@ describe('DataSourceMysql', () => {
 
       const result = await dataSource.findOne('surveyPublishEvent', {
         surveyId: 'survey-456',
-        projectId: 'project-789',
+        workspaceId: 'workspace-789',
         stopped: null,
       })
 
@@ -132,7 +132,7 @@ describe('DataSourceMysql', () => {
       expect(result).toEqual({
         _id: 'event-123',
         surveyId: 'survey-456',
-        projectId: 'project-789',
+        workspaceId: 'workspace-789',
         stopped: null,
       })
 
@@ -305,7 +305,7 @@ describe('DataSourceMysql', () => {
 
     it('should use per-field typeHint when typeHint is an object', async () => {
       await dataSource.createIndex(
-        'projectSubscription',
+        'workspacePlan',
         { subscriptionCode: 1, started: -1 },
         { typeHint: { started: 'timestamp' } }
       )
@@ -348,7 +348,7 @@ describe('DataSourceMysql', () => {
       jest.spyOn(dataSource, 'columnExists' as any).mockResolvedValue(true)
 
       await dataSource.createIndex(
-        'projectSubscription',
+        'workspacePlan',
         { subscriptionCode: 1, started: -1 },
         { typeHint: { started: 'timestamp' } }
       )
