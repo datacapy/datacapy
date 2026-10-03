@@ -63,7 +63,7 @@
     "commitizen": "^4.3.1",
     "cspell": "^10.3.6",
     "cz-customizable": "^7.5.4",
-    "lint-staged": "^15.5.2",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.8.3"
   },
   "engines": {
