@@ -2,8 +2,10 @@
 
 Part of the [DataCapy monorepo](https://github.com/datacapy/datacapy).
 
-NodeJS Object Document Mapping (ODM) framework for MongoDB and MySQL, with
-support for schemas, repositories, and services.
+Object Document Mapping (ODM) framework for Node.js, with support for SQL,
+document and key-value databases. MySQL, MongoDB, Redis and an in-memory mock
+are bundled, and you can add your own datasource. Build your model from schemas,
+repositories and services.
 
 ## Key Features
 

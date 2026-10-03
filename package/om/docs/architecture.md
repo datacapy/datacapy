@@ -2,8 +2,8 @@
 
 ## Core Concepts Overview
 
-Datacapy provides an Object Document Mapping (ODM) framework for NodeJS
-applications, supporting both MongoDB and MySQL databases.
+Datacapy provides an Object Document Mapping (ODM) framework for Node.js
+applications, with support for SQL, document and key-value databases.
 
 ## Model Elements
 
@@ -48,10 +48,15 @@ The ODM system provides:
 
 ## Data Sources
 
-Currently supports:
+Bundled datasources:
 
-- MongoDB
 - MySQL
+- MongoDB
+- Redis
+- An in-memory mock, for tests
+
+Any other database works by implementing the `DataSource` interface
+(`src/data-source/interface.ts`).
 
 Additional features:
 

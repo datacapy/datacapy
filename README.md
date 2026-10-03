@@ -4,24 +4,24 @@
 
 # DataCapy
 
-**Define your data once, then use it everywhere.**
+**A toolkit for building Node.js backends.**
 
-- One document query API, whichever database you choose to use.
-- Relations between documents are declared once and loaded in a single call.
-- The same schema validates in your browser and on your server.
-- Your services become REST endpoints with a short config.
+- An ODM framework (with support for SQL, document and key-value databases)
+- A schema library that runs in the browser and on the server
+- A config-driven REST layer on Express
 
-DataCapy is an object-document mapper (ODM) for Node.js and TypeScript, with four
-companion libraries: `schema`, `server`, `migrate` and `id`.
+Use them together or separately. Migrations and time-ordered IDs are included too.
 
-## The problems it solves
+## What you get
 
-### One document query API for every database
+### ODM framework
 
-Whichever database you choose, you work with it the same way. Repositories give you
-one set of methods and one MongoDB-style query language, so there is no separate
-client library, query dialect or result shape to learn for each store. A project can
-use several types of database server side by side and still read and write them all alike.
+Query MySQL, MongoDB and Redis the same way, and load related documents in one call.
+
+Repositories give you one set of methods and one MongoDB-style query language, so
+there is no separate client library, query dialect or result shape to learn for each
+store. A project can use several types of database side by side and still read and
+write them all alike.
 
 ```ts
 const artists = await artistRepo.find({
@@ -44,8 +44,6 @@ is not covered, write an adaptor that implements the
 [`DataSource`](package/om/src/data-source/interface.ts) interface and it gets the same
 API as the rest.
 
-### Document relations, defined and queried
-
 Declare how documents relate, then populate them in one call. No hand-written joins,
 and a relation can span datasources, so a MySQL document can point at a MongoDB one.
 
@@ -67,7 +65,14 @@ const artist = await artistRepo.findOne(
 Has-one, has-many, belongs-to-one, belongs-to-many, counts, embedded relations and
 composite keys are supported. See [Relations](package/om/docs/relations.md).
 
-### Share schemas between client and server
+The ODM framework also provides:
+
+- **Field-level encryption**: mark a schema field and it is encrypted at rest, with your own encryption service.
+- **Multi-tenant datasources**: route each request to a different database at runtime.
+
+### Schema library
+
+Validate and cast data the same way in the browser and on the server.
 
 A schema is plain TypeScript with no server-only dependencies. Define it once in a
 shared package. The server validates writes with it, and the browser runs the same
@@ -94,9 +99,11 @@ const { isValid, errors } = await personSchema.validate({
 // isValid: true, and the object is now { name: 'Paul', age: 33, ... }: cast, trimmed, defaulted
 ```
 
-### Expose data over REST
+### REST layer
 
-Describe each endpoint in a config object. Nothing is reachable until you declare it.
+Turn your services into REST endpoints with a config object.
+
+Describe each endpoint in config. Nothing is reachable until you declare it.
 DataCapy validates and casts the request, checks access rules, calls your service and
 maps errors to HTTP statuses.
 
@@ -123,13 +130,6 @@ GET /api/note/1                      200 {"id":1,"text":"Hello"}
 ```
 
 The full example is in the [`server` quick start](package/server/README.md#quick-start).
-
-## Also included
-
-- **Field-level encryption**: mark a schema field and it is encrypted at rest, with your own encryption service.
-- **Multi-tenant datasources**: route each request to a different database at runtime.
-- **Migrations**: versioned patches with dry-run and multi-datasource support.
-- **Time-ordered IDs**: short Base62 strings, friendlier to relational indexes than ObjectId.
 
 ## Quick start
 

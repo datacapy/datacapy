@@ -2,9 +2,9 @@
 
 Part of the [DataCapy monorepo](https://github.com/datacapy/datacapy).
 
-Data schemas for JavaScript and TypeScript. Define the shape of your data once,
-then use the schema to type-cast, filter, validate, hide private fields and
-encrypt sensitive fields.
+Data schemas for JavaScript and TypeScript that run in the browser and on the
+server. Define the shape of your data once, then use the schema to type-cast,
+filter, validate, hide private fields and encrypt sensitive fields.
 
 - **Fluent builder** (`sb`) for defining schemas, with an equivalent
   plain-object spec underneath
