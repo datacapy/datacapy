@@ -1,3 +1,5 @@
+import net from 'net'
+import { AddressInfo } from 'net'
 import express from 'express'
 import { HttpServerManager } from './http-server-manager'
 import { ServerConfig } from '../server-config'
@@ -31,37 +33,22 @@ describe('HttpServerManager', () => {
   })
 
   describe('constructor()', () => {
-    it('initializes with null server', () => {
-      const server = manager.getServer()
-
-      expect(server).toBeNull()
-    })
-
-    it('stores app reference', () => {
-      expect(manager).toBeDefined()
-    })
-
-    it('stores config reference', () => {
-      expect(manager).toBeDefined()
-    })
-
-    it('stores logger reference', () => {
-      expect(manager).toBeDefined()
-    })
-
-    it('stores onShutdown callback', () => {
-      expect(manager).toBeDefined()
+    it('creates the http server up front', () => {
+      expect(manager.getServer()).toBeDefined()
+      expect(manager.getServer().listening).toBe(false)
     })
   })
 
   describe('start()', () => {
-    it('starts the HTTP server on configured port', async () => {
-      const listenSpy = jest
-        .spyOn(app, 'listen')
-        .mockImplementation((port, callback: any) => {
-          callback()
-          return {} as any
-        })
+    it('listens on the configured port and logs', async () => {
+      const server = manager.getServer()
+      const listenSpy = jest.spyOn(server, 'listen').mockImplementation(((
+        port: number,
+        callback: () => void
+      ) => {
+        callback()
+        return server
+      }) as any)
 
       await manager.start()
 
@@ -72,92 +59,56 @@ describe('HttpServerManager', () => {
     })
 
     it('sets up SIGINT handler', async () => {
-      jest.spyOn(app, 'listen').mockImplementation((port, callback: any) => {
-        callback()
-        return {} as any
-      })
-
+      const server = manager.getServer()
+      jest.spyOn(server, 'listen').mockReturnValue(server)
       const onSpy = jest.spyOn(process, 'on')
 
       await manager.start()
 
       expect(onSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function))
     })
-
-    it('stores server instance after start', async () => {
-      const mockServer = {} as any
-      jest.spyOn(app, 'listen').mockImplementation((port, callback: any) => {
-        callback()
-        return mockServer
-      })
-
-      await manager.start()
-      const server = manager.getServer()
-
-      expect(server).toBe(mockServer)
-    })
   })
 
   describe('shutdown()', () => {
-    it('returns undefined when server is null', async () => {
-      const result = await manager.shutdown()
-
-      expect(result).toBeUndefined()
+    it('resolves when the server never started', async () => {
+      await expect(manager.shutdown()).resolves.toBeUndefined()
       expect(mockLogger.info).toHaveBeenCalledWith('Shutting down')
     })
 
-    it('closes server when server exists', async () => {
-      const mockClose = jest.fn()
-      const mockServer = {
-        close: mockClose,
-      } as any
+    it('resolves with an idle open connection', async () => {
+      const server = manager.getServer()
+      await new Promise<void>((resolve) => server.listen(0, resolve))
+      const { port } = server.address() as AddressInfo
+      const client = net.connect(port, '127.0.0.1')
+      client.on('error', () => undefined)
+      await new Promise<void>((resolve) => client.on('connect', resolve))
 
-      jest.spyOn(app, 'listen').mockImplementation((port, callback: any) => {
-        callback()
-        return mockServer
-      })
-
-      await manager.start()
       await manager.shutdown()
 
-      expect(mockLogger.info).toHaveBeenCalledWith('Shutting down')
-      expect(mockClose).toHaveBeenCalled()
+      expect(server.listening).toBe(false)
+      client.destroy()
     })
 
-    it('logs shutdown message', async () => {
-      await manager.shutdown()
+    it('does not throw when the server was already closed', async () => {
+      const server = manager.getServer()
+      await new Promise<void>((resolve) => server.listen(0, resolve))
+      await new Promise<void>((resolve) => server.close(() => resolve()))
 
-      expect(mockLogger.info).toHaveBeenCalledWith('Shutting down')
+      await expect(manager.shutdown()).resolves.toBeUndefined()
     })
   })
 
   describe('getServer()', () => {
-    it('returns null before server is started', () => {
-      const server = manager.getServer()
-
-      expect(server).toBeNull()
-    })
-
-    it('returns server instance after start', async () => {
-      const mockServer = {} as any
-      jest.spyOn(app, 'listen').mockImplementation((port, callback: any) => {
-        callback()
-        return mockServer
-      })
-
-      await manager.start()
-      const server = manager.getServer()
-
-      expect(server).toBe(mockServer)
+    it('returns the same server instance each time', () => {
+      expect(manager.getServer()).toBe(manager.getServer())
     })
   })
 
   describe('SIGINT handler', () => {
     it('calls onShutdown when SIGINT received', async () => {
-      jest.spyOn(app, 'listen').mockImplementation((port, callback: any) => {
-        callback()
-        return {} as any
-      })
+      jest
+        .spyOn(manager.getServer(), 'listen')
+        .mockReturnValue(manager.getServer())
 
       await manager.start()
 
