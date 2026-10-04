@@ -548,6 +548,52 @@ describe('DataSourceRedis', () => {
     })
   })
 
+  // ── duplicate() ─────────────────────────────────────────────────────────────
+
+  describe('duplicate()', () => {
+    it('shares host/port/password/db and applies overrides', async () => {
+      const IORedis = require('ioredis')
+      const dup = new FakeSubscriberStore()
+      let callCount = 0
+      IORedis.mockImplementation(() => (callCount++ === 0 ? store : dup))
+      const ds = new DataSourceRedis({
+        host: 'h',
+        port: 6380,
+        password: 'pw',
+        db: 2,
+        keyPrefix: 'p:',
+      })
+      await ds.connect()
+
+      const result = ds.duplicate({ keyPrefix: undefined })
+
+      expect(result).toBe(dup)
+      expect(IORedis).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          host: 'h',
+          port: 6380,
+          password: 'pw',
+          db: 2,
+          keyPrefix: undefined,
+        })
+      )
+    })
+
+    it('close() quits tracked duplicates', async () => {
+      const IORedis = require('ioredis')
+      const dup = new FakeSubscriberStore()
+      let callCount = 0
+      IORedis.mockImplementation(() => (callCount++ === 0 ? store : dup))
+      const ds = new DataSourceRedis({})
+      await ds.connect()
+      ds.duplicate()
+
+      await ds.close()
+
+      expect(dup.quit).toHaveBeenCalled()
+    })
+  })
+
   // ── _id pre-filter ───────────────────────────────────────────────────────────
 
   describe('_id pre-filter', () => {

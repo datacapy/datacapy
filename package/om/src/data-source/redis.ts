@@ -43,6 +43,7 @@ export class DataSourceRedis implements DataSourceInterface {
   protected config: DataSourceRedisConfig
   private client: Redis
   private subscriber: Redis | null = null
+  private duplicates: Set<Redis> = new Set()
   public connected: boolean = false
   // Count of currently outstanding RedisTransactionLease instances issued by
   // transactionStart(). Mirrors DataSourceMysql.activeLeaseCount - see mysql.ts.
@@ -853,6 +854,34 @@ export class DataSourceRedis implements DataSourceInterface {
     })
   }
 
+  /**
+   * Returns a new ioredis connection built from this datasource's options.
+   * `overrides` are merged over those options (e.g. `{ keyPrefix: undefined }`
+   * or subscriber-friendly settings). The datasource tracks the connection and
+   * quits it in close(). Requires connect() to have been called.
+   */
+  duplicate(overrides: Record<string, any> = {}): import('ioredis').Redis {
+    const IORedis = require('ioredis')
+    const {
+      url,
+      options: extraOptions,
+      keyPrefix,
+      trackIds: _trackIds,
+      ...rest
+    } = this.config
+    const connectOptions = {
+      keyPrefix,
+      ...extraOptions,
+      ...(url ? {} : rest),
+      ...overrides,
+    }
+    const connection = url
+      ? new IORedis(url, connectOptions)
+      : new IORedis(connectOptions)
+    this.duplicates.add(connection)
+    return connection
+  }
+
   // ─── Database-level operations (no-op for Redis) ──────────────────────────
 
   async createDatabase(_databaseName: string): Promise<void> {}
@@ -906,6 +935,10 @@ export class DataSourceRedis implements DataSourceInterface {
       await this.subscriber.quit()
       this.subscriber = null
     }
+    for (const connection of this.duplicates) {
+      await connection.quit().catch(() => undefined)
+    }
+    this.duplicates.clear()
   }
 }
 
