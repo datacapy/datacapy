@@ -1,3 +1,4 @@
+// cspell:ignore Tanjung Bungha
 'use strict'
 
 var { ModelManager, Repo } = require('../dist/index')
@@ -71,7 +72,7 @@ var modelManager = new ModelManager({
         host: 'localhost',
         user: 'root',
         database: 'datacapy',
-        password: 'kNnq1ggvONtKSxwY',
+        password: process.env.MYSQL_PASSWORD,
       },
     },
   ],
