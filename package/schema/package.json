@@ -1,7 +1,7 @@
 {
   "name": "@datacapy/schema",
   "type": "commonjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Datacapy schema: data schema definition and validation",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",
