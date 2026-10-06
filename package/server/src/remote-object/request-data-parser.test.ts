@@ -36,6 +36,23 @@ describe('RequestDataParser', () => {
   })
 
   describe('parseRequestData()', () => {
+    it('reads inherited request properties such as the Express ip getter', () => {
+      class FakeRequest {
+        get ip() {
+          return '203.0.113.7'
+        }
+      }
+      const req = Object.assign(new FakeRequest(), mockReq)
+
+      const result = parser.parseRequestData(
+        { ip: { src: 'request' } },
+        req as unknown as RequestInterface,
+        mockRes
+      )
+
+      expect(result.ip).toBe('203.0.113.7')
+    })
+
     it('parses query parameters by default', () => {
       mockReq.query = { name: 'John', age: '30' }
 

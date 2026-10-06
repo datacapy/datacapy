@@ -61,6 +61,17 @@ export class RequestDataParser {
       case 'header':
         value = container.request.get(srcPath)
         break
+      case 'request':
+        // Express exposes values such as `ip` as prototype getters, which the
+        // own-property-only ObjectPathAccessor skips. The path comes from server
+        // config, never from user input, so plain property access is safe.
+        value = ObjectPathAccessor.getPath(srcPath, container.request)
+        if (value === undefined) {
+          value = srcPath
+            .split('.')
+            .reduce((acc, key) => acc?.[key], container.request as any)
+        }
+        break
       case 'container':
         value = ObjectPathAccessor.getPath(srcPath, container)
         break
