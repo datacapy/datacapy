@@ -1,6 +1,7 @@
 import { RelationHasMany } from 'repo/populator/relation/has-many'
 import Repo from 'repo'
 import MockDataSource from 'data-source/mock'
+import { DataSourceContext } from 'data-source/context'
 
 describe('RelationHasMany', function () {
   it('should populate', async () => {
@@ -33,6 +34,37 @@ describe('RelationHasMany', function () {
     expect(docs[0].albums[1].name).toBe('The Bends')
     expect(docs[0].albums[2].name).toBe('OK Computer')
     expect(docs[0].albums[3].name).toBe('Kid A')
+  })
+  it('should not copy the query context', async () => {
+    // Stands in for a database connection: an enumerable accessor with no
+    // setter, as a socket exposes on current Node, which clone() cannot copy.
+    class LiveHandle {}
+    Object.defineProperty(LiveHandle.prototype, 'writeQueueSize', {
+      enumerable: true,
+      get: () => 0,
+    })
+    const context = Object.assign(new DataSourceContext(), {
+      connection: new LiveHandle(),
+    })
+
+    const data = {
+      artist: [{ _id: '1', name: 'Radiohead' }],
+      album: [{ _id: '1', name: 'Pablo Honey', artistId: '1' }],
+    }
+    const album = new Repo({
+      name: 'album',
+    })
+    album.dataSource = new MockDataSource(data)
+    const find = jest.spyOn(album, 'find')
+
+    const docs = await new RelationHasMany().populate(
+      album,
+      { key: 'artistId', alias: 'albums', context },
+      data.artist
+    )
+
+    expect(docs[0].albums[0].name).toBe('Pablo Honey')
+    expect(find.mock.calls[0][1]?.context).toBe(context)
   })
   it('should populate embedded', async () => {
     const data = {

@@ -415,7 +415,12 @@ export abstract class RelationAbstract {
   }
 
   protected normalizeConfig(relationConfig: RelationConfig) {
-    let config: RelationConfig = clone(relationConfig)
+    // context carries live handles (the transaction lease and its database
+    // connection). They must be shared, not copied: clone() walks into the
+    // socket and throws on runtimes where its properties are read-only.
+    const { context, ...cloneable } = relationConfig
+    let config: RelationConfig = clone(cloneable)
+    if (context !== undefined) config.context = context
     // pkey is the primary key name to use when looking up relations
     // - the primary key is the key of the source document on has* type relations
     // - the primary key is the key of the related document on belongsTo* type relations
