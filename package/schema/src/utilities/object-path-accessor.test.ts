@@ -40,6 +40,41 @@ describe('ObjectPathAccessor', () => {
       ).toBe(true)
     })
   })
+  describe('inherited properties', () => {
+    // Deliberate: paths only traverse own properties, so a path can never reach
+    // (or assign through) a prototype member such as `toString`. Callers that
+    // need a prototype getter, e.g. Express `req.ip`, must read it directly
+    // (see RequestDataParser in @datacapy/server).
+    class WithGetter {
+      own = 'own-value'
+      get inherited() {
+        return 'inherited-value'
+      }
+    }
+
+    it('should return own properties of class instances', () => {
+      expect(ObjectPathAccessor.getPath('own', new WithGetter())).toBe(
+        'own-value'
+      )
+    })
+
+    it('should not return prototype getters', () => {
+      expect(ObjectPathAccessor.getPath('inherited', new WithGetter())).toBe(
+        undefined
+      )
+    })
+
+    it('should not return built-in prototype members', () => {
+      expect(ObjectPathAccessor.getPath('toString', {})).toBe(undefined)
+    })
+
+    it('should not assign through a prototype member', () => {
+      const subject = {}
+      ObjectPathAccessor.setPath('toString.polluted', true, subject)
+      expect(({} as any).toString.polluted).toBe(undefined)
+    })
+  })
+
   describe('getPath()', () => {
     it('should return value at given path', () => {
       const data = {
