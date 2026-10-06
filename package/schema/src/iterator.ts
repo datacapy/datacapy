@@ -363,6 +363,8 @@ export class SchemaIterator {
       meta,
     } = opts
 
+    if (fieldName === '__proto__') return
+
     this.init()
     const currentPath = this.initPath(path)
 

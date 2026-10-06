@@ -488,12 +488,19 @@ export class DataSourceRedis implements DataSourceInterface {
     }
   }
 
+  private isUnsafeKey(key: string): boolean {
+    return key === '__proto__' || key === 'constructor' || key === 'prototype'
+  }
+
   private setNestedValue(
     doc: Record<string, any>,
     path: string,
     value: any
   ): void {
     const parts = path.split('.')
+    if (parts.some((part) => this.isUnsafeKey(part))) {
+      throw new Error(`Unsafe path segment in update path: ${path}`)
+    }
     let obj = doc
     for (let i = 0; i < parts.length - 1; i++) {
       if (obj[parts[i]] === undefined) obj[parts[i]] = {}
@@ -504,6 +511,7 @@ export class DataSourceRedis implements DataSourceInterface {
 
   private unsetNestedValue(doc: Record<string, any>, path: string): void {
     const parts = path.split('.')
+    if (parts.some((part) => this.isUnsafeKey(part))) return
     let obj = doc
     for (let i = 0; i < parts.length - 1; i++) {
       if (obj[parts[i]] === undefined) return
