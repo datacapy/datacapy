@@ -29,6 +29,8 @@ updates:
     labels:
       - dependencies
     ignore:
+      # 1.9.7 rewrites './repo' to './index.js' in om's dist (baseUrl clash); stay on 1.9.1 until fixed
+      - dependency-name: tsc-alias
       - dependency-name: typescript
         update-types:
           - version-update:semver-major
@@ -40,6 +42,8 @@ updates:
     labels:
       - dependencies
     ignore:
+      # 1.9.7 rewrites './repo' to './index.js' in om's dist (baseUrl clash); stay on 1.9.1 until fixed
+      - dependency-name: tsc-alias
       - dependency-name: typescript
         update-types:
           - version-update:semver-major
@@ -51,6 +55,8 @@ updates:
     labels:
       - dependencies
     ignore:
+      # 1.9.7 rewrites './repo' to './index.js' in om's dist (baseUrl clash); stay on 1.9.1 until fixed
+      - dependency-name: tsc-alias
       - dependency-name: typescript
         update-types:
           - version-update:semver-major
