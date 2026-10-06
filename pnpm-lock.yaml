@@ -15,8 +15,8 @@ importers:
         specifier: ^5.0.9
         version: 5.0.9
       '@cspell/dict-npm':
-        specifier: ^5.2.38
-        version: 5.2.50
+        specifier: ^5.2.52
+        version: 5.2.52
       '@cspell/dict-typescript':
         specifier: ^3.2.3
         version: 3.2.3
@@ -684,8 +684,8 @@ packages:
   '@cspell/dict-node@5.0.9':
     resolution: {integrity: sha512-hO+ga+uYZ/WA4OtiMEyKt5rDUlUyu3nXMf8KVEeqq2msYvAPdldKBGH7lGONg6R/rPhv53Rb+0Y1SLdoK1+7wQ==}
 
-  '@cspell/dict-npm@5.2.50':
-    resolution: {integrity: sha512-JZhJb0wrWpqnzDBM1VG8f6zZPRCOo6YMxct0hFhgBnbOTIHQiqZf9S1BSXCRMmmQlAWqFXjKNDp+rf7ZiJcO9w==}
+  '@cspell/dict-npm@5.2.52':
+    resolution: {integrity: sha512-JttzSladJ4KVhfg9QiBM4os+wAKbet2F58wpbM5VJLnL8fAj3xwvBvSxdY64yrW6Y5wdSPHoTCLqXOKoyBJFnA==}
 
   '@cspell/dict-php@4.1.3':
     resolution: {integrity: sha512-41oKzl7rLVrrVZA/Gs0ESnP6KliEX7c+IwaaNmOL3PAoHasFDVEmIFeENIzuDdM12UcHT+MlLkAm3Qw/lS/ERA==}
@@ -3922,7 +3922,7 @@ snapshots:
       '@cspell/dict-markdown': 2.0.18(@cspell/dict-css@4.1.2)(@cspell/dict-html-symbol-entities@4.0.5)(@cspell/dict-html@4.0.16)(@cspell/dict-typescript@3.2.3)
       '@cspell/dict-monkeyc': 1.1.2
       '@cspell/dict-node': 5.0.9
-      '@cspell/dict-npm': 5.2.50
+      '@cspell/dict-npm': 5.2.52
       '@cspell/dict-php': 4.1.3
       '@cspell/dict-powershell': 5.0.17
       '@cspell/dict-public-licenses': 2.0.16
@@ -4050,7 +4050,7 @@ snapshots:
 
   '@cspell/dict-node@5.0.9': {}
 
-  '@cspell/dict-npm@5.2.50': {}
+  '@cspell/dict-npm@5.2.52': {}
 
   '@cspell/dict-php@4.1.3': {}
 
