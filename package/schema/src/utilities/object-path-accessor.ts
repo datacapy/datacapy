@@ -133,14 +133,20 @@ export class ObjectPathAccessor {
         prop === 'prototype'
       )
         return
+      // Only own properties are traversed, so an inherited member such as
+      // `toString` can never be reached (or assigned through) from a path.
+      const owned = (): any =>
+        Object.prototype.hasOwnProperty.call(subject, prop)
+          ? subject[prop]
+          : undefined
       // Element path is the full path to the current element
       let elementPath = currentPath ? currentPath + '.' + prop : String(prop)
 
       if (ObjectPathAccessor.pathsMatch(pattern as string, elementPath)) {
         if (hasMutator) {
-          subject[prop] = mutatorFunc(subject[prop], subject, prop)
+          subject[prop] = mutatorFunc(owned(), subject, prop)
         }
-        if (subject[prop] === undefined) {
+        if (owned() === undefined) {
           if (Array.isArray(subject)) {
             subject.splice(parseInt(prop as string), 1)
           } else {
@@ -149,7 +155,7 @@ export class ObjectPathAccessor {
         } else {
           // Full pattern matches current element path
           // - so add it to the list of matches
-          matches.push(subject[prop])
+          matches.push(owned())
         }
       }
       // Recurse into objects or create new ones if needed
@@ -158,7 +164,7 @@ export class ObjectPathAccessor {
           hasMutator &&
           !skipAutoCreate &&
           prop != '*' &&
-          subject[prop] === undefined &&
+          owned() === undefined &&
           nextNode !== undefined
         ) {
           subject[prop] = ObjectPathAccessor.isNumber(nextNode) ? [] : {}
@@ -166,12 +172,7 @@ export class ObjectPathAccessor {
         meta.currentPath = elementPath
         meta.currentDepth = depth
         meta.matches = matches
-        ObjectPathAccessor.searchRecursive(
-          pattern,
-          subject[prop],
-          mutatorFunc,
-          meta
-        )
+        ObjectPathAccessor.searchRecursive(pattern, owned(), mutatorFunc, meta)
       }
     }
 
