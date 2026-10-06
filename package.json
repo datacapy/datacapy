@@ -58,7 +58,7 @@
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
     "@cspell/dict-node": "^5.0.9",
-    "@cspell/dict-npm": "^5.2.38",
+    "@cspell/dict-npm": "^5.2.52",
     "@cspell/dict-typescript": "^3.2.3",
     "commitizen": "^4.3.1",
     "cspell": "^10.3.6",
