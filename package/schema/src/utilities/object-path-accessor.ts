@@ -12,14 +12,6 @@
  */
 export class ObjectPathAccessor {
   /**
-   * Property names that would reach Object.prototype (or a constructor) when
-   * used as a path segment, so they must never be read or assigned through.
-   */
-  static isUnsafeKey(key: string | number): boolean {
-    return key === '__proto__' || key === 'constructor' || key === 'prototype'
-  }
-
-  /**
    * Get path
    *
    * Returns all elements matching 'path' in 'subject'.
@@ -135,7 +127,12 @@ export class ObjectPathAccessor {
 
     function processElement(prop: string | number) {
       if (subject == null) return
-      if (ObjectPathAccessor.isUnsafeKey(prop)) return
+      if (
+        prop === '__proto__' ||
+        prop === 'constructor' ||
+        prop === 'prototype'
+      )
+        return
       // Element path is the full path to the current element
       let elementPath = currentPath ? currentPath + '.' + prop : String(prop)
 
