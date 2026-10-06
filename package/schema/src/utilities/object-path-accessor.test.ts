@@ -642,4 +642,43 @@ describe('ObjectPathAccessor', () => {
       expect(data.planet.c.three).toEqual({ name: 'Venus X' })
     })
   })
+
+  describe('prototype pollution', () => {
+    afterEach(() => {
+      delete (Object.prototype as Record<string, unknown>).polluted
+    })
+
+    const unsafePaths = [
+      '__proto__.polluted',
+      'constructor.prototype.polluted',
+      'a.__proto__.polluted',
+      '*.__proto__.polluted',
+    ]
+
+    it.each(unsafePaths)('setPath ignores %s', (path) => {
+      ObjectPathAccessor.setPath(path, true, { a: {}, b: {} })
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+      expect(Object.prototype).not.toHaveProperty('polluted')
+    })
+
+    it.each(unsafePaths)('mutatePath ignores %s', (path) => {
+      ObjectPathAccessor.mutatePath(path, { a: {}, b: {} }, () => true)
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    })
+
+    it.each(unsafePaths)('unsetPath ignores %s', (path) => {
+      ObjectPathAccessor.unsetPath(path, { a: {}, b: {} })
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    })
+
+    it('does not traverse inherited members', () => {
+      expect(ObjectPathAccessor.getPath('toString', {})).toBeUndefined()
+    })
+
+    it('still sets ordinary nested paths', () => {
+      const data = { a: {} } as Record<string, any>
+      ObjectPathAccessor.setPath('a.b.c', 1, data)
+      expect(data.a.b.c).toBe(1)
+    })
+  })
 })

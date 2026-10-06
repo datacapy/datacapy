@@ -197,4 +197,25 @@ describe('SchemaIterator', () => {
       })
     })
   })
+
+  describe('mapField prototype pollution', () => {
+    it('ignores a __proto__ field name', () => {
+      const schemaIterator = new SchemaIterator({ name: String })
+      const container = {}
+      const callback = jest.fn()
+      schemaIterator.mapField({
+        spec: { name: String },
+        specParent: {},
+        fieldName: '__proto__',
+        container,
+        path: '__proto__',
+        callback,
+        config: {},
+        meta: {},
+      })
+      expect(callback).not.toHaveBeenCalled()
+      expect(Object.getPrototypeOf(container)).toBe(Object.prototype)
+      expect(Object.keys(container)).toEqual([])
+    })
+  })
 })

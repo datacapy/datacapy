@@ -1604,4 +1604,33 @@ describe('DataSourceRedis', () => {
       expect(subStore.quit).toHaveBeenCalledTimes(1)
     })
   })
+
+  describe('prototype pollution in update paths', () => {
+    afterEach(() => {
+      delete (Object.prototype as Record<string, unknown>).polluted
+    })
+
+    it.each(['__proto__.polluted', 'constructor.prototype.polluted'])(
+      'rejects $set on %s',
+      async (path) => {
+        const ds = await buildConnectedDataSource()
+        await ds.insertOne('things', { _id: 't1' })
+        await expect(
+          ds.updateOne('things', { _id: 't1' }, { $set: { [path]: true } })
+        ).rejects.toThrow('Unsafe path segment')
+        expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+      }
+    )
+
+    it('ignores $unset on an unsafe path', async () => {
+      const ds = await buildConnectedDataSource()
+      await ds.insertOne('things', { _id: 't1' })
+      await ds.updateOne(
+        'things',
+        { _id: 't1' },
+        { $unset: { '__proto__.toString': '' } }
+      )
+      expect(typeof ({} as object).toString).toBe('function')
+    })
+  })
 })
