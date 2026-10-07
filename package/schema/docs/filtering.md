@@ -24,9 +24,10 @@ await schema.applyFilters(data)
 
 ## Defaults
 
-`default(value)` replaces a value that is `undefined`, `null` or an empty array.
-Pass a function to compute the default each time. The default is type-cast to
-the field type, so `sb.date().default('now')` gives a `Date`.
+`default(value)` replaces a value that is `undefined` or `null`. An empty array
+is a value and is kept. Pass a function to compute the default each time. The
+default is type-cast to the field type, so `sb.date().default('now')` gives a
+`Date`.
 
 ```ts
 sb.string().default('draft')

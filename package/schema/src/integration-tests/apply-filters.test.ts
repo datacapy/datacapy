@@ -158,8 +158,8 @@ describe('applyFilters', () => {
   })
 
   describe('defaultValue - array', () => {
-    it('should apply defaultValue filter when field is an empty array', async () => {
-      const object = { items: [] }
+    it('should apply defaultValue filter when field is missing', async () => {
+      const object: { items?: string[] } = {}
 
       const schema = new Schema({
         items: { $type: Array, $filter: { defaultValue: ['default item'] } },
@@ -167,6 +167,17 @@ describe('applyFilters', () => {
 
       const result = await schema.applyFilters(object)
       expect(result.items).toEqual(['default item'])
+    })
+
+    it('should keep an empty array instead of applying defaultValue', async () => {
+      const object = { items: [] }
+
+      const schema = new Schema({
+        items: { $type: Array, $filter: { defaultValue: ['default item'] } },
+      })
+
+      const result = await schema.applyFilters(object)
+      expect(result.items).toEqual([])
     })
 
     it('should not apply defaultValue filter when array is not empty', async () => {
@@ -180,12 +191,12 @@ describe('applyFilters', () => {
       expect(result.items).toEqual(['existing item'])
     })
 
-    it('should apply defaultValue that is a function when field is an empty array', async () => {
+    it('should apply defaultValue that is a function when field is missing', async () => {
       const generateDefaultItems = () => [
         'generated item 1',
         'generated item 2',
       ]
-      const object = { items: [] }
+      const object: { items?: string[] } = {}
 
       const schema = new Schema({
         items: {

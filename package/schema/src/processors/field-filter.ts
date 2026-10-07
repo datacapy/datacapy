@@ -135,7 +135,9 @@ export class SchemaFieldFilter implements SchemaFieldFilterInterface {
       // - unless specifically configured as notNull via $validate config
       defaultValue = nullable ? null : {}
     } else if (fieldType == Array) {
-      defaultValue = []
+      // A configured default wins over the implicit empty list
+      defaultValue =
+        filters.defaultValue !== undefined ? filters.defaultValue : []
     } else if (fieldName == '_id') {
       if (fieldType == SchemaTypes.ObjectID) {
         defaultValue = function () {

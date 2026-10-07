@@ -57,9 +57,10 @@ describe('FilterDefaultValue', () => {
   })
 
   describe('empty arrays', () => {
-    it('should replace empty array with default value', () => {
-      const result = filter.filter([], 'default')
-      expect(result).toBe('default')
+    it('should keep an empty array instead of applying the default', () => {
+      const empty: unknown[] = []
+      const result = filter.filter(empty, 'default')
+      expect(result).toBe(empty)
     })
 
     it('should not replace non-empty array', () => {
@@ -84,11 +85,11 @@ describe('FilterDefaultValue', () => {
       expect(defaultFn).toHaveBeenCalledTimes(1)
     })
 
-    it('should call function for empty arrays', () => {
+    it('should not call function for empty arrays', () => {
       const defaultFn = jest.fn(() => ['default'])
       const result = filter.filter([], defaultFn)
-      expect(result).toEqual(['default'])
-      expect(defaultFn).toHaveBeenCalledTimes(1)
+      expect(result).toEqual([])
+      expect(defaultFn).not.toHaveBeenCalled()
     })
 
     it('should not call function if value is valid', () => {

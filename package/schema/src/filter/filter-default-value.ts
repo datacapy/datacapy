@@ -1,11 +1,7 @@
 import { FilterAbstract } from './filter-abstract'
 export class FilterDefaultValue extends FilterAbstract {
   filter(value: any, options?) {
-    if (
-      value === undefined ||
-      FilterDefaultValue.isNull(value) ||
-      (Array.isArray(value) && value.length === 0)
-    ) {
+    if (value === undefined || FilterDefaultValue.isNull(value)) {
       var defaultValue = options
       value = typeof defaultValue == 'function' ? defaultValue() : defaultValue
     }

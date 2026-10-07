@@ -386,7 +386,9 @@ export class SchemaIterator {
     if (fieldType == Object) {
       defaultValue = nullable ? null : {}
     } else if (fieldType == Array) {
-      defaultValue = []
+      // A configured default is applied by the default filter instead
+      const configured = spec && spec.$filter && spec.$filter.defaultValue
+      defaultValue = configured !== undefined ? undefined : []
     }
     if (
       container &&
