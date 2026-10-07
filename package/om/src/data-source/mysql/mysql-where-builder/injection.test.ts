@@ -258,8 +258,8 @@ describe('MysqlWhereBuilder - SQL Injection Protection', () => {
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
 
-      expect(stripped).toBe("jdoc->>'$.name' REGEXP ?")
-      expect(result.params).toEqual(["^test'; DROP TABLE users; --"])
+      expect(stripped).toBe("jdoc->>'$.name' LIKE BINARY ?")
+      expect(result.params).toEqual(["%^test'; DROP TABLE users; --%"])
     })
   })
 

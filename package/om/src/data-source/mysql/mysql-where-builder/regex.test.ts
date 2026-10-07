@@ -11,12 +11,12 @@ describe('MysqlWhereBuilder - Regex Operator', () => {
     whereBuilder = new MysqlWhereBuilder()
   })
 
-  it('should handle $regex operator with string pattern', async () => {
+  it('should treat a $regex string as a literal substring', async () => {
     const query = { name: { $regex: '^John' } }
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
-    expect(stripped).toBe("jdoc->>'$.name' REGEXP ?")
-    expect(result.params).toEqual(['^John'])
+    expect(stripped).toBe("jdoc->>'$.name' LIKE BINARY ?")
+    expect(result.params).toEqual(['%^John%'])
   })
 
   it('should handle $regex operator with RegExp object', async () => {
@@ -35,25 +35,17 @@ describe('MysqlWhereBuilder - Regex Operator', () => {
     expect(result.params).toEqual(['(?i)^john'])
   })
 
-  it('should handle $regex operator with sibling $options', async () => {
+  it('should handle $regex string with sibling $options as literal', async () => {
     const query = { name: { $regex: '^john', $options: 'i' } }
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
-    expect(stripped).toBe("jdoc->>'$.name' REGEXP ?")
-    expect(result.params).toEqual(['(?i)^john'])
+    expect(stripped).toBe("LOWER(jdoc->>'$.name') LIKE ?")
+    expect(result.params).toEqual(['%^john%'])
   })
 
-  it('should handle $regex without $options', async () => {
-    const query = { name: { $regex: '^John' } }
-    const result = await whereBuilder.buildWhereClause(query)
-    const stripped = stripWhitespace(result.clause)
-    expect(stripped).toBe("jdoc->>'$.name' REGEXP ?")
-    expect(result.params).toEqual(['^John'])
-  })
-
-  it('should handle $regex with complex pattern', async () => {
+  it('should handle a RegExp with a complex pattern via REGEXP', async () => {
     const query = {
-      email: { $regex: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$' },
+      email: { $regex: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/ },
     }
     const result = await whereBuilder.buildWhereClause(query)
     const stripped = stripWhitespace(result.clause)
@@ -65,7 +57,7 @@ describe('MysqlWhereBuilder - Regex Operator', () => {
 
   it('should handle $regex combined with other conditions', async () => {
     const query = {
-      name: { $regex: '^John' },
+      name: { $regex: /^John/ },
       age: { $gte: 18 },
     }
     const result = await whereBuilder.buildWhereClause(query)
@@ -125,28 +117,60 @@ describe('MysqlWhereBuilder - Regex Operator', () => {
       expect(result.params).toEqual(['%John%'])
     })
 
-    it('should use REGEXP for patterns with metacharacters', async () => {
-      const query = { name: { $regex: 'John.*Smith' } }
+    it('should use REGEXP for RegExp operands with metacharacters', async () => {
+      const query = { name: { $regex: /John.*Smith/ } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
       expect(stripped).toBe("jdoc->>'$.name' REGEXP ?")
       expect(result.params).toEqual(['John.*Smith'])
     })
 
-    it('should use REGEXP for patterns with anchors', async () => {
-      const query = { name: { $regex: '^John' } }
+    it('should use REGEXP for RegExp operands with anchors', async () => {
+      const query = { name: { $regex: /^John/ } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
       expect(stripped).toBe("jdoc->>'$.name' REGEXP ?")
       expect(result.params).toEqual(['^John'])
     })
 
-    it('should use REGEXP for patterns with character classes', async () => {
-      const query = { name: { $regex: '[A-Z]ohn' } }
+    it('should use REGEXP for RegExp operands with character classes', async () => {
+      const query = { name: { $regex: /[A-Z]ohn/ } }
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
       expect(stripped).toBe("jdoc->>'$.name' REGEXP ?")
       expect(result.params).toEqual(['[A-Z]ohn'])
+    })
+
+    it('should match regex metacharacters in a string operand literally', async () => {
+      for (const input of ['John.*Smith', '(a|b)', '[x', 'a+b?', '\\d']) {
+        const result = await whereBuilder.buildWhereClause({
+          name: { $regex: input },
+        })
+        expect(stripWhitespace(result.clause)).toBe(
+          "jdoc->>'$.name' LIKE BINARY ?"
+        )
+        expect(result.params).toEqual([`%${input.replace(/\\/g, '\\\\')}%`])
+      }
+    })
+
+    it('should escape LIKE wildcards in a string operand', async () => {
+      const result = await whereBuilder.buildWhereClause({
+        name: { $regex: '100%_a\\b', $options: 'i' },
+      })
+      expect(stripWhitespace(result.clause)).toBe(
+        "LOWER(jdoc->>'$.name') LIKE ?"
+      )
+      expect(result.params).toEqual(['%100\\%\\_a\\\\b%'])
+    })
+
+    it('should escape LIKE wildcards in a simple RegExp operand', async () => {
+      const result = await whereBuilder.buildWhereClause({
+        name: { $regex: /first_name/ },
+      })
+      expect(stripWhitespace(result.clause)).toBe(
+        "jdoc->>'$.name' LIKE BINARY ?"
+      )
+      expect(result.params).toEqual(['%first\\_name%'])
     })
 
     it('should handle simple literal with spaces', async () => {
@@ -170,7 +194,7 @@ describe('MysqlWhereBuilder - Regex Operator', () => {
       const result = await whereBuilder.buildWhereClause(query)
       const stripped = stripWhitespace(result.clause)
       expect(stripped).toBe("jdoc->>'$.name' LIKE BINARY ?")
-      expect(result.params).toEqual(['%first-name_last%'])
+      expect(result.params).toEqual(['%first-name\\_last%'])
     })
   })
 })

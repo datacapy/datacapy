@@ -101,6 +101,10 @@ repo.find({ email: { $regex: 'john', $options: 'i' } })
 
 The same optimisation applies to `$like` and case-insensitive `RegExp` objects.
 
+A string `$regex` operand is a **literal substring match**: regex syntax and the
+LIKE wildcards `%` and `_` in it are matched literally, so user input is safe to
+pass straight in. Pass a `RegExp` object for real regex semantics.
+
 ### Leading-wildcard limitation
 
 `LIKE '%pattern%'` with a leading `%` cannot use a B-tree index regardless. The
@@ -115,15 +119,15 @@ column.
 
 ### Operator behaviour summary
 
-| Query operator                               | Generated column exists? | SQL emitted                         |
-| -------------------------------------------- | ------------------------ | ----------------------------------- |
-| `$regex` + `$options: 'i'` (simple literal)  | Yes                      | `` `gen_field_lower` LIKE ? ``      |
-| `$regex` + `$options: 'i'` (simple literal)  | No                       | `LOWER(jdoc->>'$.field') LIKE ?`    |
-| `$like`                                      | Yes                      | `` `gen_field_lower` LIKE ? ``      |
-| `$like`                                      | No                       | `LOWER(jdoc->>'$.field') LIKE ?`    |
-| `$regex` no options (simple literal)         | N/A                      | `jdoc->>'$.field' LIKE BINARY ?`    |
-| `$regex` + `$options: 'i'` (complex pattern) | N/A                      | `jdoc->>'$.field' REGEXP '(?i)...'` |
-| `=`, `IN`, `!=`                              | N/A                      | unchanged (always case-sensitive)   |
+| Query operator                            | Generated column exists? | SQL emitted                         |
+| ----------------------------------------- | ------------------------ | ----------------------------------- |
+| `$regex` string + `$options: 'i'`         | Yes                      | `` `gen_field_lower` LIKE ? ``      |
+| `$regex` string + `$options: 'i'`         | No                       | `LOWER(jdoc->>'$.field') LIKE ?`    |
+| `$like`                                   | Yes                      | `` `gen_field_lower` LIKE ? ``      |
+| `$like`                                   | No                       | `LOWER(jdoc->>'$.field') LIKE ?`    |
+| `$regex` string, no options               | N/A                      | `jdoc->>'$.field' LIKE BINARY ?`    |
+| `/regex/i` RegExp with special characters | N/A                      | `jdoc->>'$.field' REGEXP '(?i)...'` |
+| `=`, `IN`, `!=`                           | N/A                      | unchanged (always case-sensitive)   |
 
 ### Example: user search
 

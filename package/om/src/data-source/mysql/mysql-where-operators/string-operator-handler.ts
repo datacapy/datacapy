@@ -71,13 +71,19 @@ export class StringOperatorHandler implements OperatorHandler {
     const options = siblingOperators?.$options || ''
     let pattern: string
     let isCaseInsensitive = false
+    // A string operand is always a literal substring match, so untrusted
+    // input can never inject regex syntax. A RegExp operand is the explicit
+    // opt-in to real regex semantics.
+    let isLiteral: boolean
 
     if (typeof operand === 'string') {
       pattern = operand
+      isLiteral = true
     } else if (operand instanceof RegExp) {
       // Convert RegExp to string pattern
       // Note: MySQL REGEXP doesn't support all JS regex flags
       pattern = operand.source
+      isLiteral = isSimpleLiteralPattern(pattern)
       if (operand.ignoreCase) {
         isCaseInsensitive = true
       }
@@ -90,34 +96,33 @@ export class StringOperatorHandler implements OperatorHandler {
       isCaseInsensitive = true
     }
 
-    // Optimize simple literal patterns to use LIKE instead of REGEXP
-    // LIKE is more efficient for simple substring matching
-    if (isSimpleLiteralPattern(pattern)) {
+    // Literal patterns use LIKE (also cheaper than REGEXP for substring matching)
+    if (isLiteral) {
+      const escaped = this.escapeLike(pattern)
       if (isCaseInsensitive) {
         const lowercaseColumn =
           await context.getLowercaseGeneratedColumnName(key)
         if (lowercaseColumn) {
           return {
             condition: `\`${sanitizeIdentifier(lowercaseColumn)}\` LIKE ?`,
-            params: [`%${pattern.toLowerCase()}%`],
+            params: [`%${this.escapeLike(pattern.toLowerCase())}%`],
           }
         }
         // JSON extraction (->>) returns utf8mb4_bin collation, making plain LIKE
         // case-sensitive. Wrap with LOWER() on both sides to force case-insensitive matching.
         return {
           condition: `LOWER(${jsonPathExpression}) LIKE ?`,
-          params: [`%${pattern.toLowerCase()}%`],
+          params: [`%${this.escapeLike(pattern.toLowerCase())}%`],
         }
-      } else {
-        // Use LIKE BINARY for case-sensitive matching
-        return {
-          condition: `${jsonPathExpression} LIKE BINARY ?`,
-          params: [`%${pattern}%`],
-        }
+      }
+      // Use LIKE BINARY for case-sensitive matching
+      return {
+        condition: `${jsonPathExpression} LIKE BINARY ?`,
+        params: [`%${escaped}%`],
       }
     }
 
-    // Use REGEXP for patterns with regex metacharacters
+    // Use REGEXP for RegExp operands with regex metacharacters
     if (isCaseInsensitive) {
       pattern = `(?i)${pattern}`
     }
@@ -126,5 +131,12 @@ export class StringOperatorHandler implements OperatorHandler {
       condition: `${jsonPathExpression} REGEXP ?`,
       params: [pattern],
     }
+  }
+
+  /**
+   * Escapes LIKE wildcards (and the escape character) so the value matches literally.
+   */
+  private escapeLike(value: string): string {
+    return value.replace(/[\\%_]/g, '\\$&')
   }
 }
