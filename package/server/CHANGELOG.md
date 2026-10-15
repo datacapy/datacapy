@@ -1,5 +1,12 @@
 # @datacapy/server
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [fe5ac90]
+  - @datacapy/om@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,5 +1,19 @@
 # @datacapy/om
 
+## 0.3.0
+
+### Minor Changes
+
+- fe5ac90: Breaking: a string `$regex` operand is now a literal substring match
+  instead of a regex. Regex syntax and the LIKE wildcards `%` and `_` in it are
+  matched literally, so untrusted search text is safe to pass without escaping.
+  Pass a `RegExp` object to opt in to real regex semantics.
+
+### Patch Changes
+
+- Updated dependencies [a3415b9]
+  - @datacapy/schema@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes
