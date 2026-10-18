@@ -62,4 +62,161 @@ describe('SchemaEncryptionServiceRsa', () => {
     const result = await service.decrypt(notAnEnvelope)
     expect(result).toBe(notAnEnvelope)
   })
+
+  describe('key rotation', () => {
+    const makePair = () =>
+      generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      })
+    const pairB = makePair()
+    const keyA = { id: 'a', publicKey, privateKey }
+    const keyB = { id: 'b', ...pairB }
+
+    const readEnvelope = (ciphertext: string) =>
+      JSON.parse(Buffer.from(ciphertext, 'base64').toString('utf8'))
+    const writeEnvelope = (envelope: object) =>
+      Buffer.from(JSON.stringify(envelope)).toString('base64')
+
+    it('stamps a v2 envelope with the key id', async () => {
+      const envelope = readEnvelope(await makeService().encrypt('x'))
+      expect(envelope.v).toBe(2)
+      expect(envelope.kid).toBe('default')
+    })
+
+    it('decrypts a legacy v1 envelope (no kid) as the default key', async () => {
+      const service = makeService()
+      const envelope = readEnvelope(await service.encrypt('legacy'))
+      delete envelope.v
+      delete envelope.kid
+      expect(await service.decrypt(writeEnvelope(envelope))).toBe('legacy')
+    })
+
+    it('throws a clear error for an unknown kid', async () => {
+      const service = makeService()
+      const envelope = readEnvelope(await service.encrypt('x'))
+      envelope.kid = 'nope'
+      await expect(service.decrypt(writeEnvelope(envelope))).rejects.toThrow(
+        'Unknown encryption key id "nope"'
+      )
+    })
+
+    it('rejects an envelope version from the future', async () => {
+      const service = makeService()
+      const envelope = readEnvelope(await service.encrypt('x'))
+      envelope.v = 3
+      await expect(service.decrypt(writeEnvelope(envelope))).rejects.toThrow(
+        'Unsupported encryption envelope version 3'
+      )
+    })
+
+    it('round-trips with two keys and still reads old values after the active key switches', async () => {
+      const onA = new SchemaEncryptionServiceRsa({
+        keys: [keyA, keyB],
+        activeKeyId: 'a',
+      })
+      const onB = new SchemaEncryptionServiceRsa({
+        keys: [keyA, keyB],
+        activeKeyId: 'b',
+      })
+      const oldValue = await onA.encrypt('old')
+      const newValue = await onB.encrypt('new')
+      expect(readEnvelope(oldValue).kid).toBe('a')
+      expect(readEnvelope(newValue).kid).toBe('b')
+      expect(await onB.decrypt(oldValue)).toBe('old')
+      expect(await onB.decrypt(newValue)).toBe('new')
+    })
+
+    it('rejects duplicate ids, a bad id and an unknown activeKeyId', () => {
+      expect(
+        () =>
+          new SchemaEncryptionServiceRsa({
+            keys: [keyA, keyA],
+            activeKeyId: 'a',
+          })
+      ).toThrow('Duplicate key id')
+      expect(
+        () =>
+          new SchemaEncryptionServiceRsa({
+            keys: [{ ...keyA, id: 'bad id' }],
+            activeKeyId: 'bad id',
+          })
+      ).toThrow('Invalid key id')
+      expect(
+        () => new SchemaEncryptionServiceRsa({ keys: [keyA], activeKeyId: 'z' })
+      ).toThrow('activeKeyId "z"')
+    })
+
+    it('fails when the kid is tampered to another known key', async () => {
+      const service = new SchemaEncryptionServiceRsa({
+        keys: [keyA, keyB],
+        activeKeyId: 'a',
+      })
+      const envelope = readEnvelope(await service.encrypt('x'))
+      envelope.kid = 'b'
+      await expect(service.decrypt(writeEnvelope(envelope))).rejects.toThrow()
+    })
+
+    it('fails for a retired key that has no private half', async () => {
+      const onA = new SchemaEncryptionServiceRsa({
+        keys: [keyA],
+        activeKeyId: 'a',
+      })
+      const value = await onA.encrypt('x')
+      const noPrivate = new SchemaEncryptionServiceRsa({
+        keys: [{ id: 'a', publicKey }, keyB],
+        activeKeyId: 'b',
+      })
+      await expect(noPrivate.decrypt(value)).rejects.toThrow(
+        'Private key not configured for key id "a"'
+      )
+    })
+
+    describe('rewrap', () => {
+      const both = (activeKeyId: string) =>
+        new SchemaEncryptionServiceRsa({ keys: [keyA, keyB], activeKeyId })
+
+      it('moves a value to the active key without touching iv, tag or d', async () => {
+        const value = await both('a').encrypt('secret')
+        const rewrapped = await both('b').rewrap(value)
+        expect(rewrapped).not.toBeNull()
+        const before = readEnvelope(value)
+        const after = readEnvelope(rewrapped!)
+        expect(after.kid).toBe('b')
+        expect(after.k).not.toBe(before.k)
+        expect({ iv: after.iv, tag: after.tag, d: after.d }).toEqual({
+          iv: before.iv,
+          tag: before.tag,
+          d: before.d,
+        })
+        expect(await both('b').decrypt(rewrapped!)).toBe('secret')
+        // The old key is no longer needed to read it.
+        const onlyB = new SchemaEncryptionServiceRsa({
+          keys: [{ id: 'a', publicKey }, keyB],
+          activeKeyId: 'b',
+        })
+        expect(await onlyB.decrypt(rewrapped!)).toBe('secret')
+      })
+
+      it('returns null when already on the active key', async () => {
+        const value = await both('b').encrypt('x')
+        expect(await both('b').rewrap(value)).toBeNull()
+      })
+
+      it('returns null for legacy plaintext', async () => {
+        expect(await both('b').rewrap('just text')).toBeNull()
+      })
+
+      it('upgrades a v1 envelope on the default key to v2', async () => {
+        const service = makeService()
+        const envelope = readEnvelope(await service.encrypt('legacy'))
+        delete envelope.v
+        delete envelope.kid
+        const rewrapped = await service.rewrap(writeEnvelope(envelope))
+        expect(readEnvelope(rewrapped!).v).toBe(2)
+        expect(await service.decrypt(rewrapped!)).toBe('legacy')
+      })
+    })
+  })
 })

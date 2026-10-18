@@ -48,8 +48,11 @@ with RSA-OAEP and stored alongside the ciphertext as a base64-encoded JSON
 payload:
 
 ```
-base64( JSON({ k: rsaEncryptedAesKey, iv, tag, d: aesEncryptedData }) )
+base64( JSON({ v: 2, kid, k: rsaEncryptedAesKey, iv, tag, d: aesEncryptedData }) )
 ```
+
+`kid` names the RSA key that wrapped `k`. Envelopes written before key ids
+existed have no `v` or `kid` and are read as the key with id `default`.
 
 The private key is decrypted once at service construction and held in memory.
 
@@ -86,6 +89,62 @@ openssl rsa -in private.pem -pubout -out public.pem
 
 Provide the passphrase via an environment variable: never hard-code it.
 
+## Key Rotation
+
+Configure several keys and name the one used for new values. A key id (`kid`)
+matches `[A-Za-z0-9._-]{1,64}`; duplicate ids, an `activeKeyId` that is not in
+`keys` and an invalid id are rejected at construction.
+
+```typescript
+new SchemaEncryptionServiceRsa({
+  keys: [
+    {
+      id: '2025',
+      publicKey: oldPublic,
+      privateKey: oldPrivate,
+      privateKeyPassword,
+    },
+    {
+      id: '2026',
+      publicKey: newPublic,
+      privateKey: newPrivate,
+      privateKeyPassword,
+    },
+  ],
+  activeKeyId: '2026',
+})
+```
+
+The single-key form is the same as one key with id `default`. Decryption picks
+the key by `kid` and throws `Unknown encryption key id "x"` when it is not
+configured. Every node must run a build that reads `v: 2` before any node writes
+it, because an older build cannot parse a v2 envelope.
+
+`rewrap(ciphertext)` unwraps the AES key with the old private key and wraps it
+again with the active public key. `iv`, `tag` and `d` do not change and
+plaintext is never produced. It returns `null` when the value is already on the
+active key or is legacy plaintext. `rewrap` is optional on
+`SchemaEncryptionService`, so a KMS-backed service need not implement it.
+
+`EncryptionReencryptor` applies `rewrap` to every encrypted field of a repo:
+
+```typescript
+const report = await new EncryptionReencryptor(repo, service).run({
+  batchSize: 100,
+  dryRun: false,
+  afterId: previous?.lastId,
+})
+// { scanned, rewrapped, skipped, failed, byKid, lastId, done }
+```
+
+It reads and writes raw stored values through the data source, so nothing is
+double-encrypted. A document is written only when all its fields rewrapped, and
+only if they still hold the values that were read. A failing document is counted
+in `failed` and left as it was. A second run rewrites nothing, and a run resumes
+from `lastId`. `byKid` counts values per key before the run changed them: retire
+a key only when it reads zero, including in any backup that could be restored.
+Take a database backup first.
+
 **Read-only nodes** (e.g. reporting replicas): omit `privateKey` from the
 config. Encryption works normally; decryption throws
 `'Private key not configured: decryption unavailable'`.
@@ -100,8 +159,8 @@ config. Encryption works normally; decryption throws
 - **Node.js only**: `SchemaEncryptionServiceRsa` uses the built-in `crypto`
   module. Custom implementations of `SchemaEncryptionService` can target other
   environments.
-- **No built-in key rotation**: rotating keys requires re-encrypting all stored
-  values outside of @datacapy/om.
+- **Envelope not bound to its field**: the ciphertext is not tied to its
+  document or field (no AAD), so a value can be copied between fields.
 
 ## Custom Encryption Service
 
