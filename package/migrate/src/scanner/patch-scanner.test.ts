@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as path from "path";
 import { PatchScanner } from "./patch-scanner";
 
@@ -9,6 +10,10 @@ describe("PatchScanner", () => {
     "fixtures",
     "sample-patches",
   );
+
+  // Unique per call: the suite runs concurrently from more than one workspace root.
+  const makeTempDir = (name: string): string =>
+    fs.mkdtempSync(path.join(fixturesPath, "..", `${name}-`));
 
   describe("scanPatches", () => {
     it("should discover and load all valid patches", async () => {
@@ -74,7 +79,6 @@ describe("PatchScanner", () => {
 
     it("should skip files without valid extensions", async () => {
       // Create a temporary text file
-      const fs = require("fs");
       const testPath = path.join(fixturesPath, "2024", "01", "readme.txt");
 
       fs.writeFileSync(testPath, "This is a readme file");
@@ -103,13 +107,7 @@ describe("PatchScanner", () => {
     });
 
     it("should handle empty patch directory", async () => {
-      const fs = require("fs");
-      const emptyPath = path.join(fixturesPath, "..", "empty-patches");
-
-      // Create empty directory
-      if (!fs.existsSync(emptyPath)) {
-        fs.mkdirSync(emptyPath, { recursive: true });
-      }
+      const emptyPath = makeTempDir("empty-patches");
 
       try {
         const scanner = new PatchScanner(emptyPath);
@@ -127,8 +125,7 @@ describe("PatchScanner", () => {
 
   describe("patch validation", () => {
     it("should validate patch has all required properties", async () => {
-      const fs = require("fs");
-      const invalidPath = path.join(fixturesPath, "..", "temp-invalid");
+      const invalidPath = makeTempDir("temp-invalid");
       const yearPath = path.join(invalidPath, "2024", "01");
 
       // Create directory
@@ -162,8 +159,7 @@ describe("PatchScanner", () => {
     });
 
     it("should validate version format", async () => {
-      const fs = require("fs");
-      const invalidPath = path.join(fixturesPath, "..", "temp-invalid-version");
+      const invalidPath = makeTempDir("temp-invalid-version");
       const yearPath = path.join(invalidPath, "2024", "01");
 
       fs.mkdirSync(yearPath, { recursive: true });
@@ -199,12 +195,7 @@ describe("PatchScanner", () => {
     });
 
     it("should validate version matches filename", async () => {
-      const fs = require("fs");
-      const invalidPath = path.join(
-        fixturesPath,
-        "..",
-        "temp-version-mismatch",
-      );
+      const invalidPath = makeTempDir("temp-version-mismatch");
       const yearPath = path.join(invalidPath, "2024", "01");
 
       fs.mkdirSync(yearPath, { recursive: true });
