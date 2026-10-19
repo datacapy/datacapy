@@ -4,6 +4,9 @@ import { DataSourceContext } from 'data-source/context'
 export interface RepoQueryOptions extends QuerySelectionOptions {
   populate?: { [key: string]: boolean } | boolean
   filterPrivate?: boolean
+  // Decrypt encrypted fields on read. Off by default: encrypted fields come back as
+  // ciphertext unless declared `.encrypt({ eager: true })` or this is true
+  decrypt?: boolean
   // Datacapy query validator can not handle complex queries
   // - some times the only option is to skip query validation
   skipValidation?: boolean

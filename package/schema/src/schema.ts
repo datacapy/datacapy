@@ -560,6 +560,7 @@ export class Schema {
         )
       }
       const service = this.config.encryptionService
+      if (service.isEncrypted?.(String(container[fieldName]))) return
       promises.push(
         (async () => {
           container[fieldName] = await service.encrypt(
@@ -587,6 +588,7 @@ export class Schema {
           )
         }
         const service = this.config.encryptionService
+        if (service.isEncrypted?.(String(container[fieldName]))) return
         promises.push(
           (async () => {
             container[fieldName] = await service.encrypt(
@@ -601,12 +603,22 @@ export class Schema {
     return paths
   }
 
-  async applyDecrypt<T>(object: T): Promise<T> {
+  /**
+   * Decrypt encrypted fields in place. `include: 'eager'` (the default) only
+   * touches fields declared `.encrypt({ eager: true })`; `'all'` decrypts
+   * every encrypted field.
+   */
+  async applyDecrypt<T>(
+    object: T,
+    options: { include?: 'eager' | 'all' } = {}
+  ): Promise<T> {
     this.init()
+    const include = options.include ?? 'eager'
     const promises: Promise<void>[] = []
     this.schemaIterator.iterate(object, (opts) => {
       const { spec, fieldName, container } = opts
       if (!spec?.$filter?.encrypt) return
+      if (include === 'eager' && !this.isEagerEncrypt(spec)) return
       if (
         !container ||
         container[fieldName] == null ||
@@ -629,6 +641,11 @@ export class Schema {
     })
     await Promise.all(promises)
     return object
+  }
+
+  private isEagerEncrypt(spec: SchemaSpec): boolean {
+    const encrypt = spec.$filter?.encrypt
+    return typeof encrypt === 'object' && encrypt.eager === true
   }
 }
 

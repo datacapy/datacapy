@@ -1,4 +1,5 @@
 import SchemaSpec, {
+  SchemaSpecEncryptOptions,
   SchemaSpecValidateOptions,
   CustomValidatorFn,
 } from '../spec'
@@ -120,9 +121,11 @@ export abstract class BuilderBase<T = any> {
   }
 
   /**
-   * Encrypt field value at rest using the configured encryptionService
+   * Encrypt field value at rest using the configured encryptionService.
+   * Reads leave the value encrypted unless the query asks for decryption,
+   * or the field is `{ eager: true }`.
    */
-  encrypt(mode?: boolean): this {
+  encrypt(mode?: boolean | SchemaSpecEncryptOptions): this {
     if (!this.spec.$filter) this.spec.$filter = {}
     ;(this.spec.$filter as any).encrypt = mode === undefined ? true : mode
     return this
