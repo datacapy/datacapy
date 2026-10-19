@@ -95,7 +95,7 @@ describe('EncryptionReencryptor', () => {
       done: true,
     })
     expect(report.byKid).toEqual({ a: 5, b: 1 })
-    const docs = await repo.find({}, { sort: { _id: 1 } })
+    const docs = await repo.find({}, { sort: { _id: 1 }, decrypt: true })
     expect(docs.filter((d) => d.secret).map((d) => d.secret)).toEqual([
       's1',
       's2',
@@ -147,7 +147,9 @@ describe('EncryptionReencryptor', () => {
     const report = await new EncryptionReencryptor(repo, onB).run()
     expect(report).toMatchObject({ rewrapped: 4, failed: 1 })
     expect((await stored(dataSource))[2].secret).toBe(broken)
-    expect((await repo.findOne({ _id: '1' })).secret).toBe('s1')
+    expect((await repo.findOne({ _id: '1' }, { decrypt: true })).secret).toBe(
+      's1'
+    )
   })
 
   it('resumes from lastId', async () => {

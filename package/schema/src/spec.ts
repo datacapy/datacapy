@@ -27,6 +27,11 @@ export interface SchemaSpecFilterConditional<T = any> {
   $then?: T
 }
 
+export interface SchemaSpecEncryptOptions {
+  /** Decrypt on every read, without the query asking for `decrypt: true` */
+  eager?: boolean
+}
+
 export interface SchemaSpecFilter {
   trim?: boolean
   uppercase?: boolean
@@ -35,7 +40,7 @@ export interface SchemaSpecFilter {
   callback?: (value: any) => any | Promise<any>
   private?: boolean
   privateValue?: boolean
-  encrypt?: boolean
+  encrypt?: boolean | SchemaSpecEncryptOptions
   prependHttp?: boolean | SchemaSpecFilterConditional<boolean>
 }
 

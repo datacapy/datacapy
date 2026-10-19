@@ -5,8 +5,8 @@
 # Field-Level Encryption
 
 Opt-in at-rest encryption for individual schema fields. Encrypted values are
-transparently encrypted before write and decrypted after read: no changes needed
-in application code beyond configuration.
+encrypted before write. Reads return them encrypted unless the query asks for
+decryption (see [Opt-in decryption](#opt-in-decryption)).
 
 ## Quick Start
 
@@ -40,7 +40,7 @@ fields are unaffected.
 
 ```
 Write:  insert/update → applyEncrypt(applyEncryptPaths for $set) → validate → dataSource
-Read:   dataSource → filterPrivate → applyTransients → applyDecrypt → populate
+Read:   dataSource → filterPrivate → applyTransients → applyDecrypt (only if requested) → populate
 ```
 
 Each encrypted field uses a fresh random AES-256-GCM key. That key is encrypted
@@ -55,6 +55,49 @@ base64( JSON({ v: 2, kid, k: rsaEncryptedAesKey, iv, tag, d: aesEncryptedData })
 existed have no `v` or `kid` and are read as the key with id `default`.
 
 The private key is decrypted once at service construction and held in memory.
+
+## Opt-in decryption
+
+Each decrypt is an RSA operation, so reads leave encrypted fields as ciphertext
+by default. Ask for plaintext where it is needed:
+
+```typescript
+// per query: decrypts every encrypted field of the result, and of populated relations
+const user = await repoUser.findOne({ _id }, { decrypt: true })
+
+// after the fact, on documents read without decryption (safe on decrypted ones)
+await repoUser.decrypt(user)
+```
+
+A field that should always come back decrypted, as before, opts in on the
+schema: `ssn: { $type: String, $filter: { encrypt: { eager: true } } }` (or
+`.encrypt({ eager: true })` on a builder). `decrypt: true` on a query still
+decrypts the other fields.
+
+Writing a value that is already an envelope, for example a field carried over
+from a document read without decryption, stores it unchanged instead of
+encrypting it again. This needs the service to implement the optional
+`isEncrypted(value)`; `SchemaEncryptionServiceRsa` does. A service without it
+encrypts every value it is given.
+
+### Ciphertext, plaintext and redaction
+
+Three things can come back for an encrypted field, and each has its own switch:
+
+| You want                        | Use                                                          |
+| ------------------------------- | ------------------------------------------------------------ |
+| The stored value (ciphertext)   | the default                                                  |
+| Plaintext                       | `decrypt: true`, or `repo.decrypt(doc)`                      |
+| Nothing, for output to a client | `.privateValue()` or `.private()` with `filterPrivate: true` |
+
+Redaction is independent of decryption. See
+[filtering](../../schema/docs/filtering.md) for `filterPrivate`.
+
+### Migrating from always-decrypt
+
+Reads that need plaintext must now pass `decrypt: true`, or the field must be
+declared `eager`. A caller that forgets receives the ciphertext envelope.
+`findGroup` never decrypts.
 
 ## Configuration
 

@@ -158,6 +158,10 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     })
   }
 
+  isEncrypted(value: string): boolean {
+    return this.parseEnvelope(value) !== null
+  }
+
   /** The key id an envelope was written under, or null for legacy plaintext. */
   keyIdOf(ciphertext: string): string | null {
     const envelope = this.parseEnvelope(ciphertext)

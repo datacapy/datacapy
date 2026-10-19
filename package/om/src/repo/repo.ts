@@ -667,6 +667,7 @@ export class Repo<T> {
     if (queryOptions.filterPrivate !== undefined)
       delete queryOptions.filterPrivate
     if (queryOptions.populate !== undefined) delete queryOptions.populate
+    if (queryOptions.decrypt !== undefined) delete queryOptions.decrypt
     return queryOptions
   }
 
@@ -676,6 +677,7 @@ export class Repo<T> {
     return {
       filterPrivate: options.filterPrivate,
       populate: options.populate,
+      decrypt: options.decrypt,
       context: options.context,
     }
   }
@@ -686,11 +688,23 @@ export class Repo<T> {
     }
     docs = docs && this.schema ? this.schema.applyTransients(docs) : docs
     if (docs && this.schema) {
-      docs = await this.schema.applyDecrypt(docs)
+      docs = await this.schema.applyDecrypt(docs, {
+        include: options.decrypt === true ? 'all' : 'eager',
+      })
     }
     const populateResult =
       options.populate === false ? docs : this.populateAll(docs, options)
     return populateResult
+  }
+
+  /**
+   * Decrypt every encrypted field of docs read without `decrypt: true`.
+   * Safe on already decrypted docs: values that are not envelopes pass through.
+   */
+  async decrypt<D extends Partial<T> | Partial<T>[]>(docs: D): Promise<D> {
+    this.initSchema()
+    if (!docs || !this.schema) return docs
+    return this.schema.applyDecrypt(docs, { include: 'all' })
   }
 
   async populateAll(docs: Partial<T>[], options?: RepoQueryOptions) {
