@@ -80,6 +80,19 @@ encrypting it again. This needs the service to implement the optional
 `isEncrypted(value)`; `SchemaEncryptionServiceRsa` does. A service without it
 encrypts every value it is given.
 
+### Ciphertext, plaintext and redaction
+
+Three things can come back for an encrypted field, and each has its own switch:
+
+| You want                        | Use                                                          |
+| ------------------------------- | ------------------------------------------------------------ |
+| The stored value (ciphertext)   | the default                                                  |
+| Plaintext                       | `decrypt: true`, or `repo.decrypt(doc)`                      |
+| Nothing, for output to a client | `.privateValue()` or `.private()` with `filterPrivate: true` |
+
+Redaction is independent of decryption. See
+[filtering](../../schema/docs/filtering.md) for `filterPrivate`.
+
 ### Migrating from always-decrypt
 
 Reads that need plaintext must now pass `decrypt: true`, or the field must be

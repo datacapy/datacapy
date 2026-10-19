@@ -98,4 +98,40 @@ describe('repo field decryption', () => {
     expect(written).not.toBe('replaced')
     expect(await encryptionService.decrypt(written)).toBe('replaced')
   })
+  describe('populated relations', () => {
+    type Owner = { _id?: string; name: string; account?: User }
+
+    const makeOwnerRepo = async () => {
+      const { user, dataSource, ciphertext } =
+        await makeUserRepo('a-secret-value')
+      dataSource.data.owner = [{ _id: '1', name: 'Kevin', accountId: '1' }]
+      const owner = new Repo({
+        name: 'owner',
+        relations: {
+          account: {
+            type: 'belongsToOne',
+            repo: 'user',
+            key: 'accountId',
+            alias: 'account',
+            autoPopulate: true,
+          },
+        },
+      }) as Repo<Owner>
+      owner.dataSource = dataSource
+      owner.repos.user = user
+      return { owner, ciphertext }
+    }
+
+    it('decrypts the related document when asked', async () => {
+      const { owner } = await makeOwnerRepo()
+      const doc = await owner.findOne({ _id: '1' }, { decrypt: true })
+      expect(doc.account?.secret).toBe('a-secret-value')
+    })
+
+    it('leaves the related document encrypted by default', async () => {
+      const { owner, ciphertext } = await makeOwnerRepo()
+      const doc = await owner.findOne({ _id: '1' })
+      expect(doc.account?.secret).toBe(ciphertext)
+    })
+  })
 })
