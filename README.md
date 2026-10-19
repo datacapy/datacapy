@@ -4,75 +4,102 @@
 
 # DataCapy
 
-**A toolkit for building Node.js backends.**
+**Define your data once. Query any database, validate in the browser and on the server, and serve it over REST.**
 
-- An ODM framework (with support for SQL, document and key-value databases)
-- A schema library that runs in the browser and on the server
-- A config-driven REST layer on Express
+```ts
+// Find artists and load their albums in one call, with no SQL and no joins
+const artists = await artistRepo.find(
+  { name: { $in: ["Radiohead", "Portishead"] } },
+  { populate: { albums: true } },
+);
+// [{ _id: '7', name: 'Radiohead', albums: [{ name: 'OK Computer' }, ...] }, ...]
+```
 
-Use them together or separately. Migrations and time-ordered IDs are included too.
+The datasource is configuration. Swap `DataSourceMysql` for `DataSourceMongodb` or
+Redis and that query does not change, and there is no second client library to learn.
+
+- **One query language** for MySQL, MongoDB and Redis, with relations that can span databases.
+- **One schema** that runs in the browser and on the server, so both enforce the same rules.
+- **REST from config**: nothing is reachable until you declare it, and every request is validated, cast and access-checked.
+
+Use the pieces together or separately. Migrations and time-ordered IDs are included.
+
+## Quick start
+
+```bash
+pnpm add @datacapy/om mysql2
+```
+
+`@datacapy/om` re-exports `@datacapy/schema`, so one package is enough to start.
+`mysql2` is a peer dependency; add `mongodb` instead for MongoDB. Add
+`@datacapy/server` for REST endpoints and `@datacapy/migrate` for migrations. To use a
+git checkout instead of npm, see [workspace install](docs/workspace-install.md).
+
+This version runs against an in-memory datasource, so it needs no database:
+
+```ts
+import { ModelManager, Repo, DataSourceMock, sb } from "@datacapy/om";
+
+class ArtistRepo extends Repo<unknown> {
+  constructor() {
+    super({
+      name: "artist",
+      dataSource: "db",
+      schema: sb
+        .schema("artist")
+        .shape({ _id: sb.string(), name: sb.string().required().trim() })
+        .build(),
+      relations: {
+        albums: { type: "hasMany", repo: "album", key: "artistId" },
+      },
+    });
+  }
+}
+
+class AlbumRepo extends Repo<unknown> {
+  constructor() {
+    super({ name: "album", dataSource: "db" });
+  }
+}
+
+const modelManager = new ModelManager();
+modelManager.addDataSource(
+  "db",
+  new DataSourceMock({
+    artist: [{ _id: "7", name: "Radiohead" }],
+    album: [
+      { _id: "1", name: "The Bends", artistId: "7" },
+      { _id: "2", name: "OK Computer", artistId: "7" },
+    ],
+  }),
+);
+
+const artists = new ArtistRepo();
+modelManager.addRepo(artists);
+modelManager.addRepo(new AlbumRepo());
+await modelManager.init();
+
+const found = await artists.find({}, { populate: { albums: true } });
+// [{ _id: '7', name: 'Radiohead', albums: [{ name: 'The Bends', ... }, ...] }]
+```
 
 ## What you get
 
 ### ODM framework
 
-Query MySQL, MongoDB and Redis the same way, and load related documents in one call.
+Repositories give you one set of methods and one MongoDB-style query language across
+MySQL, MongoDB, Redis and an in-memory mock. A project can use several databases side
+by side and read and write them all alike. For any other store, implement the
+[`DataSource`](package/om/src/data-source/interface.ts) interface and it gets the same API.
 
-Repositories give you one set of methods and one MongoDB-style query language, so
-there is no separate client library, query dialect or result shape to learn for each
-store. A project can use several types of database side by side and still read and
-write them all alike.
+Declare how documents relate, then populate them in one call. Has-one, has-many,
+belongs-to-one, belongs-to-many, counts, embedded relations and composite keys are
+supported. See [Relations](package/om/docs/relations.md).
 
-```ts
-const artists = await artistRepo.find({
-  name: { $in: ["Radiohead", "Portishead"] },
-});
-```
-
-The datasource is configuration. The query above is the same on each of these:
-
-```ts
-modelManager.addDataSource(
-  "db",
-  new DataSourceMysql({ host, user, password, database }),
-);
-// or: new DataSourceMongodb({ url })   (also bundled: Redis, and an in-memory mock for tests)
-```
-
-MySQL, MongoDB, Redis and an in-memory mock ship with `@datacapy/om`. If your database
-is not covered, write an adaptor that implements the
-[`DataSource`](package/om/src/data-source/interface.ts) interface and it gets the same
-API as the rest.
-
-Declare how documents relate, then populate them in one call. No hand-written joins,
-and a relation can span datasources, so a MySQL document can point at a MongoDB one.
-
-```ts
-relations: {
-  albums: { type: "hasMany", repo: "album", key: "artistId" },
-  label: { type: "belongsToOne", repo: "label", key: "labelId" },
-}
-```
-
-```ts
-const artist = await artistRepo.findOne(
-  { _id: "7" },
-  { populate: { albums: true, label: true } },
-);
-// { _id: '7', name: 'Radiohead', albums: [{ name: 'OK Computer' }, ...], label: { name: 'EMI' } }
-```
-
-Has-one, has-many, belongs-to-one, belongs-to-many, counts, embedded relations and
-composite keys are supported. See [Relations](package/om/docs/relations.md).
-
-The ODM framework also provides:
-
-- **Field-level encryption**: mark a schema field and it is encrypted at rest, with your own encryption service.
-- **Multi-tenant datasources**: route each request to a different database at runtime.
+Also included: field-level encryption at rest with your own encryption service, and
+multi-tenant datasources that route each request to a different database at runtime.
 
 ### Schema library
-
-Validate and cast data the same way in the browser and on the server.
 
 A schema is plain TypeScript with no server-only dependencies. Define it once in a
 shared package. The server validates writes with it, and the browser runs the same
@@ -101,11 +128,8 @@ const { isValid, errors } = await personSchema.validate({
 
 ### REST layer
 
-Turn your services into REST endpoints with a config object.
-
-Describe each endpoint in config. Nothing is reachable until you declare it.
-DataCapy validates and casts the request, checks access rules, calls your service and
-maps errors to HTTP statuses.
+Describe each endpoint in config. DataCapy validates and casts the request, checks
+access rules, calls your service and maps errors to HTTP statuses.
 
 ```ts
 server.addApiConfig({
@@ -131,109 +155,6 @@ GET /api/note/1                      200 {"id":1,"text":"Hello"}
 
 The full example is in the [`server` quick start](package/server/README.md#quick-start).
 
-## Quick start
-
-```bash
-pnpm add @datacapy/om mysql2
-```
-
-`@datacapy/om` re-exports everything from `@datacapy/schema`, so one package is
-enough to start. `mysql2` is a peer dependency; add `mongodb` instead if you use
-MongoDB. Add `@datacapy/server` for REST endpoints (it re-exports `@datacapy/om`),
-and `@datacapy/migrate` for database migrations.
-
-### Use from a git checkout
-
-To use Datacapy straight from source in your own pnpm workspace, without
-installing it from the npm registry, add the checkout as a submodule:
-
-```bash
-git submodule add https://github.com/datacapy/datacapy external/datacapy
-```
-
-List its packages in your `pnpm-workspace.yaml`:
-
-```yaml
-packages:
-  - "package/*"
-  - "external/datacapy/package/*"
-```
-
-Depend on them with the workspace protocol in your `package.json`:
-
-```json
-{
-  "dependencies": {
-    "@datacapy/om": "workspace:*",
-    "mysql2": "^3.0.0"
-  }
-}
-```
-
-Then install and build once, because each package's `main` points at `dist/`:
-
-```bash
-pnpm install
-pnpm --filter "@datacapy/*" build
-```
-
-Run `pnpm install` from your own workspace root only; it installs the checkout's
-dependencies too, so there is no separate install inside `external/datacapy`.
-Rebuild a package after changing its source.
-
-The example below runs against an in-memory datasource, so it needs no database.
-
-```ts
-import { ModelManager, Repo, DataSourceMock, sb } from "@datacapy/om";
-
-class ArtistRepo extends Repo<unknown> {
-  constructor() {
-    super({
-      name: "artist",
-      dataSource: "db",
-      schema: sb
-        .schema("artist")
-        .shape({
-          _id: sb.string(),
-          name: sb.string().required().trim(),
-        })
-        .build(),
-      relations: {
-        albums: { type: "hasMany", repo: "album", key: "artistId" },
-      },
-    });
-  }
-}
-
-class AlbumRepo extends Repo<unknown> {
-  constructor() {
-    super({ name: "album", dataSource: "db" });
-  }
-}
-
-const modelManager = new ModelManager();
-
-// Swap in DataSourceMysql or DataSourceMongodb for a real database
-modelManager.addDataSource(
-  "db",
-  new DataSourceMock({
-    artist: [{ _id: "7", name: "Radiohead" }],
-    album: [
-      { _id: "1", name: "The Bends", artistId: "7" },
-      { _id: "2", name: "OK Computer", artistId: "7" },
-    ],
-  }),
-);
-
-const artists = new ArtistRepo();
-modelManager.addRepo(artists);
-modelManager.addRepo(new AlbumRepo());
-await modelManager.init();
-
-const found = await artists.find({}, { populate: { albums: true } });
-// [{ _id: '7', name: 'Radiohead', albums: [{ name: 'The Bends', ... }, ...] }]
-```
-
 ## Packages
 
 | Package                                          | What it does                                                                                       |
@@ -250,26 +171,9 @@ const found = await artists.find({}, { populate: { albums: true } });
 - **schema**: [Builder](package/schema/docs/builder.md), [Validation](package/schema/docs/validation.md), [Filtering](package/schema/docs/filtering.md), [Encryption](package/schema/docs/encryption.md), [Composition](package/schema/docs/composition.md)
 - **migrate**: [Architecture](package/migrate/docs/architecture/index.md), [Best Practices](package/migrate/docs/best-practices/index.md), [Advanced Usage](package/migrate/docs/advanced-usage/index.md)
 
-## Development
+## Contributing
 
-This is a pnpm monorepo.
-
-```bash
-# Install dependencies
-pnpm install
-
-# Build and test everything
-pnpm build
-pnpm test
-
-# Build or test one package (id, schema, om, server, migrate)
-pnpm build:om
-pnpm test:om
-
-# Format and clean
-pnpm format
-pnpm clean
-```
+See [Developing DataCapy](docs/development.md) for build and test commands.
 
 ## License
 
