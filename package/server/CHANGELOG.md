@@ -1,5 +1,14 @@
 # @datacapy/server
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [3633ccc]
+- Updated dependencies [7966276]
+- Updated dependencies [f9d3f02]
+  - @datacapy/om@1.0.0
+
 ## 0.2.1
 
 ### Patch Changes

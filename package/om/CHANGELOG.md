@@ -1,5 +1,41 @@
 # @datacapy/om
 
+## 1.0.0
+
+### Major Changes
+
+- 7966276: Field decryption is now opt-in on reads. `find` and `findOne` return
+  encrypted fields as ciphertext unless the query passes `decrypt: true` or the
+  field is declared `.encrypt({ eager: true })`; `Repo.decrypt(docs)` decrypts
+  documents read without it, and `decrypt: true` propagates to populated
+  relations. Writes skip values that are already encrypted envelopes when the
+  service implements the new optional `isEncrypted()`
+  (`SchemaEncryptionServiceRsa` does), so a document read without decryption can
+  be written back without being encrypted twice. Migrate by adding
+  `decrypt: true` to reads that need plaintext.
+
+### Minor Changes
+
+- 3633ccc: Field encryption key rotation. `SchemaEncryptionServiceRsa` accepts
+  several keys (`keys` and `activeKeyId`), stamps each value with a key id in a
+  `v: 2` envelope and reads old envelopes as key `default`. `rewrap()` moves a
+  value to the active key without producing plaintext (optional on
+  `SchemaEncryptionService`), and `EncryptionReencryptor` re-wraps a whole repo
+  in batches, and a run can be repeated or resumed safely.
+
+### Patch Changes
+
+- f9d3f02: `SchemaEncryptionServiceRsa` wraps and unwraps the AES key with
+  WebCrypto RSA-OAEP instead of the synchronous
+  `publicEncrypt`/`privateDecrypt`, so RSA runs on the libuv thread pool and no
+  longer blocks the event loop. Envelopes are unchanged.
+
+  <!-- cspell:ignore libuv OAEP -->
+
+- Updated dependencies [3633ccc]
+- Updated dependencies [7966276]
+  - @datacapy/schema@1.0.0
+
 ## 0.3.0
 
 ### Minor Changes

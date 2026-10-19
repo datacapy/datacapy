@@ -1,5 +1,14 @@
 # @datacapy/migrate
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [3633ccc]
+- Updated dependencies [7966276]
+- Updated dependencies [f9d3f02]
+  - @datacapy/om@1.0.0
+
 ## 0.1.2
 
 ### Patch Changes
