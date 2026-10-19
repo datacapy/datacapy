@@ -1,13 +1,12 @@
 import {
-  constants,
   createCipheriv,
   createDecipheriv,
   createPrivateKey,
   createPublicKey,
   KeyObject,
-  privateDecrypt,
-  publicEncrypt,
   randomBytes,
+  subtle,
+  webcrypto,
 } from 'crypto'
 import { SchemaEncryptionService } from '@datacapy/schema'
 
@@ -29,6 +28,10 @@ export interface SchemaEncryptionServiceRsaMultiConfig {
 interface RsaKeyEntry {
   publicKey: KeyObject
   privateKey?: KeyObject
+  // Imported on first use and memoised, so the constructor stays synchronous
+  // and concurrent first calls share one import.
+  publicCryptoKey?: Promise<webcrypto.CryptoKey>
+  privateCryptoKey?: Promise<webcrypto.CryptoKey>
 }
 
 interface Envelope {
@@ -42,6 +45,7 @@ interface Envelope {
 
 const LEGACY_KEY_ID = 'default'
 const ENVELOPE_VERSION = 2
+const RSA_OAEP = { name: 'RSA-OAEP', hash: 'SHA-256' } as const
 const KEY_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/
 
 /**
@@ -55,6 +59,10 @@ const KEY_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/
  *
  * Private keys are decrypted once at construction using the supplied password
  * and held in memory for the lifetime of the service.
+ *
+ * RSA runs through WebCrypto, which executes on the libuv thread pool, so the
+ * event loop stays free. `UV_THREADPOOL_SIZE` (default 4) caps parallel RSA
+ * operations.
  */
 export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
   private keys = new Map<string, RsaKeyEntry>()
@@ -91,7 +99,7 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     return this.serialise({
       v: ENVELOPE_VERSION,
       kid: this.activeKeyId,
-      k: this.wrapKey(this.keys.get(this.activeKeyId)!, aesKey),
+      k: await this.wrapKey(this.keys.get(this.activeKeyId)!, aesKey),
       iv: iv.toString('base64'),
       tag: authTag.toString('base64'),
       d: encrypted.toString('base64'),
@@ -109,7 +117,7 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
       return ciphertext
     }
 
-    const aesKey = this.unwrapKey(envelope)
+    const aesKey = await this.unwrapKey(envelope)
 
     const decipher = createDecipheriv(
       'aes-256-gcm',
@@ -139,11 +147,11 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     }
     // An unversioned envelope is on `default`; it only counts as current when
     // that is also the active key, and it still needs re-stamping as v2.
-    const aesKey = this.unwrapKey(envelope)
+    const aesKey = await this.unwrapKey(envelope)
     return this.serialise({
       v: ENVELOPE_VERSION,
       kid: this.activeKeyId,
-      k: this.wrapKey(this.keys.get(this.activeKeyId)!, aesKey),
+      k: await this.wrapKey(this.keys.get(this.activeKeyId)!, aesKey),
       iv: envelope.iv,
       tag: envelope.tag,
       d: envelope.d,
@@ -211,7 +219,7 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
     return payload
   }
 
-  private unwrapKey(envelope: Envelope): Buffer {
+  private async unwrapKey(envelope: Envelope): Promise<Buffer> {
     const kid = envelope.kid ?? LEGACY_KEY_ID
     const key = this.keys.get(kid)
     if (!key) {
@@ -222,25 +230,35 @@ export class SchemaEncryptionServiceRsa implements SchemaEncryptionService {
         `Private key not configured for key id "${kid}" — decryption unavailable`
       )
     }
-    return privateDecrypt(
-      {
-        key: key.privateKey,
-        padding: constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: 'sha256',
-      },
+    key.privateCryptoKey ??= subtle.importKey(
+      'pkcs8',
+      key.privateKey.export({ type: 'pkcs8', format: 'der' }),
+      RSA_OAEP,
+      false,
+      ['decrypt']
+    )
+    const unwrapped = await subtle.decrypt(
+      RSA_OAEP,
+      await key.privateCryptoKey,
       Buffer.from(envelope.k, 'base64')
     )
+    return Buffer.from(unwrapped)
   }
 
-  private wrapKey(key: RsaKeyEntry, aesKey: Buffer): string {
-    return publicEncrypt(
-      {
-        key: key.publicKey,
-        padding: constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: 'sha256',
-      },
-      aesKey
-    ).toString('base64')
+  private async wrapKey(key: RsaKeyEntry, aesKey: Buffer): Promise<string> {
+    key.publicCryptoKey ??= subtle.importKey(
+      'spki',
+      key.publicKey.export({ type: 'spki', format: 'der' }),
+      RSA_OAEP,
+      false,
+      ['encrypt']
+    )
+    const wrapped = await subtle.encrypt(
+      RSA_OAEP,
+      await key.publicCryptoKey,
+      new Uint8Array(aesKey)
+    )
+    return Buffer.from(wrapped).toString('base64')
   }
 
   private serialise(envelope: Envelope): string {

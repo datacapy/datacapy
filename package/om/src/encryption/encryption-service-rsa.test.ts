@@ -1,4 +1,9 @@
-import { generateKeyPairSync } from 'crypto'
+import {
+  constants,
+  generateKeyPairSync,
+  privateDecrypt,
+  publicEncrypt,
+} from 'crypto'
 import { SchemaEncryptionServiceRsa } from './encryption-service-rsa'
 
 describe('SchemaEncryptionServiceRsa', () => {
@@ -61,6 +66,79 @@ describe('SchemaEncryptionServiceRsa', () => {
     )
     const result = await service.decrypt(notAnEnvelope)
     expect(result).toBe(notAnEnvelope)
+  })
+
+  describe('wire compatibility and asynchrony', () => {
+    const oaep = {
+      padding: constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: 'sha256',
+    }
+
+    it('decrypts a key wrapped with the synchronous node API', async () => {
+      const service = makeService()
+      const envelope = JSON.parse(
+        Buffer.from(await service.encrypt('interop'), 'base64').toString()
+      )
+      const aesKey = privateDecrypt(
+        { key: privateKey, ...oaep },
+        Buffer.from(envelope.k, 'base64')
+      )
+      envelope.k = publicEncrypt({ key: publicKey, ...oaep }, aesKey).toString(
+        'base64'
+      )
+      const rewritten = Buffer.from(JSON.stringify(envelope)).toString('base64')
+      expect(await service.decrypt(rewritten)).toBe('interop')
+    })
+
+    it('wraps keys that the synchronous node API can unwrap', async () => {
+      const envelope = JSON.parse(
+        Buffer.from(await makeService().encrypt('x'), 'base64').toString()
+      )
+      const aesKey = privateDecrypt(
+        { key: privateKey, ...oaep },
+        Buffer.from(envelope.k, 'base64')
+      )
+      expect(aesKey).toHaveLength(32)
+    })
+
+    it('keeps the event loop free during parallel decrypts', async () => {
+      const big = generateKeyPairSync('rsa', {
+        modulusLength: 4096,
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      })
+      const service = new SchemaEncryptionServiceRsa(big)
+      const values = await Promise.all(
+        Array.from({ length: 4 }, (_, i) => service.encrypt(`v${i}`))
+      )
+      let ticks = 0
+      let running = true
+      const tick = () => {
+        if (!running) return
+        ticks++
+        setImmediate(tick)
+      }
+      setImmediate(tick)
+      const out = await Promise.all(values.map((v) => service.decrypt(v)))
+      running = false
+      expect(out).toEqual(['v0', 'v1', 'v2', 'v3'])
+      expect(ticks).toBeGreaterThan(0)
+    })
+
+    it('decrypts concurrently on first use', async () => {
+      const writer = makeService()
+      const values = await Promise.all(
+        Array.from({ length: 5 }, (_, i) => writer.encrypt(`c${i}`))
+      )
+      const reader = makeService()
+      expect(await Promise.all(values.map((v) => reader.decrypt(v)))).toEqual([
+        'c0',
+        'c1',
+        'c2',
+        'c3',
+        'c4',
+      ])
+    })
   })
 
   describe('key rotation', () => {

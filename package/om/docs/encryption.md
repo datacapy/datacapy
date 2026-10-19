@@ -156,6 +156,9 @@ config. Encryption works normally; decryption throws
 - **String conversion**: values are stringified before encryption. Numeric or
   boolean fields will be returned as strings after decryption; handle
   deserialisation in the application layer.
+- **Thread pool bound**: RSA runs through WebCrypto on the libuv thread pool, so
+  the event loop stays free, but `UV_THREADPOOL_SIZE` (default 4) caps parallel
+  RSA operations. Raise it under heavy read load.
 - **Node.js only**: `SchemaEncryptionServiceRsa` uses the built-in `crypto`
   module. Custom implementations of `SchemaEncryptionService` can target other
   environments.
@@ -194,3 +197,5 @@ export class KmsEncryptionService implements SchemaEncryptionService {
   `ModelManagerConfig.encryptionService`, propagation in `initSchemas`
 - [`@datacapy/om/src/repo/index.ts`](../src/repo/index.ts): call sites in
   insert, update, and find paths
+
+<!-- cspell:ignore libuv THREADPOOL -->
