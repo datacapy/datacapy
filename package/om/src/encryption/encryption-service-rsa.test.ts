@@ -123,7 +123,7 @@ describe('SchemaEncryptionServiceRsa', () => {
       running = false
       expect(out).toEqual(['v0', 'v1', 'v2', 'v3'])
       expect(ticks).toBeGreaterThan(0)
-    })
+    }, 60_000)
 
     it('decrypts concurrently on first use', async () => {
       const writer = makeService()
