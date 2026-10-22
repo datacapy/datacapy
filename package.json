@@ -53,7 +53,7 @@
     "@cspell/dict-npm": "^5.2.54",
     "@cspell/dict-typescript": "^3.2.3",
     "commitizen": "^4.3.1",
-    "cspell": "^10.3.6",
+    "cspell": "^10.4.0",
     "cz-customizable": "^7.5.4",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.10"
