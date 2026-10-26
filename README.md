@@ -7,12 +7,12 @@
 **Define your data once. Query any database, validate in the browser and on the server, and serve it over REST.**
 
 ```ts
-// Find artists and load their albums in one call, with no SQL and no joins
-const artists = await artistRepo.find(
-  { name: { $in: ["Radiohead", "Portishead"] } },
-  { populate: { albums: true } },
+// Find customers and load their orders in one call, with no SQL and no joins
+const customers = await customerRepo.find(
+  { name: { $in: ["Ada Lovelace", "Grace Hopper"] } },
+  { populate: { orders: true } },
 );
-// [{ _id: '7', name: 'Radiohead', albums: [{ name: 'OK Computer' }, ...] }, ...]
+// [{ _id: 'ecrDWdCQCiXSrf6', name: 'Ada Lovelace', orders: [{ number: '#1001', total: 42 }, ...] }, ...]
 ```
 
 The datasource is configuration. Swap `DataSourceMysql` for `DataSourceMongodb` or
@@ -27,11 +27,11 @@ Use the pieces together or separately. Migrations and time-ordered IDs are inclu
 ## Quick start
 
 ```bash
-pnpm add @datacapy/om mysql2
+pnpm add @datacapy/om @datacapy/id mysql2
 ```
 
-`@datacapy/om` re-exports `@datacapy/schema`, so one package is enough to start.
-`mysql2` is a peer dependency; add `mongodb` instead for MongoDB. Add
+`@datacapy/om` re-exports `@datacapy/schema`. `@datacapy/id` generates the time-ordered
+string IDs used for `_id`. `mysql2` is a peer dependency; add `mongodb` instead for MongoDB. Add
 `@datacapy/server` for REST endpoints and `@datacapy/migrate` for migrations. To use a
 git checkout instead of npm, see [workspace install](docs/workspace-install.md).
 
@@ -39,48 +39,51 @@ This version runs against an in-memory datasource, so it needs no database:
 
 ```ts
 import { ModelManager, Repo, DataSourceMock, sb } from "@datacapy/om";
+import genUniqueId from "@datacapy/id";
 
-class ArtistRepo extends Repo<unknown> {
+class CustomerRepo extends Repo<unknown> {
   constructor() {
     super({
-      name: "artist",
+      name: "customer",
       dataSource: "db",
       schema: sb
-        .schema("artist")
+        .schema("customer")
         .shape({ _id: sb.string(), name: sb.string().required().trim() })
         .build(),
       relations: {
-        albums: { type: "hasMany", repo: "album", key: "artistId" },
+        orders: { type: "hasMany", repo: "order", key: "customerId" },
       },
     });
   }
 }
 
-class AlbumRepo extends Repo<unknown> {
+class OrderRepo extends Repo<unknown> {
   constructor() {
-    super({ name: "album", dataSource: "db" });
+    super({ name: "order", dataSource: "db" });
   }
 }
+
+const adaId = genUniqueId();
 
 const modelManager = new ModelManager();
 modelManager.addDataSource(
   "db",
   new DataSourceMock({
-    artist: [{ _id: "7", name: "Radiohead" }],
-    album: [
-      { _id: "1", name: "The Bends", artistId: "7" },
-      { _id: "2", name: "OK Computer", artistId: "7" },
+    customer: [{ _id: adaId, name: "Ada Lovelace" }],
+    order: [
+      { _id: genUniqueId(), number: "#1001", total: 42, customerId: adaId },
+      { _id: genUniqueId(), number: "#1002", total: 18, customerId: adaId },
     ],
   }),
 );
 
-const artists = new ArtistRepo();
-modelManager.addRepo(artists);
-modelManager.addRepo(new AlbumRepo());
+const customers = new CustomerRepo();
+modelManager.addRepo(customers);
+modelManager.addRepo(new OrderRepo());
 await modelManager.init();
 
-const found = await artists.find({}, { populate: { albums: true } });
-// [{ _id: '7', name: 'Radiohead', albums: [{ name: 'The Bends', ... }, ...] }]
+const found = await customers.find({}, { populate: { orders: true } });
+// [{ _id: 'ecrDWdCQCiXSrf6', name: 'Ada Lovelace', orders: [{ number: '#1001', ... }, ...] }]
 ```
 
 ## What you get
