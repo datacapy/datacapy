@@ -1,7 +1,7 @@
 {
   "name": "@datacapy/om",
   "type": "commonjs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Datacapy object model: repositories, relations and data sources",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",
