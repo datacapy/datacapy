@@ -38,7 +38,7 @@ git checkout instead of npm, see [workspace install](docs/workspace-install.md).
 This version runs against an in-memory datasource, so it needs no database:
 
 ```ts
-import { ModelManager, Repo, DataSourceMock, sb } from '@datacapy/om'
+import { ModelManager, Repo, DataSourceMock, sb, relb } from '@datacapy/om'
 import genUniqueId from '@datacapy/id'
 
 class CustomerRepo extends Repo<unknown> {
@@ -48,10 +48,9 @@ class CustomerRepo extends Repo<unknown> {
       dataSource: 'db',
       schema: sb
         .schema('customer')
-        .shape({ _id: sb.string(), name: sb.string().required().trim() })
-        .build(),
+        .shape({ _id: sb.string(), name: sb.string().required().trim() }),
       relations: {
-        orders: { type: 'hasMany', repo: 'order', key: 'customerId' },
+        orders: relb.hasMany('order').key('customerId'),
       },
     })
   }
@@ -112,14 +111,11 @@ rules to show errors before anything is sent.
 import { Schema, sb } from '@datacapy/schema'
 
 export const personSchema = new Schema(
-  sb
-    .schema('person')
-    .shape({
-      name: sb.string().required().trim().length(2, 50),
-      email: sb.string().email().lowercase(),
-      age: sb.number(),
-    })
-    .build(),
+  sb.schema('person').shape({
+    name: sb.string().required().trim().length(2, 50),
+    email: sb.string().email().lowercase(),
+    age: sb.number(),
+  }),
 )
 
 const { isValid, errors } = await personSchema.validate({
