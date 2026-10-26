@@ -9,9 +9,9 @@
 ```ts
 // Find customers and load their orders in one call, with no SQL and no joins
 const customers = await customerRepo.find(
-  { name: { $in: ["Ada Lovelace", "Grace Hopper"] } },
+  { name: { $in: ['Ada Lovelace', 'Grace Hopper'] } },
   { populate: { orders: true } },
-);
+)
 // [{ _id: 'ecrDWdCQCiXSrf6', name: 'Ada Lovelace', orders: [{ number: '#1001', total: 42 }, ...] }, ...]
 ```
 
@@ -38,51 +38,51 @@ git checkout instead of npm, see [workspace install](docs/workspace-install.md).
 This version runs against an in-memory datasource, so it needs no database:
 
 ```ts
-import { ModelManager, Repo, DataSourceMock, sb } from "@datacapy/om";
-import genUniqueId from "@datacapy/id";
+import { ModelManager, Repo, DataSourceMock, sb } from '@datacapy/om'
+import genUniqueId from '@datacapy/id'
 
 class CustomerRepo extends Repo<unknown> {
   constructor() {
     super({
-      name: "customer",
-      dataSource: "db",
+      name: 'customer',
+      dataSource: 'db',
       schema: sb
-        .schema("customer")
+        .schema('customer')
         .shape({ _id: sb.string(), name: sb.string().required().trim() })
         .build(),
       relations: {
-        orders: { type: "hasMany", repo: "order", key: "customerId" },
+        orders: { type: 'hasMany', repo: 'order', key: 'customerId' },
       },
-    });
+    })
   }
 }
 
 class OrderRepo extends Repo<unknown> {
   constructor() {
-    super({ name: "order", dataSource: "db" });
+    super({ name: 'order', dataSource: 'db' })
   }
 }
 
-const adaId = genUniqueId();
+const adaId = genUniqueId()
 
-const modelManager = new ModelManager();
+const modelManager = new ModelManager()
 modelManager.addDataSource(
-  "db",
+  'db',
   new DataSourceMock({
-    customer: [{ _id: adaId, name: "Ada Lovelace" }],
+    customer: [{ _id: adaId, name: 'Ada Lovelace' }],
     order: [
-      { _id: genUniqueId(), number: "#1001", total: 42, customerId: adaId },
-      { _id: genUniqueId(), number: "#1002", total: 18, customerId: adaId },
+      { _id: genUniqueId(), number: '#1001', total: 42, customerId: adaId },
+      { _id: genUniqueId(), number: '#1002', total: 18, customerId: adaId },
     ],
   }),
-);
+)
 
-const customers = new CustomerRepo();
-modelManager.addRepo(customers);
-modelManager.addRepo(new OrderRepo());
-await modelManager.init();
+const customers = new CustomerRepo()
+modelManager.addRepo(customers)
+modelManager.addRepo(new OrderRepo())
+await modelManager.init()
 
-const found = await customers.find({}, { populate: { orders: true } });
+const found = await customers.find({}, { populate: { orders: true } })
 // [{ _id: 'ecrDWdCQCiXSrf6', name: 'Ada Lovelace', orders: [{ number: '#1001', ... }, ...] }]
 ```
 
@@ -109,23 +109,23 @@ shared package. The server validates writes with it, and the browser runs the sa
 rules to show errors before anything is sent.
 
 ```ts
-import { Schema, sb } from "@datacapy/schema";
+import { Schema, sb } from '@datacapy/schema'
 
 export const personSchema = new Schema(
   sb
-    .schema("person")
+    .schema('person')
     .shape({
       name: sb.string().required().trim().length(2, 50),
       email: sb.string().email().lowercase(),
       age: sb.number(),
     })
     .build(),
-);
+)
 
 const { isValid, errors } = await personSchema.validate({
-  name: "  Paul ",
-  age: "33",
-});
+  name: '  Paul ',
+  age: '33',
+})
 // isValid: true, and the object is now { name: 'Paul', age: 33, ... }: cast, trimmed, defaulted
 ```
 
@@ -136,17 +136,17 @@ access rules, calls your service and maps errors to HTTP statuses.
 
 ```ts
 server.addApiConfig({
-  service: "note",
-  acl: { rules: [{ allow: true, role: "authed" }] },
+  service: 'note',
+  acl: { rules: [{ allow: true, role: 'authed' }] },
   endpoints: {
     getOne: {
-      path: "/:id",
-      method: "get",
-      verbs: ["get"],
-      data: { id: { src: "param", type: Number, required: true } },
+      path: '/:id',
+      method: 'get',
+      verbs: ['get'],
+      data: { id: { src: 'param', type: Number, required: true } },
     },
   },
-});
+})
 ```
 
 ```
