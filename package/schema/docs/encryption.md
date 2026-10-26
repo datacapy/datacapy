@@ -11,17 +11,14 @@ each marked field.
 ```ts
 import { sb } from '@datacapy/schema'
 
-const spec = sb
-  .schema('patient')
-  .shape({
-    name: sb.string(),
-    ssn: sb.string().encrypt(),
-    contact: sb.object({
-      phone: sb.string().encrypt(),
-      city: sb.string(),
-    }),
-  })
-  .build()
+const spec = sb.schema('patient').shape({
+  name: sb.string(),
+  ssn: sb.string().encrypt(),
+  contact: sb.object({
+    phone: sb.string().encrypt(),
+    city: sb.string(),
+  }),
+})
 ```
 
 `encrypt()` works on fields at any depth. Only string values are meant to be

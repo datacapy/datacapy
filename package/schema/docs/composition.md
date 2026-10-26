@@ -9,22 +9,19 @@ references, alternatives, dynamic keys, and class instances.
 import { Schema, sb } from '@datacapy/schema'
 
 const order = new Schema(
-  sb
-    .schema('order')
-    .shape({
-      customer: sb.object({
-        name: sb.string().required(),
-        email: sb.string().email(),
-      }),
-      tags: sb.array(sb.string().trim()),
-      lines: sb.array(
-        sb.object({
-          sku: sb.string().required(),
-          qty: sb.number().required(),
-        })
-      ),
-    })
-    .build()
+  sb.schema('order').shape({
+    customer: sb.object({
+      name: sb.string().required(),
+      email: sb.string().email(),
+    }),
+    tags: sb.array(sb.string().trim()),
+    lines: sb.array(
+      sb.object({
+        sku: sb.string().required(),
+        qty: sb.number().required(),
+      })
+    ),
+  })
 )
 ```
 
@@ -43,19 +40,15 @@ const address = new Schema(
   sb
     .schema('address')
     .shape({ street: sb.string().required(), city: sb.string() })
-    .build()
 )
 
 const person = new Schema(
-  sb
-    .schema('person')
-    .shape({
-      name: sb.string().required(),
-      home: sb.ref('address'),
-      work: sb.object().schema('address').nullable(),
-      previous: sb.array().ofSchema('address'),
-    })
-    .build()
+  sb.schema('person').shape({
+    name: sb.string().required(),
+    home: sb.ref('address'),
+    work: sb.object().schema('address').nullable(),
+    previous: sb.array().ofSchema('address'),
+  })
 )
 
 const manager = new SchemaManager({ schemas: [address, person] })
@@ -88,12 +81,9 @@ tried in order, and the first that passes is used, including its type-cast.
 
 ```ts
 const schema = new Schema(
-  sb
-    .schema()
-    .shape({
-      value: sb.or([sb.number(), sb.string().email()]),
-    })
-    .build()
+  sb.schema().shape({
+    value: sb.or([sb.number(), sb.string().email()]),
+  })
 )
 
 // 5        -> valid, stays 5
@@ -112,12 +102,9 @@ such as translations, where the keys are not known in advance.
 
 ```ts
 const schema = new Schema(
-  sb
-    .schema()
-    .shape({
-      title: sb.object().matchAll(sb.string().trim().maxLength(60)),
-    })
-    .build()
+  sb.schema().shape({
+    title: sb.object().matchAll(sb.string().trim().maxLength(60)),
+  })
 )
 
 const data = { title: { en: ' Hello ', de: 'Hallo' } }
@@ -167,8 +154,7 @@ const userSchema = new Schema(
         street: sb.string(),
         city: sb.string(),
       }),
-    })
-    .build(),
+    }),
   { constructors: [User, Address] }
 )
 
@@ -196,13 +182,10 @@ removes it before persisting.
 
 ```ts
 const post = new Schema(
-  sb
-    .schema('post')
-    .shape({
-      title: sb.string(),
-      author: sb.object({ name: sb.string() }).relation(),
-    })
-    .build()
+  sb.schema('post').shape({
+    title: sb.string(),
+    author: sb.object({ name: sb.string() }).relation(),
+  })
 )
 
 post.stripTransients({ title: 't', author: { name: 'a' } })

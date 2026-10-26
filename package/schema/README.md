@@ -53,7 +53,6 @@ const personSchema = new Schema(
         postcode: sb.string().uppercase(),
       }),
     })
-    .build()
 )
 
 const paul = {

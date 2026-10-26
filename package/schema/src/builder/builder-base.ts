@@ -198,9 +198,11 @@ export abstract class BuilderBase<T = any> {
   // ==================== Build Method ====================
 
   /**
-   * Recursively process a value, calling build() on any builder objects
+   * Recursively process a value, calling build() on any builder objects.
+   * Public so boundaries that need a plain spec (e.g. the Schema constructor)
+   * can accept a builder and resolve it at the last moment.
    */
-  private static buildValue(value: any): any {
+  static resolve(value: any): any {
     // If it's a builder instance, build it
     if (value instanceof BuilderBase) {
       return value.build()
@@ -208,14 +210,14 @@ export abstract class BuilderBase<T = any> {
 
     // If it's an array, recursively process each element
     if (Array.isArray(value)) {
-      return value.map((item) => BuilderBase.buildValue(item))
+      return value.map((item) => BuilderBase.resolve(item))
     }
 
     // If it's a plain object, recursively process each property
     if (value && typeof value === 'object' && value.constructor === Object) {
       const result: any = {}
       for (const key in value) {
-        result[key] = BuilderBase.buildValue(value[key])
+        result[key] = BuilderBase.resolve(value[key])
       }
       return result
     }
@@ -233,7 +235,7 @@ export abstract class BuilderBase<T = any> {
 
     // Recursively build all properties in the spec
     for (const key in this.spec) {
-      builtSpec[key] = BuilderBase.buildValue(this.spec[key])
+      builtSpec[key] = BuilderBase.resolve(this.spec[key])
     }
 
     return {

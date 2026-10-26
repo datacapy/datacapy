@@ -1,26 +1,24 @@
 # Schema builder
 
 `sb` is a fluent builder for schema specs. Each `sb.<type>()` call returns a
-builder; methods add rules and return the builder, and `.build()` produces the
-spec that `new Schema()` accepts.
+builder; methods add rules and return the builder. `new Schema()` accepts a
+builder directly; `.build()` produces the equivalent plain spec.
 
 ```ts
 import { Schema, sb } from '@datacapy/schema'
 
 const schema = new Schema(
-  sb
-    .schema('user')
-    .shape({
-      name: sb.string().required().maxLength(64),
-      age: sb.number(),
-    })
-    .build()
+  sb.schema('user').shape({
+    name: sb.string().required().maxLength(64),
+    age: sb.number(),
+  })
 )
 ```
 
 Nested builders are built for you: pass them to `shape()`, `sb.object()`,
-`sb.array()` and `sb.or()` without calling `.build()` on each. Only the
-outermost builder needs `.build()`.
+`sb.array()` and `sb.or()` without calling `.build()` on each. The outermost
+builder needs no `.build()` either when passed to `new Schema()` or a repo's
+`schema` option; call it only to get a plain spec.
 
 ## Creating builders
 

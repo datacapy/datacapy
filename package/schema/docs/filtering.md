@@ -8,13 +8,10 @@ To run filters without validating, use `applyFilters()`.
 import { Schema, sb } from '@datacapy/schema'
 
 const schema = new Schema(
-  sb
-    .schema()
-    .shape({
-      email: sb.string().trim().lowercase().email(),
-      status: sb.string().default('draft'),
-    })
-    .build()
+  sb.schema().shape({
+    email: sb.string().trim().lowercase().email(),
+    status: sb.string().default('draft'),
+  })
 )
 
 const data = { email: '  Kevin@Example.COM ' }
@@ -79,13 +76,10 @@ which suits partial updates where absent fields must stay absent.
 
 ```ts
 const schema = new Schema(
-  sb
-    .schema()
-    .shape({
-      name: sb.string().trim(),
-      status: sb.string().default('draft'),
-    })
-    .build()
+  sb.schema().shape({
+    name: sb.string().trim(),
+    status: sb.string().default('draft'),
+  })
 )
 
 await schema.applyFilters({ name: ' a ' }) // { name: 'a', status: 'draft' }
@@ -108,19 +102,16 @@ and returns the object.
 
 ```ts
 const schema = new Schema(
-  sb
-    .schema()
-    .shape({
-      name: sb.string(),
-      passwordHash: sb.string().private(),
-      pin: sb.string().privateValue(),
-      internal: sb.string().private('read'),
-      profile: sb.object({
-        ssn: sb.string().private(),
-        city: sb.string(),
-      }),
-    })
-    .build()
+  sb.schema().shape({
+    name: sb.string(),
+    passwordHash: sb.string().private(),
+    pin: sb.string().privateValue(),
+    internal: sb.string().private('read'),
+    profile: sb.object({
+      ssn: sb.string().private(),
+      city: sb.string(),
+    }),
+  })
 )
 
 const record = () => ({

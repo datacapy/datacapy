@@ -7,6 +7,8 @@ import SchemaFieldFilter from './processors/field-filter'
 import SchemaFieldValidator from './processors/field-validator'
 import SchemaTransientProcessor from './processors/transient-processor'
 import SchemaFieldPrivateFilter from './processors/field-private-filter'
+import { BuilderBase } from './builder/builder-base'
+import { BuilderSchema } from './builder/builder-schema'
 
 export interface SchemaValidationMeta {
   errors?: any
@@ -46,10 +48,13 @@ export class Schema {
   private transientProcessor?: SchemaTransientProcessor
   private fieldPrivateFilter?: SchemaFieldPrivateFilter
 
-  constructor(spec?: SchemaSpec, options?: SchemaConfig) {
+  constructor(
+    spec?: SchemaSpec | BuilderBase | BuilderSchema,
+    options?: SchemaConfig
+  ) {
     this.config = options == undefined ? {} : options
     this.config.name = this.config.name ? this.config.name : ''
-    this.config.spec = spec ? spec : {}
+    this.config.spec = spec ? this.resolveSpec(spec) : {}
     this.config.constructors = this.config.constructors
       ? this.config.constructors
       : {}
@@ -69,6 +74,17 @@ export class Schema {
     if (this.config.schemas) this.addSchemas(this.config.schemas)
 
     this.schemaIterator = null
+  }
+
+  /**
+   * Accept a schema builder wherever a spec is expected, building it here so
+   * callers do not need a trailing build().
+   */
+  private resolveSpec(
+    spec: SchemaSpec | BuilderBase | BuilderSchema
+  ): SchemaSpec {
+    if (spec instanceof BuilderSchema) return spec.build()
+    return BuilderBase.resolve(spec)
   }
 
   init() {

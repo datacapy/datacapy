@@ -7,13 +7,10 @@ every rule. It returns `{ isValid, errors }` and modifies `data` in place.
 import { Schema, sb } from '@datacapy/schema'
 
 const schema = new Schema(
-  sb
-    .schema()
-    .shape({
-      name: sb.string().label('Name').required().length(2, 50),
-      age: sb.number(),
-    })
-    .build()
+  sb.schema().shape({
+    name: sb.string().label('Name').required().length(2, 50),
+    age: sb.number(),
+  })
 )
 
 const data = { name: 'K', age: '33' }
@@ -84,22 +81,19 @@ an error message string (or an array of strings) when not. The function may be
 
 ```ts
 const signup = new Schema(
-  sb
-    .schema()
-    .shape({
-      password: sb.string().minLength(8),
-      confirm: sb
-        .string()
-        .label('Confirmation')
-        .validate((value, { root, label }) =>
-          value === root.password ? true : `${label} must match the password`
-        ),
-      username: sb.string().validate(async (value) => {
-        const taken = await usernameExists(value)
-        return taken ? 'That username is taken' : true
-      }),
-    })
-    .build()
+  sb.schema().shape({
+    password: sb.string().minLength(8),
+    confirm: sb
+      .string()
+      .label('Confirmation')
+      .validate((value, { root, label }) =>
+        value === root.password ? true : `${label} must match the password`
+      ),
+    username: sb.string().validate(async (value) => {
+      const taken = await usernameExists(value)
+      return taken ? 'That username is taken' : true
+    }),
+  })
 )
 ```
 
@@ -121,12 +115,9 @@ of messages. Array elements use their index.
 
 ```ts
 const orders = new Schema(
-  sb
-    .schema()
-    .shape({
-      items: sb.array(sb.object({ qty: sb.number().required() })),
-    })
-    .build()
+  sb.schema().shape({
+    items: sb.array(sb.object({ qty: sb.number().required() })),
+  })
 )
 
 const result = await orders.validate({ items: [{ qty: 1 }, {}] })
@@ -143,7 +134,7 @@ validation errors:
 
 ```ts
 const data = { n: 'abc' }
-await new Schema(sb.schema().shape({ n: sb.number() }).build()).validate(data)
+await new Schema(sb.schema().shape({ n: sb.number() })).validate(data)
 // errors.n: ["'abc' of type String cannot be cast to type Number"]
 // data.n is now null
 ```
@@ -184,9 +175,7 @@ schema (or on an object field) applies to all fields below it. `strict(false)`
 on a child opts back out.
 
 ```ts
-const schema = new Schema(
-  sb.schema().strict().shape({ name: sb.string() }).build()
-)
+const schema = new Schema(sb.schema().strict().shape({ name: sb.string() }))
 
 const result = await schema.validate({ name: 'K', extra: 1 })
 result.errors // { extra: ['Field not specified'] }
@@ -200,13 +189,10 @@ must not be reported as missing.
 
 ```ts
 const schema = new Schema(
-  sb
-    .schema()
-    .shape({
-      name: sb.string().required().maxLength(3),
-      age: sb.number(),
-    })
-    .build()
+  sb.schema().shape({
+    name: sb.string().required().maxLength(3),
+    age: sb.number(),
+  })
 )
 
 const update = { name: 'Kevin', age: '4' }
