@@ -43,6 +43,16 @@ relations: {
 The `key` property is automatically merged with `keys` for backward
 compatibility.
 
+The same relation with the builder (see
+[relations.md](./relations.md#relation-builder-relb)):
+
+```typescript
+participant: relb.belongsToOne('surveyParticipant').key('participantId').keys({
+  surveyId: 'surveyId',
+  workspaceId: 'workspaceId',
+})
+```
+
 ### Multiple Composite Keys
 
 ```typescript

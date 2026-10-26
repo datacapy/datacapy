@@ -25,6 +25,9 @@ import Service from 'service'
 import { RepoPopulator, RepoRelationConfig } from 'repo/populator'
 import { RepoErrorValidation } from './error'
 import { RepoIndexConfig } from './index-config'
+import { RepoConfigBuilder } from './builder/builder-base'
+import { RepoIndexBuilder } from './builder/index-builder'
+import { RepoRelationBuilder } from './builder/relation-builder'
 import { RepoQueryOptions } from './query-options'
 
 export interface RepoConfig {
@@ -52,6 +55,18 @@ export interface RepoConfig {
   allowedQueryFields?: string[]
 }
 
+// What a repo accepts: `RepoConfig` with `repib` / `relb` builders allowed wherever the plain
+// index or relation config is. The repo builds them in its constructor, so `repo.config` is a `RepoConfig`.
+export interface RepoConfigInput extends Omit<
+  RepoConfig,
+  'indexes' | 'relations'
+> {
+  indexes?:
+    | { [key: string]: RepoIndexConfig | RepoIndexBuilder }
+    | Array<RepoIndexConfig | RepoIndexBuilder>
+  relations?: { [key: string]: RepoRelationConfig | RepoRelationBuilder }
+}
+
 export class Repo<T> {
   initialised: boolean
   config: RepoConfig
@@ -67,10 +82,10 @@ export class Repo<T> {
   logger: Logger
   modelManager?: any // ModelManager instance for dynamic datasource resolution
 
-  constructor(options?: RepoConfig) {
+  constructor(options?: RepoConfigInput) {
     this.initialised = false
 
-    this.config = options ? options : {}
+    this.config = (options ? options : {}) as RepoConfig
     this.config.model = this.config.model ? this.config.model : {} // The main config is injected here
     this.config.pkey = this.config.pkey ? this.config.pkey : '_id'
     this.config.name = this.config.name ? this.config.name : ''
@@ -94,6 +109,7 @@ export class Repo<T> {
     this.config.softDelete = this.config.softDelete
       ? this.config.softDelete
       : false
+    this.buildConfigBuilders()
 
     this.logger = console
 
@@ -114,6 +130,22 @@ export class Repo<T> {
     // Compile an array of relation aliases which can be used to strip relations of populated docs before saving
     this.relationPaths = []
     this.compileRelationPaths()
+  }
+
+  // Replace any repib / relb builders in the config with the plain config they build
+  private buildConfigBuilders() {
+    const build = <C>(value: C | RepoConfigBuilder<C>): C =>
+      value instanceof RepoConfigBuilder ? value.build() : value
+    const { indexes, relations } = this.config
+    if (Array.isArray(indexes)) {
+      this.config.indexes = indexes.map(build)
+    } else if (indexes) {
+      for (const key of Object.keys(indexes)) indexes[key] = build(indexes[key])
+    }
+    if (relations) {
+      for (const key of Object.keys(relations))
+        relations[key] = build(relations[key])
+    }
   }
 
   setLogger<T extends Logger>(logger: T) {

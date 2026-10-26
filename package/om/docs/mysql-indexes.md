@@ -45,6 +45,27 @@ await repo.createIndex(
 )
 ```
 
+### Index builder (`repib`)
+
+Indexes declared in a repo's `indexes` config can use `repib` instead of the
+`{ spec, options }` object. The key the builder is stored under is the index
+name. A repo accepts builders directly; there is no `build()` call.
+
+```typescript
+indexes: {
+  createdAt: repib.desc('createdAt').timestamp(),
+  email: repib.asc('email').unique(),
+  surveyPublished: repib.asc('surveyId').asc('publishedAt').timestamp('publishedAt'),
+  ipFrom: repib.asc('ipFrom').typeHint(TYPE_HINT_BIGINT_UNSIGNED),
+}
+```
+
+`asc`, `desc`, `text` and `geo2dsphere` add fields to the spec. `unique`,
+`sparse`, `expireAfterSeconds` and `lowercase` set options. `typeHint(hint)`
+applies to every field, `typeHint(hint, ...fields)` to the named fields only,
+and `timestamp(...fields)` is the shorthand for `TYPE_HINT_TIMESTAMP`, which
+Date fields need (see below).
+
 ### Pitfall: omitting `typeHint` on a Date field
 
 Without a `typeHint`, a Date-typed field gets the default `string` hint: the

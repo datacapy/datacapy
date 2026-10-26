@@ -12,6 +12,13 @@ export {
 } from './type-hints'
 export { RepoIndexConfig } from './index-config'
 export { RepoQueryOptions } from './query-options'
-export { Repo, RepoConfig } from './repo'
+export { Repo, RepoConfig, RepoConfigInput } from './repo'
+export {
+  RepoConfigBuilder,
+  RepoIndexBuilder,
+  RepoRelationBuilder,
+  repib,
+  relb,
+} from './builder'
 
 export { Repo as default } from './repo'

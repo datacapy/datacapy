@@ -123,6 +123,31 @@ export class RepoPost extends Repo<Post> {
 }
 ```
 
+### Relation builder (`relb`)
+
+`relb` builds the same config with one method per relation type, so the type
+string is never written by hand. A repo accepts a builder wherever it accepts
+the plain config; there is no `build()` call.
+
+```typescript
+super({
+  name: 'post',
+  relations: {
+    author: relb.belongsToOne('user').key('authorId'),
+    comments: relb
+      .hasMany('comment')
+      .pkey('_id')
+      .key('postId')
+      .autoPopulate(false),
+  },
+})
+```
+
+Chain methods: `key`, `keys`, `pkey`, `alias`, `docPath`, `docPathRelated`,
+`query`, `fields`, `recursion`, `autoPopulate`, `filterPrivate`, `populate`,
+`limit`, `skip`, `sort`. Static methods: `belongsToOne`, `belongsToMany`,
+`hasOne`, `hasMany`, `hasManyCount` and the four `embedded*` types.
+
 ### Populating Relations
 
 Relations can be populated automatically or manually:
