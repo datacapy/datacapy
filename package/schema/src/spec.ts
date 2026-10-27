@@ -60,7 +60,7 @@ export interface SchemaSpecValidateOptionsCallback extends SchemaSpecValidateOpt
 }
 
 export interface SchemaSpecValidate {
-  notNull?: boolean | SchemaSpecValidateOptions
+  notNull?: boolean | SchemaSpecValidateOptionsNotNull
   required?: boolean | SchemaSpecValidateOptions
   notEmpty?: boolean | SchemaSpecValidateOptions
   isEmpty?: boolean | SchemaSpecValidateOptions
@@ -82,6 +82,10 @@ export interface SchemaSpecValidateOptions {
 export interface SchemaSpecValidateOptionsValueLength extends SchemaSpecValidateOptions {
   min?: number
   max?: number
+}
+
+export interface SchemaSpecValidateOptionsNotNull extends SchemaSpecValidateOptions {
+  treatNullStringAsNull?: boolean
 }
 
 export interface SchemaSpecValidateOptionsEquality extends SchemaSpecValidateOptions {

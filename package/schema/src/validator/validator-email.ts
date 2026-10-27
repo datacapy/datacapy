@@ -5,7 +5,7 @@ export class ValidatorEmail {
     // - have been supported by modern mail servers for several years
     // - https://tools.ietf.org/html/rfc6531
     // - https://en.wikipedia.org/wiki/International_email#Email_addresses
-    const regex = new RegExp(/^([^\s@]+)@([^\s@]+\.[^\s@]{2,9})$/u)
+    const regex = new RegExp(/^([^\s@]+)@([^\s@]+\.[^\s@]{2,63})$/u)
     const message =
       options && options.message
         ? options.message

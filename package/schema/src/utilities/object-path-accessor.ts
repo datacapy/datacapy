@@ -206,7 +206,7 @@ export class ObjectPathAccessor {
       result = true
       for (var x = 0; x < p1Parts.length; x++) {
         if (p1Parts[x] == '*') continue
-        if (p1Parts[x] == '\*' && p2Parts[x] == '*') continue
+        if (p1Parts[x] == '\\*' && p2Parts[x] == '*') continue
         if (p1Parts[x] != p2Parts[x]) {
           result = false
           break

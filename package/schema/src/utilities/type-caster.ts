@@ -39,7 +39,7 @@ export class SchemaTypeCaster {
     } else if (typeof value == 'function') {
       result = value
     } else {
-      result = value.constructor
+      result = value.constructor ?? Object
     }
     return result
   }
@@ -91,8 +91,18 @@ class SchemaTypeCasterString {
 }
 
 class SchemaTypeCasterNumber {
+  private static readonly decimalPattern =
+    /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/
+
+  /**
+   * Only plain decimal and exponent notation is accepted. Anything else, and any
+   * result that is not finite, is returned as NaN so the caller reports a cast error.
+   */
   static castString(value: string): number {
-    return +value
+    const trimmed = value.trim()
+    if (!SchemaTypeCasterNumber.decimalPattern.test(trimmed)) return NaN
+    const result = +trimmed
+    return Number.isFinite(result) ? result : NaN
   }
 
   static castBoolean(value: boolean): number {
@@ -101,29 +111,58 @@ class SchemaTypeCasterNumber {
 }
 
 class SchemaTypeCasterBoolean {
-  static castString(value: string): boolean {
-    value = value.trim().toLowerCase()
-    return value == '1' || value == 'true'
+  private static readonly trueWords = ['1', 'true', 'on', 'yes']
+  private static readonly falseWords = ['0', 'false', 'off', 'no']
+
+  /**
+   * An unrecognised value is returned unchanged (still a String) so the caller
+   * reports a cast error rather than silently producing false.
+   */
+  static castString(value: string): boolean | string {
+    const word = value.trim().toLowerCase()
+    if (SchemaTypeCasterBoolean.trueWords.includes(word)) return true
+    if (SchemaTypeCasterBoolean.falseWords.includes(word)) return false
+    return value
   }
 
-  static castNumber(value: number): boolean {
-    return value > 0
+  static castNumber(value: number): boolean | number {
+    if (value === 1) return true
+    if (value === 0) return false
+    return value
   }
 }
 
 class SchemaTypeCasterDate {
+  private static readonly isoDatePrefix = /^(\d{4})-(\d{2})-(\d{2})/
+
+  /**
+   * The keyword 'now' gives the current time. Anything that cannot be parsed, including the
+   * empty string, gives an Invalid Date for the caller to report.
+   */
   static castString(value: string): Date {
-    var result = undefined
-    if (value == '' || value.toLowerCase() == 'now') {
-      result = new Date()
-    } else {
-      result = new Date(value)
-    }
-    return result
+    const trimmed = value.trim()
+    if (trimmed.toLowerCase() == 'now') return new Date()
+    if (!SchemaTypeCasterDate.hasRealCalendarDay(trimmed)) return new Date(NaN)
+    return new Date(trimmed)
   }
 
   static castNumber(value: number): Date {
     return new Date(value)
+  }
+
+  /**
+   * Date.parse rolls impossible days over (2026-02-30 becomes 2 March), so an
+   * ISO-style date prefix is checked against the real length of its month.
+   */
+  private static hasRealCalendarDay(value: string): boolean {
+    const match = SchemaTypeCasterDate.isoDatePrefix.exec(value)
+    if (!match) return true
+    const year = +match[1]
+    const month = +match[2]
+    const day = +match[3]
+    if (month < 1 || month > 12 || day < 1) return false
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
+    return day <= daysInMonth
   }
 }
 

@@ -23,17 +23,17 @@ data.age // 33 (cast from '33')
 
 ## Rules
 
-| Method                                             | Passes when                                 |
-| -------------------------------------------------- | ------------------------------------------- |
-| `required()`                                       | The value is neither `undefined` nor `null` |
-| `notNull()`                                        | The value is not `null`                     |
-| `notEmpty()`                                       | The value is not empty                      |
-| `isEmpty()`                                        | The value is empty                          |
-| `email()`                                          | The string looks like an email address      |
-| `minLength(n)`, `maxLength(n)`, `length(min, max)` | The string length is within the limit       |
-| `regex(pattern)`                                   | The string matches                          |
-| `inArray(values)`                                  | The value is one of `values`                |
-| `validate(fn)`                                     | Your function returns `true`                |
+| Method                                             | Passes when                                                                                                              |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `required()`                                       | The value is neither `undefined` nor `null`                                                                              |
+| `notNull()`                                        | The value is not `null`. The string `'null'` is a normal string unless `notNull({ treatNullStringAsNull: true })` is set |
+| `notEmpty()`                                       | The value is not empty                                                                                                   |
+| `isEmpty()`                                        | The value is empty                                                                                                       |
+| `email()`                                          | The string looks like an email address                                                                                   |
+| `minLength(n)`, `maxLength(n)`, `length(min, max)` | The string length is within the limit                                                                                    |
+| `regex(pattern)`                                   | The string matches                                                                                                       |
+| `inArray(values)`                                  | The value is one of `values`                                                                                             |
+| `validate(fn)`                                     | Your function returns `true`                                                                                             |
 
 An absent (`undefined`) optional field skips its other rules, so
 `sb.string().email()` accepts a missing value. Add `required()` to reject it.
@@ -71,6 +71,9 @@ const schema = new Schema({
 })
 // confirm mismatch -> errors.confirm: ['confirm does not match']
 ```
+
+`path` may be dotted (`user.password`). It compares against the raw, unfiltered
+sibling value, and a rule with no `path` always fails.
 
 ### Custom rules
 
@@ -139,10 +142,13 @@ await new Schema(sb.schema().shape({ n: sb.number() })).validate(data)
 // data.n is now null
 ```
 
-Number casting reports an error. Boolean and Date casting are lenient: an
-unrecognised boolean becomes `false` and a date that cannot be parsed becomes
-`null`, both without an error. Add `required()` or a custom rule if either
-matters.
+A value that cannot be cast is a validation error, never a silent default:
+
+| Type    | Accepted                                                                                   | Rejected                                                                |
+| ------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Number  | plain decimal and exponent notation, trimmed (`' 5 '`, `'1e3'`)                            | `''`, whitespace, `'0x10'`, `NaN`, `Infinity` (string or number)        |
+| Boolean | `true`/`false`, `1`/`0`, `on`/`off`, `yes`/`no` (trimmed, any case); numbers `1` and `0`   | everything else, including `''` and other numbers                       |
+| Date    | parseable strings, real calendar days, the keyword `'now'`, numbers that give a valid date | `''`, `'garbage'`, impossible days such as `'2026-02-30'`, Invalid Date |
 
 To keep a value exactly as supplied, use `noCast()`. It stops casting of that
 field and of the values matched by a `matchAll()` spec beneath it, which suits

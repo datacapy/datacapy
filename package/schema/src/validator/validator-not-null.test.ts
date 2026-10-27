@@ -118,4 +118,28 @@ describe('validator - notNull', () => {
       expect(result.isValid).toBe(false)
     })
   })
+
+  describe('the string "null"', () => {
+    it.each(['null', 'Null', 'NULL'])('accepts %j by default', (value) => {
+      expect(new ValidatorNotNull().validate(value)).toBe(true)
+    })
+
+    it('rejects it when treatNullStringAsNull is set', () => {
+      const validator = new ValidatorNotNull()
+      expect(
+        typeof validator.validate('Null', { treatNullStringAsNull: true })
+      ).toBe('string')
+      expect(validator.validate('Smith', { treatNullStringAsNull: true })).toBe(
+        true
+      )
+    })
+
+    it('still rejects a real null through a schema', async () => {
+      const schema = new Schema({
+        name: { $type: String, $validate: { notNull: true } },
+      })
+      expect((await schema.validate({ name: 'Null' })).isValid).toBe(true)
+      expect((await schema.validate({ name: null })).isValid).toBe(false)
+    })
+  })
 })

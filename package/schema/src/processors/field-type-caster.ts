@@ -161,34 +161,44 @@ export class SchemaFieldTypeCaster implements SchemaFieldTypeCasterInterface {
       // - be considered the same type as ObjectID implementation used by Schema (bson-objectid)
       if (requiredTypeName != valueTypeName) {
         result = TypeCaster.cast(requiredType, value)
+      }
 
-        let resultTypeName = TypeCaster.getTypeName(result)
-        if (
-          // We failed to convert to the specified type
-          resultTypeName != requiredTypeName ||
-          // We converted to type 'number' but the result was NaN so it is invalid
-          (valueTypeName != 'Number' &&
-            resultTypeName == 'Number' &&
-            isNaN(result))
-        ) {
-          let origValue =
-            ['String', 'Number', 'Boolean'].indexOf(valueTypeName) != -1
-              ? "'" + value + "'"
-              : ''
-          this.appendError(
-            meta,
-            path,
-            origValue +
-              ' of type ' +
-              valueTypeName +
-              ' cannot be cast to type ' +
-              requiredTypeName
-          )
-        }
+      if (this.isCastFailure(requiredTypeName, result)) {
+        let origValue =
+          ['String', 'Number', 'Boolean'].indexOf(valueTypeName) != -1
+            ? "'" + value + "'"
+            : ''
+        this.appendError(
+          meta,
+          path,
+          origValue +
+            ' of type ' +
+            valueTypeName +
+            ' cannot be cast to type ' +
+            requiredTypeName
+        )
       }
     }
 
     return result
+  }
+
+  /**
+   * True when the cast did not produce the required type, or produced one that is
+   * unusable: NaN or Infinity for Number, Invalid Date for Date.
+   */
+  private isCastFailure(requiredTypeName: string, result: any): boolean {
+    return (
+      TypeCaster.getTypeName(result) != requiredTypeName ||
+      this.isInvalidValue(requiredTypeName, result)
+    )
+  }
+
+  private isInvalidValue(requiredTypeName: string, result: any): boolean {
+    if (requiredTypeName == 'Number') return !Number.isFinite(result)
+    if (requiredTypeName == 'Date')
+      return result instanceof Date && isNaN(result.getTime())
+    return false
   }
 
   /**

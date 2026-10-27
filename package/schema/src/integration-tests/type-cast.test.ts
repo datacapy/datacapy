@@ -99,7 +99,7 @@ describe('type cast', function () {
     expect(data.likesDogs).toBe(true)
     expect(data.likesDogsMoreThanCats).toBe(false)
   })
-  it('should cast Number to Boolean', async () => {
+  it('should cast Number 1 and 0 to Boolean and reject other numbers', async () => {
     const data = {
       likesCats: 1,
       likesCatsMoreThanDogs: 0,
@@ -114,11 +114,11 @@ describe('type cast', function () {
       doesNotLikeCakes: Boolean,
     })
 
-    await schema.validate(data)
+    const result = await schema.validate(data)
     expect(data.likesCats).toBe(true)
     expect(data.likesCatsMoreThanDogs).toBe(false)
-    expect(data.likesCakes).toBe(true)
-    expect(data.doesNotLikeCakes).toBe(false)
+    expect(result.errors.likesCakes).toHaveLength(1)
+    expect(result.errors.doesNotLikeCakes).toHaveLength(1)
   })
   it('should cast String to Date', async () => {
     const data = {
@@ -139,22 +139,13 @@ describe('type cast', function () {
     // @ts-ignore - 'toUTCString' does not exist on type 'string'
     expect(data.updated.toUTCString()).toBe('Sat, 19 Nov 2016 06:50:33 GMT')
   })
-  it('should cast empty String to Date at current time', async () => {
-    const data = {
-      created: '',
-    }
+  it('should reject empty String as a Date', async () => {
+    const schema = new Schema({ created: Date })
 
-    const schema = new Schema({
-      created: Date,
-    })
-
-    await schema.validate(data)
-    const dateForComparison = new Date()
-    // Set the time just before now for comparison
-    dateForComparison.setSeconds(dateForComparison.getSeconds() - 1)
-    expect(data.created.constructor).toBe(Date)
-    // @ts-ignore - 'getTime' does not exist on type 'string'
-    expect(data.created.getTime()).toBeGreaterThan(dateForComparison.getTime())
+    const result = await schema.validate({ created: '' })
+    expect(result.errors.created).toEqual([
+      "'' of type String cannot be cast to type Date",
+    ])
   })
   it('should cast String "now" to Date at current time', async () => {
     const data = {

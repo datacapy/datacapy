@@ -30,4 +30,17 @@ describe('validator - email', () => {
 
     expect(typeof result).toBe('string')
   })
+
+  it('accepts long top-level domains', () => {
+    const validator = new ValidatorEmail()
+    expect(validator.validate('a@b.photography')).toBe(true)
+    expect(validator.validate('a@b.international')).toBe(true)
+  })
+
+  it('stays linear on adversarial input', () => {
+    const input = 'a@' + '.'.repeat(40000)
+    const start = Date.now()
+    new ValidatorEmail().validate(input)
+    expect(Date.now() - start).toBeLessThan(500)
+  })
 })

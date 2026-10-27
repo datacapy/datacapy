@@ -716,4 +716,11 @@ describe('ObjectPathAccessor', () => {
       expect(data.a.b.c).toBe(1)
     })
   })
+
+  describe('pathsMatch escaped asterisk', () => {
+    it('matches a literal asterisk segment only when escaped', () => {
+      expect(ObjectPathAccessor.pathsMatch('a.\\*', 'a.*')).toBe(true)
+      expect(ObjectPathAccessor.pathsMatch('a.\\*', 'a.b')).toBe(false)
+    })
+  })
 })
