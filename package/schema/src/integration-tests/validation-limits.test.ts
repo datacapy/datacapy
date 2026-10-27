@@ -1,4 +1,7 @@
 import Schema from 'schema'
+import { SchemaValidationLimits } from '../limits'
+
+const OVER_DEFAULT = SchemaValidationLimits.DEFAULT_MAX_COLLECTION_SIZE + 1
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i)
 const keyed = (n: number, value: unknown = 'x') =>
@@ -221,41 +224,39 @@ describe('validation limits', () => {
   })
 
   describe('defaults and overrides', () => {
-    it('validates a 5k array under the default limit', async () => {
+    it('validates a 1k array under the default limit', async () => {
       const schema = new Schema({
         tags: { $type: Array, $spec: String },
       })
 
-      const result = await schema.validate({ tags: range(5000).map(String) })
+      const result = await schema.validate({ tags: range(1000).map(String) })
 
       expect(result.isValid).toBe(true)
     })
 
-    it('rejects a 1M array under the default limit quickly and without walking it', async () => {
+    it('rejects an array just over the default limit without walking it', async () => {
       const element = counter()
       const schema = new Schema({
         tags: { $type: Array, $spec: { $type: String, ...element } },
       })
-      const tags = new Array(1_000_000).fill('x')
+      const tags = new Array(OVER_DEFAULT).fill('x')
 
-      const started = Date.now()
       const result = await schema.validate({ tags })
 
       expect(result.isValid).toBe(false)
       expect(element.state.calls).toBe(0)
-      expect(Date.now() - started).toBeLessThan(1000)
     })
 
-    it('rejects a 1M-key object under the default limit quickly', async () => {
+    it('rejects an object just over the default limit without walking it', async () => {
+      const value = counter()
       const schema = new Schema({
-        meta: { '$type': Object, '*': { $type: String } },
+        meta: { '$type': Object, '*': { $type: String, ...value } },
       })
 
-      const started = Date.now()
-      const result = await schema.validate({ meta: keyed(1_000_000) })
+      const result = await schema.validate({ meta: keyed(OVER_DEFAULT) })
 
       expect(result.isValid).toBe(false)
-      expect(Date.now() - started).toBeLessThan(5000)
+      expect(value.state.calls).toBe(0)
     })
 
     it('lets a per-call config override the constructor config', async () => {
@@ -282,7 +283,9 @@ describe('validation limits', () => {
         }
       )
 
-      const result = await schema.validate({ tags: range(20000).map(String) })
+      const result = await schema.validate({
+        tags: range(OVER_DEFAULT).map(String),
+      })
 
       expect(result.isValid).toBe(true)
     })
@@ -293,13 +296,13 @@ describe('validation limits', () => {
       const element = counter()
       const schema = new Schema(
         { tags: { $type: Array, $spec: { $type: String, ...element } } },
-        { maxCollectionSize: 5000 }
+        { maxCollectionSize: 2500 }
       )
 
-      const result = await schema.validate({ tags: range(5000).map(String) })
+      const result = await schema.validate({ tags: range(2500).map(String) })
 
       expect(result.isValid).toBe(true)
-      expect(element.state.calls).toBe(5000)
+      expect(element.state.calls).toBe(2500)
       expect(element.state.maxInFlight).toBeLessThanOrEqual(1000)
     })
 
