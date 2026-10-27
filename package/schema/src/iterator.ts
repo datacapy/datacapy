@@ -4,6 +4,7 @@ import TypeCaster from './utilities/type-caster'
 import Schema from './schema'
 import SchemaConfig from './config'
 import SchemaSpec from './spec'
+import { SchemaLimitTracker } from './limits'
 
 export interface SchemaIteratorCallback {
   (opts: {
@@ -18,6 +19,8 @@ export interface SchemaIteratorCallback {
 
 export interface SchemaIteratorMappingConfig {
   skipTransients?: boolean
+  // Set by validation only: bounds the work done on untrusted input
+  limitTracker?: SchemaLimitTracker
 }
 
 export interface SchemaIteratorMeta {
@@ -162,8 +165,18 @@ export class SchemaIterator {
   mapQueryPaths(
     query: any,
     callback: Function,
-    _config?: SchemaIteratorMappingConfig
+    config?: SchemaIteratorMappingConfig
   ) {
+    const tracker = config?.limitTracker
+    // An oversized operand is recorded and skipped rather than walked
+    const mapOperand = (fieldName: string, operand: Array<any>) => {
+      if (tracker?.exceedsCollection(operand)) {
+        tracker.rejectCollection(fieldName)
+        return
+      }
+      operand.forEach((_, index) => callback(fieldName, index, operand))
+    }
+
     const mapRecursiveQuery = (query: any) => {
       if (Array.isArray(query)) {
         query.forEach(mapRecursiveQuery)
@@ -195,9 +208,7 @@ export class SchemaIterator {
                 SchemaUtility.canValidateQueryOperator(childFieldName)
               ) {
                 if (Array.isArray(childValue)) {
-                  childValue.forEach((_, index) =>
-                    callback(fieldName, index, childValue)
-                  )
+                  mapOperand(fieldName, childValue)
                 } else {
                   callback(fieldName, childFieldName, value)
                 }
@@ -205,7 +216,7 @@ export class SchemaIterator {
             })
           } else {
             if (Array.isArray(value)) {
-              value.forEach((_, index) => callback(fieldName, index, value))
+              mapOperand(fieldName, value)
             } else {
               callback(fieldName, fieldName, query)
             }
@@ -371,6 +382,9 @@ export class SchemaIterator {
     if (SchemaIterator.specIsTransient(spec) && config && config.skipTransients)
       return
 
+    if (config?.limitTracker && !config.limitTracker.visit())
+      return container ? container[fieldName] : undefined
+
     let fieldType: string | number | Object = undefined
     let nullable = false
     if (spec) {
@@ -415,7 +429,12 @@ export class SchemaIterator {
 
     switch (fieldType) {
       case Object:
-        if (!isNullNullable && !spec.$or && !hasMatchAllWithOr) {
+        if (
+          !isNullNullable &&
+          !spec.$or &&
+          !hasMatchAllWithOr &&
+          !config?.limitTracker?.exceedsCollection(container?.[fieldName])
+        ) {
           // Don't descend into objects when $or is present - validation will handle it
           if (spec.$spec !== undefined) spec = spec.$spec
           this.mapRecursive({
@@ -438,7 +457,12 @@ export class SchemaIterator {
           } else if (TypeCaster.getType(spec) == Object && spec.$spec) {
             arraySpec = spec.$spec
           }
-          if (container && arraySpec && container[fieldName]) {
+          if (
+            container &&
+            arraySpec &&
+            container[fieldName] &&
+            !config?.limitTracker?.exceedsCollection(container[fieldName])
+          ) {
             this.mapArrayElements({
               spec: arraySpec,
               specParent,

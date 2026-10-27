@@ -1,4 +1,8 @@
-import { SchemaIterator, SchemaIteratorMeta } from './iterator'
+import {
+  SchemaIterator,
+  SchemaIteratorCallback,
+  SchemaIteratorMeta,
+} from './iterator'
 import SchemaConfig from './config'
 import SchemaSpec from './spec'
 import SchemaInquisitor from './inquisitor'
@@ -9,6 +13,9 @@ import SchemaTransientProcessor from './processors/transient-processor'
 import SchemaFieldPrivateFilter from './processors/field-private-filter'
 import { BuilderBase } from './builder/builder-base'
 import { BuilderSchema } from './builder/builder-schema'
+import { SchemaLimitTracker, SchemaValidationLimits } from './limits'
+
+type SchemaIteratorCallbackOpts = Parameters<SchemaIteratorCallback>[0]
 
 export interface SchemaValidationMeta {
   errors?: any
@@ -36,6 +43,8 @@ export interface SchemaQuery {
 }
 
 export class Schema {
+  private static readonly VALIDATE_BATCH_SIZE = 1000
+
   config: SchemaConfig
   name: string
   spec: SchemaSpec
@@ -226,6 +235,41 @@ export class Schema {
     return this.getTransientProcessor().stripFunctions(obj)
   }
 
+  /**
+   * Run the collected validation tasks in batches so only a bounded number of
+   * validators are in flight, however many nodes the input has.
+   */
+  private async runBounded<T>(
+    tasks: T[],
+    run: (task: T) => Promise<void>
+  ): Promise<void> {
+    for (
+      let from = 0;
+      from < tasks.length;
+      from += Schema.VALIDATE_BATCH_SIZE
+    ) {
+      await Promise.all(
+        tasks.slice(from, from + Schema.VALIDATE_BATCH_SIZE).map(run)
+      )
+    }
+  }
+
+  private reportLimits(
+    tracker: SchemaLimitTracker,
+    meta: SchemaValidationMeta
+  ) {
+    if (tracker.nodeBudgetExceeded) {
+      meta.errors['$root'] = [
+        `Too many fields to validate (limit ${tracker.limits.maxNodes})`,
+      ]
+    }
+    tracker.rejectedPaths.forEach((path) => {
+      meta.errors[path] = [
+        `${path} must contain no more than ${tracker.limits.maxCollectionSize} items`,
+      ]
+    })
+  }
+
   async validate(
     object: any,
     config?: SchemaConfig
@@ -234,49 +278,49 @@ export class Schema {
     var meta: SchemaValidationMeta = { errors: {} }
     config = config ? config : {}
 
-    var promises = []
+    const tracker = new SchemaLimitTracker(
+      SchemaValidationLimits.resolve(config, this.config)
+    )
+    const tasks: Array<{ opts: SchemaIteratorCallbackOpts; value: any }> = []
     this.schemaIterator.iterate(
       object,
       (opts) => {
-        promises.push(
-          (async () => {
-            let {
-              spec,
-              specParent,
-              fieldName,
-              container,
-              path,
-              meta: mapperMeta,
-            } = opts
-            try {
-              let value = await this.validateField({
-                spec,
-                specParent,
-                fieldName,
-                value: container ? container[fieldName] : undefined,
-                path,
-                config,
-                meta,
-                mapperMeta,
-              })
-              if (container) container[fieldName] = value
-            } catch (e) {
-              throw new Error(
-                'Validate field failed at "' + path + '": ' + e.toString()
-              )
-            }
-          })()
-        )
+        const { container, fieldName } = opts
+        tasks.push({
+          opts,
+          value: container ? container[fieldName] : undefined,
+        })
       },
       {
         // If the spec is for related data we do not validate
         // - this data will be stripped before any insertion or updating to persistence
         skipTransients: true,
+        limitTracker: tracker,
       }
     )
 
-    await Promise.all(promises)
+    await this.runBounded(tasks, async ({ opts, value }) => {
+      const { spec, specParent, fieldName, container, path } = opts
+      try {
+        const validated = await this.validateField({
+          spec,
+          specParent,
+          fieldName,
+          value,
+          path,
+          config,
+          meta,
+          mapperMeta: opts.meta,
+        })
+        if (container) container[fieldName] = validated
+      } catch (e) {
+        throw new Error(
+          'Validate field failed at "' + path + '": ' + e.toString()
+        )
+      }
+    })
 
+    this.reportLimits(tracker, meta)
     meta.isValid = Object.keys(meta.errors).length == 0
 
     return meta
@@ -292,50 +336,50 @@ export class Schema {
     var objects = Array.isArray(paths) ? paths : [paths]
     config = config ? config : {}
 
-    var promises = []
+    const tracker = new SchemaLimitTracker(
+      SchemaValidationLimits.resolve(config, this.config)
+    )
+    const tasks: Array<{ opts: SchemaIteratorCallbackOpts; value: any }> = []
     this.schemaIterator.iteratePaths(
       objects,
       (opts) => {
-        promises.push(
-          (async () => {
-            let {
-              spec,
-              specParent,
-              fieldName,
-              container,
-              path,
-              meta: mapperMeta,
-            } = opts
-            try {
-              mapperMeta.root = container
-              let value = await this.validateField({
-                spec,
-                specParent,
-                fieldName,
-                value: container ? container[fieldName] : undefined,
-                path,
-                config,
-                meta,
-                mapperMeta,
-              })
-              if (container) container[fieldName] = value
-            } catch (e) {
-              throw new Error(
-                'Validate field failed at "' + path + '": ' + e.toString()
-              )
-            }
-          })()
-        )
+        const { container, fieldName } = opts
+        tasks.push({
+          opts,
+          value: container ? container[fieldName] : undefined,
+        })
       },
       {
         // If the spec is for related data we do not validate
         // - this data will be stripped before any insertion or updating to persistence
         skipTransients: true,
+        limitTracker: tracker,
       }
     )
 
-    await Promise.all(promises)
+    await this.runBounded(tasks, async ({ opts, value }) => {
+      const { spec, specParent, fieldName, container, path } = opts
+      try {
+        opts.meta.root = container
+        const validated = await this.validateField({
+          spec,
+          specParent,
+          fieldName,
+          value,
+          path,
+          config,
+          meta,
+          mapperMeta: opts.meta,
+        })
+        if (container) container[fieldName] = validated
+      } catch (e) {
+        throw new Error(
+          'Validate field failed at "' + path + '": ' + e.toString()
+        )
+      }
+    })
 
+    this.reportLimits(tracker, meta)
     meta.isValid = Object.keys(meta.errors).length == 0
 
     return meta
@@ -352,7 +396,16 @@ export class Schema {
     // - We don't want those to trigger an error so disabled strict validation
     config.strict = false
 
-    var promises = []
+    const tracker = new SchemaLimitTracker(
+      SchemaValidationLimits.resolve(config, this.config)
+    )
+    const limited = { skipTransients: true, limitTracker: tracker }
+    const tasks: Array<{
+      opts: SchemaIteratorCallbackOpts
+      value: any
+      queryPathContainer: any
+      queryPathFieldName: any
+    }> = []
     this.schemaIterator.mapQueryPaths(
       query,
       (path, queryPathFieldName, queryPathContainer) => {
@@ -361,31 +414,39 @@ export class Schema {
         this.schemaIterator.iteratePaths(
           paths,
           (opts) => {
-            promises.push(
-              (async () => {
-                let { spec, specParent, fieldName, container, path } = opts
-                let value = await this.validateField({
-                  spec,
-                  specParent,
-                  fieldName,
-                  value: container ? container[fieldName] : undefined,
-                  path,
-                  config,
-                  meta,
-                })
-                if (queryPathContainer)
-                  queryPathContainer[queryPathFieldName] = value
-              })()
-            )
+            const { container, fieldName } = opts
+            tasks.push({
+              opts,
+              value: container ? container[fieldName] : undefined,
+              queryPathContainer,
+              queryPathFieldName,
+            })
           },
-          { skipTransients: true }
+          limited
         )
       },
-      { skipTransients: true }
+      limited
     )
 
-    await Promise.all(promises)
+    await this.runBounded(
+      tasks,
+      async ({ opts, value, queryPathContainer, queryPathFieldName }) => {
+        const { spec, specParent, fieldName, path } = opts
+        const validated = await this.validateField({
+          spec,
+          specParent,
+          fieldName,
+          value,
+          path,
+          config,
+          meta,
+        })
+        if (queryPathContainer)
+          queryPathContainer[queryPathFieldName] = validated
+      }
+    )
 
+    this.reportLimits(tracker, meta)
     meta.isValid = Object.keys(meta.errors).length == 0
 
     return meta

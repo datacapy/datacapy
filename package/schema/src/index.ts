@@ -7,6 +7,7 @@ export { clone }
 export * from './schema'
 export * from './spec'
 export * from './config'
+export * from './limits'
 export * from './manager'
 export * from './iterator'
 export * from './inquisitor'

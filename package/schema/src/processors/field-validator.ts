@@ -8,6 +8,7 @@ import { SchemaIteratorMeta } from '../iterator'
 import SchemaFieldFilter from './field-filter'
 import SchemaFieldTypeCaster from './field-type-caster'
 import TypeCaster from '../utilities/type-caster'
+import { SchemaValidationLimits } from '../limits'
 
 /**
  * Interface for SchemaFieldValidator
@@ -95,6 +96,19 @@ export class SchemaFieldValidator implements SchemaFieldValidatorInterface {
     config = config ? config : {}
     meta = meta ? meta : { errors: [] }
     mapperMeta = mapperMeta ? mapperMeta : {}
+
+    const limits = SchemaValidationLimits.resolve(config, this.config)
+    if (SchemaValidationLimits.exceeds(value, limits.maxCollectionSize)) {
+      const label = spec && spec.$label ? spec.$label : fieldName
+      this.appendError(
+        meta,
+        path,
+        `${label} must contain no more than ${limits.maxCollectionSize} ${
+          Array.isArray(value) ? 'items' : 'keys'
+        }`
+      )
+      return value
+    }
 
     // Handle $or operator - try each spec in priority order
     if (spec && spec.$or && Array.isArray(spec.$or)) {
@@ -252,6 +266,8 @@ export class SchemaFieldValidator implements SchemaFieldValidatorInterface {
 
     if (fieldType == Object && strict) {
       // In strict mode we must ensure there are no fields which are not defined by the spec
+      let reported = 0
+      let unreported = 0
       for (let fieldName in value) {
         if (typeof value[fieldName] == 'function') continue
         // Allow fields if match-all '*' spec is defined, or if field is explicitly defined
@@ -262,8 +278,20 @@ export class SchemaFieldValidator implements SchemaFieldValidatorInterface {
           spec[fieldName] !== undefined ||
           (spec.$spec && spec.$spec[fieldName] !== undefined)
         if (!fieldDefined && !hasMatchAll) {
-          this.appendError(meta, fieldName, 'Field not specified')
+          if (reported < limits.maxFieldErrors) {
+            this.appendError(meta, fieldName, 'Field not specified')
+            reported++
+          } else {
+            unreported++
+          }
         }
+      }
+      if (unreported > 0) {
+        this.appendError(
+          meta,
+          path,
+          `${unreported} more fields not specified (not listed)`
+        )
       }
     }
 

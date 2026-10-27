@@ -212,3 +212,28 @@ const query = { age: { $gt: '30' }, name: { $in: [1, 2] } }
 await schema.validateQuery(query)
 // query is { age: { $gt: 30 }, name: { $in: ['1', '2'] } }
 ```
+
+## Limits on large input
+
+`validate()`, `validatePaths()` and `validateQuery()` bound their work so that
+an oversized payload costs one error, not memory. Set the options on the
+`Schema` config, or pass them in the per-call config, which wins.
+
+| Option              | Default     | Effect                                                                                                                                        |
+| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxCollectionSize` | `10_000`    | An array with more items, or an object with more keys, gets one error and its contents are not walked.                                        |
+| `maxNodes`          | `1_000_000` | Most fields one call visits. Past it the call adds a single `$root` error. This covers nested collections that are each under the size limit. |
+| `maxFieldErrors`    | `100`       | Most `Field not specified` errors reported per object in strict mode. Further ones are summarised in one error.                               |
+
+```ts
+const schema = new Schema(spec, { maxCollectionSize: 50_000 })
+```
+
+Use `Infinity` to turn a limit off. `$in` and other array operands in
+`validateQuery()` count against `maxCollectionSize` too.
+
+Only validation is limited. Filtering, `filterPrivate()` and transient handling
+still process every item, so a large result is never returned with private
+fields left in. Checking the size of an object requires listing its keys, so the
+time to reject one grows linearly with its key count, but nothing is retained
+per key.
