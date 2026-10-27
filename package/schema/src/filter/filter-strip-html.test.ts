@@ -197,4 +197,55 @@ describe('FilterStripHtml', () => {
     )
     expect(result).toBe('Text alert("test") .test{}')
   })
+
+  describe('unclosed and malformed tags', () => {
+    it.each([
+      ['<scr<script>ipt>alert(1)', [], 'ipt>alert(1)'],
+      ['a<b<c>d', [], 'a d'],
+      ['<>', [], '<>'],
+      ['x</', [], 'x</'],
+      ['a < b > c', [], 'a < b > c'],
+      ['&lt;script&gt;alert(1)&lt;/script&gt;', [], 'alert(1)'],
+      ['<p>Hi</p> tail <b', [], 'Hi tail <b'],
+      ['<b>bold</b> <i>it</i>', ['b'], '<b>bold</b> it'],
+      ['<a href="javascript:x" onclick="y">l</a> <', ['a'], '<a>l</a> <'],
+      ['<b <b <b>x', ['b'], '<b b b>x'],
+      ['no tags at all >', [], 'no tags at all >'],
+      ['<<<>>>', [], '>>'],
+      ['a>b<c', ['b'], 'a>b<c'],
+    ])(
+      'should filter %j with allowTags %j to %j',
+      (input, allowTags, expected) => {
+        expect(filter.filter(input, { allowTags })).toBe(expected)
+      }
+    )
+
+    it('should leave text after the last > untouched', () => {
+      expect(filter.filter('<p>Hi</p> a < b <c')).toBe('Hi a < b <c')
+    })
+  })
+
+  describe('linear-time behaviour', () => {
+    const size = 200000
+    const limitMs = 1000
+
+    const timeIt = (input: string, allowTags: string[]) => {
+      const start = Date.now()
+      filter.filter(input, { allowTags })
+      return Date.now() - start
+    }
+
+    it.each([
+      ['only <', '<'.repeat(size), []],
+      ['<a repeated with no >', '<a'.repeat(size / 2), []],
+      ['a > followed by only <', '>' + '<'.repeat(size), []],
+      [
+        'an allow-listed tag opener repeated with no >',
+        '<b '.repeat(size / 2),
+        ['b'],
+      ],
+    ])('should not take quadratic time on %s', (_label, input, allowTags) => {
+      expect(timeIt(input, allowTags)).toBeLessThan(limitMs)
+    })
+  })
 })

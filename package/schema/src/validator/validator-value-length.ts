@@ -3,8 +3,8 @@ import TypeCaster from '../utilities/type-caster'
 export class ValidatorValueLength {
   validate(value: any, options?) {
     const name = options && options.label ? options.label : 'field'
-    const min = options && options.min ? options.min : null
-    const max = options && options.max ? options.max : null
+    const min = options && options.min != null ? options.min : null
+    const max = options && options.max != null ? options.max : null
     const messageMin =
       options && options.message
         ? options.message
@@ -17,21 +17,21 @@ export class ValidatorValueLength {
     const valueType = TypeCaster.getType(value)
 
     const resultMin =
-      !min ||
+      min === null ||
       (value != null &&
         // In Javascript [[]] evaluates to false - we don't want this
         // - an array is only considered empty if it has zero elements
         ((valueType != Array && valueType != String) || value.length >= min) &&
-        (valueType != Number || (isNaN(value) && value >= min)) &&
+        (valueType != Number || Number(value) >= min) &&
         (valueType != Object || Object.keys(value).length >= min))
 
     const resultMax =
-      !max ||
+      max === null ||
       value == null ||
       // In Javascript [[]] evaluates to false - we don't want this
       // - an array is only considered empty if it has zero elements
       (((valueType != Array && valueType != String) || value.length <= max) &&
-        (valueType != Number || (isNaN(value) && value <= max)) &&
+        (valueType != Number || Number(value) <= max) &&
         (valueType != Object || Object.keys(value).length <= max))
 
     const result =

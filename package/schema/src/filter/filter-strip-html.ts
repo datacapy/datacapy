@@ -47,7 +47,7 @@ export class FilterStripHtml extends FilterAbstract {
       'gi'
     )
     // Replace all matched tags with an empty string
-    value = value.replace(tagsRegex, ' ')
+    value = this.replaceHead(value, tagsRegex, () => ' ')
 
     // Every tag surviving the pass above is one of the allow-listed names -
     // its attributes are never checked by the pass above (allow-listing a
@@ -58,7 +58,7 @@ export class FilterStripHtml extends FilterAbstract {
         `<\\/?(?:${allowedTags.join('|')})\\b[^>]*>`,
         'gi'
       )
-      value = value.replace(allowedTagRegex, (tag) =>
+      value = this.replaceHead(value, allowedTagRegex, (tag) =>
         this.sanitizeTagAttributes(tag)
       )
     }
@@ -66,6 +66,20 @@ export class FilterStripHtml extends FilterAbstract {
     // Remove extra whitespace and trim the result
     value = value.replace(/\s+/g, ' ').trim()
     return value
+  }
+
+  /**
+   * Both tag regexes need a closing `>`, so nothing after the last one can
+   * match. Without the cut, every unclosed `<` rescans to the end of the
+   * string, which is quadratic on input such as `<<<<...`.
+   */
+  private replaceHead(
+    value: string,
+    regex: RegExp,
+    replacer: (match: string) => string
+  ): string {
+    const cut = value.lastIndexOf('>') + 1
+    return value.slice(0, cut).replace(regex, replacer) + value.slice(cut)
   }
 
   /**
