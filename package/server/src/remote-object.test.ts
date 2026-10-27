@@ -759,7 +759,7 @@ describe('ServerRemoteObject', function () {
       const remoteObject = new ServerRemoteObject(targetObject, config)
       const middlewareConfigs = remoteObject.getMiddlewareConfig()
 
-      const reqSaveFail = new ExpressMockRequest({ body: { name: 'NULL' } })
+      const reqSaveFail = new ExpressMockRequest({ body: { name: null } })
       const resSaveFail = new ExpressMockResponse()
       promises.push(
         middlewareConfigs[0]
