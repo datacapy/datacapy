@@ -6,11 +6,8 @@ Originally, relations could only join on a single field:
 
 ```typescript
 relations: {
-  participant: {
-    type: 'belongsToOne',
-    repo: 'surveyParticipant',
-    key: 'participantId',  // Can only match on this one field
-  }
+  // Can only match on this one field
+  participant: relb.belongsToOne('surveyParticipant').key('participantId'),
 }
 ```
 
@@ -28,44 +25,31 @@ key operations. Single-key joins are just composite keys with one field.
 
 ```typescript
 relations: {
-  participant: {
-    type: 'belongsToOne',
-    repo: 'surveyParticipant',
-    key: 'participantId',      // Legacy: still supported
-    keys: {                     // NEW: Composite keys
-      surveyId: 'surveyId',     // source field -> target field
-      workspaceId: 'workspaceId'    // must match both
-    }
-  }
+  // key: legacy single field, still supported
+  // keys: composite keys, source field -> target field; all must match
+  participant: relb
+    .belongsToOne('surveyParticipant')
+    .key('participantId')
+    .keys({
+      surveyId: 'surveyId',
+      workspaceId: 'workspaceId',
+    }),
 }
 ```
 
 The `key` property is automatically merged with `keys` for backward
-compatibility.
-
-The same relation with the builder (see
-[relations.md](./relations.md#relation-builder-relb)):
-
-```typescript
-participant: relb.belongsToOne('surveyParticipant').key('participantId').keys({
-  surveyId: 'surveyId',
-  workspaceId: 'workspaceId',
-})
-```
+compatibility. See [relations.md](./relations.md#relation-builder-relb) for the
+builder.
 
 ### Multiple Composite Keys
 
 ```typescript
 relations: {
-  account: {
-    type: 'belongsToOne',
-    repo: 'account',
-    keys: {
-      userId: 'userId',
-      accountId: 'accountId',
-      regionId: 'regionId'
-    }
-  }
+  account: relb.belongsToOne('account').keys({
+    userId: 'userId',
+    accountId: 'accountId',
+    regionId: 'regionId',
+  }),
 }
 ```
 
@@ -254,15 +238,13 @@ The optimisation is handled by `buildOptimizedCompositeQuery()` in
 // Need to find participant where ALL fields match
 
 relations: {
-  participant: {
-    type: 'belongsToOne',
-    repo: 'surveyParticipant',
-    key: 'participantId',
-    keys: {
+  participant: relb
+    .belongsToOne('surveyParticipant')
+    .key('participantId')
+    .keys({
       surveyId: 'surveyId',
-      workspaceId: 'workspaceId'
-    }
-  }
+      workspaceId: 'workspaceId',
+    }),
 }
 
 // This will only match surveyParticipant records where:
@@ -275,15 +257,11 @@ relations: {
 
 ```typescript
 relations: {
-  account: {
-    type: 'belongsToOne',
-    repo: 'account',
-    keys: {
-      userId: 'userId',
-      accountId: 'accountId',
-      regionId: 'regionId'
-    }
-  }
+  account: relb.belongsToOne('account').keys({
+    userId: 'userId',
+    accountId: 'accountId',
+    regionId: 'regionId',
+  }),
 }
 ```
 

@@ -12,13 +12,20 @@ decryption (see [Opt-in decryption](#opt-in-decryption)).
 
 ```typescript
 import fs from 'fs'
-import { Schema, ModelManager, SchemaEncryptionServiceRsa } from '@datacapy/om'
+import {
+  Schema,
+  sb,
+  ModelManager,
+  SchemaEncryptionServiceRsa,
+} from '@datacapy/om'
 
-const userSchema = new Schema({
-  name: { $type: String },
-  ssn: { $type: String, $filter: { encrypt: true } },
-  email: { $type: String, $filter: { encrypt: true } },
-})
+const userSchema = new Schema(
+  sb.schema('user').shape({
+    name: sb.string(),
+    ssn: sb.string().encrypt(),
+    email: sb.string().encrypt(),
+  })
+)
 
 const modelManager = new ModelManager({
   schemas: [userSchema],

@@ -11,6 +11,10 @@ descriptions. Use a comma, colon, semicolon, or a full stop and a new sentence i
 the single most common tell in AI-generated writing, so treat it as a hard rule, not a style
 preference.
 
+### Docs and Examples Use Builders
+
+Package docs and examples must use the builders (`sb` for schemas, `relb` for relations, `repib` for indexes) and pass them straight in, with no trailing `.build()`. Use a plain spec only when there is a good reason: a schema generated or loaded as data, or an option the builder does not expose (say so in the doc, as `schema/docs/builder.md` does).
+
 ### Console Noise in Tests
 
 Each package's Jest suite is configured to fail a test on any unexpected `console.error`/

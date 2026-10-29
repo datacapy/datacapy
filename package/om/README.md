@@ -27,19 +27,21 @@ repositories and services.
 ### Define a Schema
 
 ```typescript
-import { Schema } from '@datacapy/om'
+import { Schema, sb } from '@datacapy/om'
 
-const userSchema = new Schema({
-  name: { type: String, required: true },
-  email: { type: String, validator: 'email' },
-  age: { type: Number, min: 0 },
-})
+const userSchema = new Schema(
+  sb.schema('user').shape({
+    name: sb.string().required(),
+    email: sb.string().email(),
+    age: sb.number(),
+  })
+)
 ```
 
 ### Create a Repository
 
 ```typescript
-import { Repo } from '@datacapy/om'
+import { Repo, relb } from '@datacapy/om'
 
 export class RepoUser extends Repo<User> {
   constructor() {
@@ -47,12 +49,7 @@ export class RepoUser extends Repo<User> {
       name: 'user',
       schema: userSchema,
       relations: {
-        posts: {
-          type: 'hasMany',
-          repo: 'post',
-          pkey: '_id',
-          key: 'authorId',
-        },
+        posts: relb.hasMany('post').pkey('_id').key('authorId'),
       },
     })
   }
@@ -224,15 +221,13 @@ await repoSurvey.findOne(surveyId, {
 
 ```typescript
 relations: {
-  participant: {
-    type: 'belongsToOne',
-    repo: 'surveyParticipant',
-    key: 'participantId',
-    keys: {
+  participant: relb
+    .belongsToOne('surveyParticipant')
+    .key('participantId')
+    .keys({
       surveyId: 'surveyId',
-      workspaceId: 'workspaceId'
-    }
-  }
+      workspaceId: 'workspaceId',
+    }),
 }
 ```
 

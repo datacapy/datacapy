@@ -16,12 +16,9 @@ A document belongs to a single related document.
 
 ```typescript
 relations: {
-  user: {
-    type: 'belongsToOne',
-    repo: 'user',
-    key: 'userId',  // Field in this document
-    pkey: '_id'     // Field in related document (optional, defaults to '_id')
-  }
+  // key: field in this document
+  // pkey: field in related document (optional, defaults to '_id')
+  user: relb.belongsToOne('user').key('userId').pkey('_id'),
 }
 ```
 
@@ -31,12 +28,8 @@ A document belongs to multiple related documents using an array of IDs.
 
 ```typescript
 relations: {
-  tags: {
-    type: 'belongsToMany',
-    repo: 'tag',
-    key: 'tagIds',  // Array field in this document
-    pkey: '_id'
-  }
+  // key: array field in this document
+  tags: relb.belongsToMany('tag').key('tagIds').pkey('_id'),
 }
 ```
 
@@ -46,12 +39,8 @@ A document has one related document.
 
 ```typescript
 relations: {
-  profile: {
-    type: 'hasOne',
-    repo: 'userProfile',
-    pkey: '_id',        // Field in this document
-    key: 'userId'       // Field in related document
-  }
+  // pkey: field in this document, key: field in related document
+  profile: relb.hasOne('userProfile').pkey('_id').key('userId'),
 }
 ```
 
@@ -61,12 +50,8 @@ A document has many related documents.
 
 ```typescript
 relations: {
-  posts: {
-    type: 'hasMany',
-    repo: 'post',
-    pkey: '_id',      // Field in this document
-    key: 'authorId'   // Field in related documents
-  }
+  // pkey: field in this document, key: field in related documents
+  posts: relb.hasMany('post').pkey('_id').key('authorId'),
 }
 ```
 
@@ -76,12 +61,7 @@ Returns count of related documents instead of the documents themselves.
 
 ```typescript
 relations: {
-  postCount: {
-    type: 'hasManyCount',
-    repo: 'post',
-    pkey: '_id',
-    key: 'authorId'
-  }
+  postCount: relb.hasManyCount('post').pkey('_id').key('authorId'),
 }
 ```
 
@@ -98,7 +78,8 @@ Embedded relations join on data within the same document:
 
 ### Defining Relations
 
-Define relations in your repository configuration:
+Define relations in your repository configuration with the relation builder
+(`relb`):
 
 ```typescript
 export class RepoPost extends Repo<Post> {
@@ -106,17 +87,8 @@ export class RepoPost extends Repo<Post> {
     super({
       name: 'post',
       relations: {
-        author: {
-          type: 'belongsToOne',
-          repo: 'user',
-          key: 'authorId',
-        },
-        comments: {
-          type: 'hasMany',
-          repo: 'comment',
-          pkey: '_id',
-          key: 'postId',
-        },
+        author: relb.belongsToOne('user').key('authorId'),
+        comments: relb.hasMany('comment').pkey('_id').key('postId'),
       },
     })
   }
@@ -125,28 +97,23 @@ export class RepoPost extends Repo<Post> {
 
 ### Relation builder (`relb`)
 
-`relb` builds the same config with one method per relation type, so the type
-string is never written by hand. A repo accepts a builder wherever it accepts
-the plain config; there is no `build()` call.
+`relb` has one method per relation type, so the type string is never written by
+hand. A repo accepts a builder wherever it accepts a plain config; there is no
+`build()` call. Chain methods: `key`, `keys`, `pkey`, `alias`, `docPath`,
+`docPathRelated`, `query`, `fields`, `recursion`, `autoPopulate`,
+`filterPrivate`, `populate`, `limit`, `skip`, `sort`. Static methods:
+`belongsToOne`, `belongsToMany`, `hasOne`, `hasMany`, `hasManyCount` and the
+four `embedded*` types.
 
 ```typescript
-super({
-  name: 'post',
-  relations: {
-    author: relb.belongsToOne('user').key('authorId'),
-    comments: relb
-      .hasMany('comment')
-      .pkey('_id')
-      .key('postId')
-      .autoPopulate(false),
-  },
-})
+relations: {
+  comments: relb
+    .hasMany('comment')
+    .pkey('_id')
+    .key('postId')
+    .autoPopulate(false),
+}
 ```
-
-Chain methods: `key`, `keys`, `pkey`, `alias`, `docPath`, `docPathRelated`,
-`query`, `fields`, `recursion`, `autoPopulate`, `filterPrivate`, `populate`,
-`limit`, `skip`, `sort`. Static methods: `belongsToOne`, `belongsToMany`,
-`hasOne`, `hasMany`, `hasManyCount` and the four `embedded*` types.
 
 ### Populating Relations
 
@@ -192,12 +159,8 @@ Relations can be configured to auto-populate by default:
 
 ```typescript
 relations: {
-  author: {
-    type: 'belongsToOne',
-    repo: 'user',
-    key: 'authorId',
-    autoPopulate: true  // Always populate by default
-  }
+  // Always populate by default
+  author: relb.belongsToOne('user').key('authorId').autoPopulate(true),
 }
 
 // Can be disabled in specific queries
