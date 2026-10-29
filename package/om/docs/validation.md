@@ -12,7 +12,7 @@ schema builder (`sb`). See the
 [schema builder reference](../../schema/docs/builder.md) for every method.
 
 ```typescript
-import { Schema, sb } from '@datacapy/om'
+import { Schema, SchemaBuilder as sb } from '@datacapy/om'
 
 const schema = new Schema(
   sb.schema('user').shape({

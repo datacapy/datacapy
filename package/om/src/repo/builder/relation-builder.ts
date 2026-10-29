@@ -6,6 +6,8 @@ import { RepoConfigBuilder } from './builder-base'
  * never written by hand. The alias defaults to the key the builder is stored under in the
  * repo's `relations` config.
  *
+ *   import { RepoRelationBuilder as relb } from '@datacapy/server'
+ *
  *   relations: {
  *     participant: relb.belongsToOne('surveyParticipant').key('participantId'),
  *     responses: relb.hasMany('surveyResponse').key('surveyId').autoPopulate(false),
@@ -135,5 +137,3 @@ export class RepoRelationBuilder extends RepoConfigBuilder<RepoRelationConfig> {
     return { ...this.config }
   }
 }
-
-export const relb = RepoRelationBuilder

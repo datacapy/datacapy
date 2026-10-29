@@ -17,8 +17,6 @@ export {
   RepoConfigBuilder,
   RepoIndexBuilder,
   RepoRelationBuilder,
-  repib,
-  relb,
 } from './builder'
 
 export { Repo as default } from './repo'

@@ -1,4 +1,4 @@
-import { sb } from '@datacapy/schema'
+import { SchemaBuilder as sb } from '@datacapy/schema'
 import Repo from 'repo'
 
 describe('Repo schema config', () => {

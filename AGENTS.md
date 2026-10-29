@@ -13,6 +13,8 @@ preference.
 
 ### Docs and Examples Use Builders
 
+The library exports only the full class names (`SchemaBuilder`, `RepoRelationBuilder`, `RepoIndexBuilder`). Import them under the local aliases `sb`, `relb` and `repib` (`import { SchemaBuilder as sb }`) so each file states what the short name means.
+
 Package docs and examples must use the builders (`sb` for schemas, `relb` for relations, `repib` for indexes) and pass them straight in, with no trailing `.build()`. Use a plain spec only when there is a good reason: a schema generated or loaded as data, or an option the builder does not expose (say so in the doc, as `schema/docs/builder.md` does).
 
 ### Console Noise in Tests

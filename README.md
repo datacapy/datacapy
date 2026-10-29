@@ -50,7 +50,7 @@ and the server alike.
 
 ```ts
 // shared/noteSchema.ts
-import { Schema, sb } from '@datacapy/schema'
+import { Schema, SchemaBuilder as sb } from '@datacapy/schema'
 
 export const noteSchema = new Schema(
   sb.schema('note').shape({
@@ -151,7 +151,13 @@ git checkout instead of npm, see [workspace install](docs/workspace-install.md).
 This version runs against an in-memory datasource seeded with data:
 
 ```ts
-import { ModelManager, Repo, DataSourceMock, sb, relb } from '@datacapy/om'
+import {
+  ModelManager,
+  Repo,
+  DataSourceMock,
+  SchemaBuilder as sb,
+  RepoRelationBuilder as relb,
+} from '@datacapy/om'
 import genUniqueId from '@datacapy/id'
 
 class CustomerRepo extends Repo<unknown> {

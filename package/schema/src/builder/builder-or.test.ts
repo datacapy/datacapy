@@ -1,5 +1,5 @@
 import { BuilderOr } from './builder-or'
-import { sb } from './index'
+import { SchemaBuilder as sb } from './index'
 
 /**
  * Test suite for BuilderOr class

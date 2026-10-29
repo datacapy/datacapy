@@ -79,9 +79,11 @@ Embedded relations join on data within the same document:
 ### Defining Relations
 
 Define relations in your repository configuration with the relation builder
-(`relb`):
+(`RepoRelationBuilder`, imported under the local alias `relb`):
 
 ```typescript
+import { Repo, RepoRelationBuilder as relb } from '@datacapy/om'
+
 export class RepoPost extends Repo<Post> {
   constructor() {
     super({
@@ -96,6 +98,9 @@ export class RepoPost extends Repo<Post> {
 ```
 
 ### Relation builder (`relb`)
+
+`relb` is the local alias for `RepoRelationBuilder`; the library exports only
+the class.
 
 `relb` has one method per relation type, so the type string is never written by
 hand. A repo accepts a builder wherever it accepts a plain config; there is no

@@ -1,5 +1,5 @@
 import { BuilderSchema } from './builder-schema'
-import { sb } from './index'
+import { SchemaBuilder as sb } from './index'
 
 /**
  * Test suite for BuilderSchema class

@@ -1,5 +1,5 @@
 import { BuilderMixed } from './builder-mixed'
-import { sb } from './index'
+import { SchemaBuilder as sb } from './index'
 import SchemaTypes from '../types'
 
 /**

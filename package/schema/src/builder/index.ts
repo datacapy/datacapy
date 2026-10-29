@@ -16,12 +16,6 @@ import { BuilderOr } from './builder-or'
 import { BuilderSchema } from './builder-schema'
 import { BuilderBase } from './builder-base'
 
-/**
- * Export as 'sb' for convenience
- * Example usage: sb.string().required().maxLength(64).build()
- */
-export const sb = SchemaBuilder
-
 // Export individual builder classes for advanced use cases
 export {
   SchemaBuilder,
@@ -36,5 +30,3 @@ export {
   BuilderOr,
   BuilderSchema,
 }
-
-export default sb

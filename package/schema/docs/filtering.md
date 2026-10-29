@@ -5,7 +5,7 @@ Filters change a value: fill a default, tidy a string, hide a field.
 To run filters without validating, use `applyFilters()`.
 
 ```ts
-import { Schema, sb } from '@datacapy/schema'
+import { Schema, SchemaBuilder as sb } from '@datacapy/schema'
 
 const schema = new Schema(
   sb.schema().shape({

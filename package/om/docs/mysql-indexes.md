@@ -47,6 +47,10 @@ await repo.createIndex(
 
 ### Index builder (`repib`)
 
+`repib` is the local alias for `RepoIndexBuilder`:
+`import { RepoIndexBuilder as repib } from '@datacapy/om'`. The library exports
+only the class.
+
 Indexes declared in a repo's `indexes` config can use `repib` instead of the
 `{ spec, options }` object. The key the builder is stored under is the index
 name. A repo accepts builders directly; there is no `build()` call.

@@ -6,7 +6,7 @@ references, alternatives, dynamic keys, and class instances.
 ## Nested objects and arrays
 
 ```ts
-import { Schema, sb } from '@datacapy/schema'
+import { Schema, SchemaBuilder as sb } from '@datacapy/schema'
 
 const order = new Schema(
   sb.schema('order').shape({
@@ -34,7 +34,7 @@ Give a schema a name, then refer to it from another schema instead of repeating
 its fields.
 
 ```ts
-import { Schema, SchemaManager, sb } from '@datacapy/schema'
+import { Schema, SchemaManager, SchemaBuilder as sb } from '@datacapy/schema'
 
 const address = new Schema(
   sb

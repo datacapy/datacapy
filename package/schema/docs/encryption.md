@@ -9,7 +9,7 @@ each marked field.
 ## Marking fields
 
 ```ts
-import { sb } from '@datacapy/schema'
+import { SchemaBuilder as sb } from '@datacapy/schema'
 
 const spec = sb.schema('patient').shape({
   name: sb.string(),

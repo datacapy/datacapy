@@ -1,11 +1,13 @@
 # Schema builder
 
-`sb` is a fluent builder for schema specs. Each `sb.<type>()` call returns a
-builder; methods add rules and return the builder. `new Schema()` accepts a
-builder directly; `.build()` produces the equivalent plain spec.
+`SchemaBuilder` is a fluent builder for schema specs. Import it under the local
+alias `sb` (`import { SchemaBuilder as sb }`); the examples below use that
+alias. Each `sb.<type>()` call returns a builder; methods add rules and return
+the builder. `new Schema()` accepts a builder directly; `.build()` produces the
+equivalent plain spec.
 
 ```ts
-import { Schema, sb } from '@datacapy/schema'
+import { Schema, SchemaBuilder as sb } from '@datacapy/schema'
 
 const schema = new Schema(
   sb.schema('user').shape({

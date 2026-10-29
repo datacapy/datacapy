@@ -1,3 +1,3 @@
 export { RepoConfigBuilder } from './builder-base'
-export { RepoIndexBuilder, repib } from './index-builder'
-export { RepoRelationBuilder, relb } from './relation-builder'
+export { RepoIndexBuilder } from './index-builder'
+export { RepoRelationBuilder } from './relation-builder'

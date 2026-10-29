@@ -1,5 +1,5 @@
 import Schema, { SchemaQuery } from 'schema'
-import { sb } from '../builder'
+import { SchemaBuilder as sb } from '../builder'
 
 describe('validateQuery', () => {
   it('should cast query parameters', async () => {

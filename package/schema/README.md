@@ -30,7 +30,7 @@ pnpm add @datacapy/schema
 ## Quick start
 
 ```ts
-import { Schema, sb } from '@datacapy/schema'
+import { Schema, SchemaBuilder as sb } from '@datacapy/schema'
 
 const personSchema = new Schema(
   sb

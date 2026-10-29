@@ -27,7 +27,7 @@ repositories and services.
 ### Define a Schema
 
 ```typescript
-import { Schema, sb } from '@datacapy/om'
+import { Schema, SchemaBuilder as sb } from '@datacapy/om'
 
 const userSchema = new Schema(
   sb.schema('user').shape({
@@ -41,7 +41,7 @@ const userSchema = new Schema(
 ### Create a Repository
 
 ```typescript
-import { Repo, relb } from '@datacapy/om'
+import { Repo, RepoRelationBuilder as relb } from '@datacapy/om'
 
 export class RepoUser extends Repo<User> {
   constructor() {

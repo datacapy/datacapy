@@ -7,6 +7,8 @@ import { RepoConfigBuilder } from './builder-base'
  * Builds a `RepoIndexConfig`. The index name is the key the builder is stored under in the
  * repo's `indexes` config, so it is not set here.
  *
+ *   import { RepoIndexBuilder as repib } from '@datacapy/server'
+ *
  *   indexes: {
  *     createdAt: repib.desc('createdAt').timestamp(),
  *     email: repib.asc('email').unique(),
@@ -100,5 +102,3 @@ export class RepoIndexBuilder extends RepoConfigBuilder<RepoIndexConfig> {
     return config
   }
 }
-
-export const repib = RepoIndexBuilder

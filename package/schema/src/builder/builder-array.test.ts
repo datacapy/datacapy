@@ -1,5 +1,5 @@
 import { BuilderArray } from './builder-array'
-import { sb } from './index'
+import { SchemaBuilder as sb } from './index'
 
 /**
  * Test suite for BuilderArray class

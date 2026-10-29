@@ -1,5 +1,5 @@
 import { TYPE_HINT_BIGINT_UNSIGNED, TYPE_HINT_TIMESTAMP } from '../type-hints'
-import { repib } from './index-builder'
+import { RepoIndexBuilder as repib } from './index-builder'
 
 describe('repib', () => {
   it('builds a descending timestamp index', () => {

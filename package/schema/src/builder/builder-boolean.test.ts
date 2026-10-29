@@ -1,5 +1,5 @@
 import { BuilderBoolean } from './builder-boolean'
-import { sb } from './index'
+import { SchemaBuilder as sb } from './index'
 
 /**
  * Test suite for BuilderBoolean class

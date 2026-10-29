@@ -1,5 +1,5 @@
 import Schema from 'schema'
-import { sb } from 'builder'
+import { SchemaBuilder as sb } from 'builder'
 import { SchemaTypeCaster } from 'utilities/type-caster'
 
 const errorsFor = async (spec: any, value: any) => {

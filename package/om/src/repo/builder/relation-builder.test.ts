@@ -1,4 +1,4 @@
-import { relb } from './relation-builder'
+import { RepoRelationBuilder as relb } from './relation-builder'
 
 describe('relb', () => {
   it.each([

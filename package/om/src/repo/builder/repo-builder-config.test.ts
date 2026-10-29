@@ -1,4 +1,4 @@
-import { repib, relb } from './index'
+import { RepoIndexBuilder as repib, RepoRelationBuilder as relb } from './index'
 import { TYPE_HINT_TIMESTAMP } from '../type-hints'
 import Repo from 'repo'
 

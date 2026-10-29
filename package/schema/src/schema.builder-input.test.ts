@@ -1,5 +1,5 @@
 import Schema from './schema'
-import { sb } from './builder'
+import { SchemaBuilder as sb } from './builder'
 
 describe('Schema constructor with builder input', () => {
   const build = () =>
