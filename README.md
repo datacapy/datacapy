@@ -4,38 +4,151 @@
 
 # DataCapy
 
-**Define your data once. Query any database, validate in the browser and on the server, and serve it over REST.**
+**A TypeScript framework for structured Node.js backends.**
+
+A Node.js backend has plenty of parts available: an HTTP layer, data access, validation. Nothing
+makes them fit together, so the same validation rules end up written twice, once for the browser
+and once for the server.
+
+DataCapy gives the backend a shape. Define your data once, put your logic in services, and expose
+them over REST. Schemas describe the data, repositories store it, services hold the logic, and
+config turns services into validated, access-controlled endpoints. It is plain Express underneath,
+so any Express middleware works. Every layer is its own package, so you can adopt the whole stack
+or just the part you need.
+
+### Start where you are
+
+- **Shared validation only:** [`@datacapy/schema`](package/schema/README.md) runs in the browser
+  and on the server.
+- **A data layer only:** [`@datacapy/om`](package/om/README.md) for repositories and queries.
+- **The full stack:** add [`@datacapy/server`](package/server/README.md) to serve services as REST
+  endpoints.
+
+## The shape of a DataCapy app
+
+```
+  browser                          server
+  ───────                          ──────
+  @datacapy/schema  ◄── same ──►   @datacapy/schema    define, cast, validate
+                      definitions        │
+                                         ▼
+                                   @datacapy/om        repositories, relations, services
+                                         │              MySQL · MongoDB · Redis
+                                         ▼
+                                   @datacapy/server    endpoints from config, ACL, errors
+                                         │
+                                         ▼
+                                   Express             plain Express underneath
+
+  alongside:  @datacapy/migrate (versioned database patches)   @datacapy/id (time-ordered IDs)
+```
+
+## One example, all the layers
+
+A schema defined once. It is plain TypeScript, so a shared package can import it into the browser
+and the server alike.
 
 ```ts
-// Find customers and load their orders in one call, with no SQL and no joins
-const customers = await customerRepo.find(
-  { name: { $in: ['Ada Lovelace', 'Grace Hopper'] } },
-  { populate: { orders: true } },
+// shared/noteSchema.ts
+import { Schema, sb } from '@datacapy/schema'
+
+export const noteSchema = new Schema(
+  sb.schema('note').shape({
+    _id: sb.string(),
+    text: sb.string().required().trim().length(1, 280),
+    owner: sb.string(),
+  }),
 )
-// [{ _id: 'ecrDWdCQCiXSrf6', name: 'Ada Lovelace', orders: [{ number: '#1001', total: 42 }, ...] }, ...]
 ```
 
-The datasource is configuration. Swap `DataSourceMysql` for `DataSourceMongodb` or
-Redis and that query does not change, and there is no second client library to learn.
+A repository that validates every write against it, a service that holds the logic, and the config
+that exposes it:
 
-- **One query language** for MySQL, MongoDB and Redis, with relations that can span databases.
-- **One schema** that runs in the browser and on the server, so both enforce the same rules.
-- **REST from config**: nothing is reachable until you declare it, and every request is validated, cast and access-checked.
+```ts
+import Server, { Repo, Service, ServerErrorNotFound } from '@datacapy/server'
+import { noteSchema } from './shared/noteSchema'
 
-Use the pieces together or separately. Migrations and time-ordered IDs are included.
+type Note = { _id: string; text: string; owner: string }
 
-## Quick start
+class NoteRepo extends Repo<Note> {
+  constructor() {
+    super({ name: 'note', dataSource: 'db', schema: noteSchema })
+  }
+}
+
+class NoteService extends Service {
+  constructor() {
+    super({ name: 'note' })
+  }
+
+  async get({ id }: { id: string }) {
+    const note = await this.getRepo<NoteRepo>('note').findOne({ _id: id })
+    if (!note) throw new ServerErrorNotFound({ message: 'No such note' })
+    return note
+  }
+}
+
+server.addApiConfig({
+  service: 'note',
+  acl: { rules: [{ allow: true, role: 'authed' }] },
+  endpoints: {
+    getOne: {
+      path: '/:id',
+      method: 'get',
+      verbs: ['get'],
+      data: { id: { src: 'param', type: String, required: true } },
+    },
+  },
+})
+```
+
+```
+GET /api/note/n1   (no credentials)   401 {"name":"ServerErrorUnauthorized"}
+GET /api/note/n1   (signed in)        200 {"_id":"n1","text":"Hello","owner":"kevin"}
+GET /api/note/n9   (signed in)        404 {"message":"No such note","name":"ServerErrorNotFound"}
+```
+
+In the browser, the same schema checks a form before anything is sent:
+
+```ts
+const { isValid, errors } = await noteSchema.validate({ text: '' })
+// isValid: false, errors: { text: ['text must be at least 1 characters long'] }
+```
+
+The `data` block validates and casts the request, the `acl` block decides who gets in, and the typed
+error picks the status. The full server setup, including a role assessor, is in the
+[`server` quick start](package/server/README.md#quick-start).
+
+## Why it feels different
+
+- **Declare it, get it.** Nothing is reachable until you declare an endpoint. Each request is
+  validated, cast and access-checked before your code runs, and typed errors map to HTTP statuses.
+- **One definition.** A schema validates writes on the server and form input in the browser, with no
+  second copy of the rules to keep in step.
+- **One query language.** Repositories speak a MongoDB-style query language over MySQL, MongoDB,
+  Redis and an in-memory mock. Swap the datasource in config and the queries do not change.
+  Relations (has-one, has-many, belongs-to, counts, embedded, composite keys) load in one call and
+  can span databases. See [Relations](package/om/docs/relations.md).
+- **Easy to test.** Point a repository at a seeded in-memory datasource and a service runs without
+  a database, as in [Try it with no database](#try-it-with-no-database). The mock serves reads; it
+  does not keep writes.
+- **No lock-in.** For a store DataCapy does not cover, implement the
+  [`DataSource`](package/om/src/data-source/interface.ts) interface and it gets the same API.
+
+Also included: field-level encryption at rest with your own encryption service, and multi-tenant
+datasources that route each request to a different database at runtime.
+
+## Try it with no database
 
 ```bash
-pnpm add @datacapy/om @datacapy/id mysql2
+pnpm add @datacapy/om @datacapy/id
 ```
 
-`@datacapy/om` re-exports `@datacapy/schema`. `@datacapy/id` generates the time-ordered
-string IDs used for `_id`. `mysql2` is a peer dependency; add `mongodb` instead for MongoDB. Add
-`@datacapy/server` for REST endpoints and `@datacapy/migrate` for migrations. To use a
+`@datacapy/om` re-exports `@datacapy/schema`, and `@datacapy/id` generates the `_id` values. For a
+real database add `mysql2` or `mongodb`, and add `@datacapy/server` for REST endpoints. To use a
 git checkout instead of npm, see [workspace install](docs/workspace-install.md).
 
-This version runs against an in-memory datasource, so it needs no database:
+This version runs against an in-memory datasource seeded with data:
 
 ```ts
 import { ModelManager, Repo, DataSourceMock, sb, relb } from '@datacapy/om'
@@ -85,84 +198,17 @@ const found = await customers.find({}, { populate: { orders: true } })
 // [{ _id: 'ecrDWdCQCiXSrf6', name: 'Ada Lovelace', orders: [{ number: '#1001', ... }, ...] }]
 ```
 
-## What you get
-
-### ODM framework
-
-Repositories give you one set of methods and one MongoDB-style query language across
-MySQL, MongoDB, Redis and an in-memory mock. A project can use several databases side
-by side and read and write them all alike. For any other store, implement the
-[`DataSource`](package/om/src/data-source/interface.ts) interface and it gets the same API.
-
-Declare how documents relate, then populate them in one call. Has-one, has-many,
-belongs-to-one, belongs-to-many, counts, embedded relations and composite keys are
-supported. See [Relations](package/om/docs/relations.md).
-
-Also included: field-level encryption at rest with your own encryption service, and
-multi-tenant datasources that route each request to a different database at runtime.
-
-### Schema library
-
-A schema is plain TypeScript with no server-only dependencies. Define it once in a
-shared package. The server validates writes with it, and the browser runs the same
-rules to show errors before anything is sent.
-
-```ts
-import { Schema, sb } from '@datacapy/schema'
-
-export const personSchema = new Schema(
-  sb.schema('person').shape({
-    name: sb.string().required().trim().length(2, 50),
-    email: sb.string().email().lowercase(),
-    age: sb.number(),
-  }),
-)
-
-const { isValid, errors } = await personSchema.validate({
-  name: '  Paul ',
-  age: '33',
-})
-// isValid: true, and the object is now { name: 'Paul', age: 33, ... }: cast, trimmed, defaulted
-```
-
-### REST layer
-
-Describe each endpoint in config. DataCapy validates and casts the request, checks
-access rules, calls your service and maps errors to HTTP statuses.
-
-```ts
-server.addApiConfig({
-  service: 'note',
-  acl: { rules: [{ allow: true, role: 'authed' }] },
-  endpoints: {
-    getOne: {
-      path: '/:id',
-      method: 'get',
-      verbs: ['get'],
-      data: { id: { src: 'param', type: Number, required: true } },
-    },
-  },
-})
-```
-
-```
-GET /api/note/1    (no credentials)  401
-GET /api/note/99                     404 {"message":"No such note"}
-GET /api/note/abc                    403 {"validationErrors":{"id":["'abc' of type String cannot be cast to type Number"]}}
-GET /api/note/1                      200 {"id":1,"text":"Hello"}
-```
-
-The full example is in the [`server` quick start](package/server/README.md#quick-start).
-
 ## Packages
 
-| Package                                          | What it does                                                                                       |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| [`@datacapy/om`](package/om/README.md)           | The mapper: repositories, relations and population, encryption, multi-tenant datasources, adaptors |
-| [`@datacapy/schema`](package/schema/README.md)   | Define, cast, filter and validate data. Runs in Node and the browser                               |
-| [`@datacapy/server`](package/server/README.md)   | Config-driven Express endpoints with request validation and access control                         |
-| [`@datacapy/migrate`](package/migrate/README.md) | Database migration runner with versioned patches and dry-run mode                                  |
-| [`@datacapy/id`](package/id/README.md)           | Short, time-ordered Base62 IDs (15 characters)                                                     |
+Use them together or separately.
+
+| Package                                          | Use it when you want to                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| [`@datacapy/schema`](package/schema/README.md)   | Define, cast, filter and validate data once, in Node and the browser                  |
+| [`@datacapy/om`](package/om/README.md)           | Store and query data through repositories, with relations, encryption and datasources |
+| [`@datacapy/server`](package/server/README.md)   | Expose services as REST endpoints with request validation and access control          |
+| [`@datacapy/migrate`](package/migrate/README.md) | Change a database over time with versioned patches and a dry-run mode                 |
+| [`@datacapy/id`](package/id/README.md)           | Generate short, time-ordered Base62 IDs (15 characters)                               |
 
 ### Guides
 
