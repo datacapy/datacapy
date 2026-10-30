@@ -155,19 +155,55 @@ import {
   ModelManager,
   Repo,
   DataSourceMock,
+  Schema,
   SchemaBuilder as sb,
   RepoRelationBuilder as relb,
 } from '@datacapy/om'
 import genUniqueId from '@datacapy/id'
 
-class CustomerRepo extends Repo<unknown> {
+class Order {
+  _id!: string
+  number!: string
+  total!: number
+  customerId!: string
+  constructor(data: Pick<Order, '_id' | 'number' | 'total' | 'customerId'>) {
+    Object.assign(this, data)
+  }
+}
+
+class Customer {
+  _id!: string
+  name!: string
+  orders?: Order[]
+  constructor(data: Pick<Customer, '_id' | 'name'>) {
+    Object.assign(this, data)
+  }
+  greeting() {
+    return `Hello, ${this.name}`
+  }
+}
+
+const customerSchema = new Schema(
+  sb
+    .schema('customer')
+    .construct(Customer)
+    .shape({ _id: sb.string(), name: sb.string().required().trim() }),
+)
+
+const orderSchema = new Schema(
+  sb.schema('order').construct(Order).shape({
+    _id: sb.string(),
+    number: sb.string(),
+    total: sb.number(),
+    customerId: sb.string(),
+  }),
+)
+
+class CustomerRepo extends Repo<Customer> {
   constructor() {
     super({
       name: 'customer',
       dataSource: 'db',
-      schema: sb
-        .schema('customer')
-        .shape({ _id: sb.string(), name: sb.string().required().trim() }),
       relations: {
         orders: relb.hasMany('order').key('customerId'),
       },
@@ -175,7 +211,7 @@ class CustomerRepo extends Repo<unknown> {
   }
 }
 
-class OrderRepo extends Repo<unknown> {
+class OrderRepo extends Repo<Order> {
   constructor() {
     super({ name: 'order', dataSource: 'db' })
   }
@@ -183,7 +219,10 @@ class OrderRepo extends Repo<unknown> {
 
 const adaId = genUniqueId()
 
-const modelManager = new ModelManager()
+const modelManager = new ModelManager({
+  schemas: [customerSchema, orderSchema],
+  constructors: [Customer, Order],
+})
 modelManager.addDataSource(
   'db',
   new DataSourceMock({
@@ -201,8 +240,15 @@ modelManager.addRepo(new OrderRepo())
 await modelManager.init()
 
 const found = await customers.find({}, { populate: { orders: true } })
-// [{ _id: 'ecrDWdCQCiXSrf6', name: 'Ada Lovelace', orders: [{ number: '#1001', ... }, ...] }]
+found[0].greeting() // 'Hello, Ada Lovelace'
+found[0].orders?.[0] instanceof Order // true
 ```
+
+`Repo<Customer>` is the TypeScript type, so `find()` returns `Customer[]`. `construct(Customer)` and the
+model manager's `constructors` are the runtime half: `init()` hands the registered classes to every repo,
+which turns each stored document into a `Customer` instance, populated `orders` included. The model
+manager also assigns each schema to the repo of the same name, so the repos declare none. The two are independent, and using the same class for both is the
+convention. See [Composition](package/schema/docs/composition.md#constructors).
 
 ## Packages
 
