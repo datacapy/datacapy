@@ -1,5 +1,6 @@
 import { BuilderOr } from './builder-or'
 import { SchemaBuilder as sb } from './index'
+import { refTo, refName } from '../test-utils/schema-ref'
 
 /**
  * Test suite for BuilderOr class
@@ -109,8 +110,8 @@ describe('BuilderOr', () => {
       const spec = sb.or([{ $schema: 'user' }, { $schema: 'admin' }]).build()
 
       expect(spec.$or).toHaveLength(2)
-      expect(spec.$or?.[0].$schema).toBe('user')
-      expect(spec.$or?.[1].$schema).toBe('admin')
+      expect(refName(spec.$or?.[0].$schema)).toBe('user')
+      expect(refName(spec.$or?.[1].$schema)).toBe('admin')
     })
 
     it('should handle nested $or specs', () => {
@@ -303,8 +304,8 @@ describe('BuilderOr', () => {
         .relation()
         .build()
 
-      expect(spec.$or?.[0].$schema).toBe('user')
-      expect(spec.$or?.[1].$schema).toBe('organization')
+      expect(refName(spec.$or?.[0].$schema)).toBe('user')
+      expect(refName(spec.$or?.[1].$schema)).toBe('organization')
       expect(spec.$label).toBe('Owner')
       expect(spec.$relation).toBe(true)
     })
@@ -334,7 +335,7 @@ describe('BuilderOr', () => {
           sb.object().shape({
             user: sb.object().shape({
               id: sb.string().required(),
-              profile: sb.object().schema('userProfile'),
+              profile: sb.object().schema(refTo('userProfile')),
             }),
           }),
           sb.object().shape({

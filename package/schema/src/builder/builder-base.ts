@@ -5,13 +5,27 @@ import SchemaSpec, {
 } from '../spec'
 import { FilterConditionSpec } from '../filter/filter-condition'
 
+/** Marker added to a builder's type by `required()` and `default()`. */
+export interface BuilderPresent {
+  readonly _present: true
+}
+
+/** Marker added to a builder's type by `nullable()`. */
+export interface BuilderNullable {
+  readonly _nullable: true
+}
+
 /**
  * Abstract base class for all field builders
  * Provides common validation and filter methods that all field types inherit
  * @template T - The TypeScript type this builder represents (for type inference)
  */
-// @ts-ignore - T is used for type inference, not in implementation
 export abstract class BuilderBase<T = any> {
+  /** Type-only members read by `Infer`; never assigned at runtime. */
+  declare readonly _type: T
+  declare readonly _present: boolean
+  declare readonly _nullable: boolean
+
   protected spec: SchemaSpec = {}
 
   /**
@@ -22,12 +36,12 @@ export abstract class BuilderBase<T = any> {
   // ==================== Validation Methods ====================
 
   /**
-   * Mark field as required (must be present)
+   * Mark field as required (must be present). Also makes the inferred key non-optional.
    */
-  required(options?: SchemaSpecValidateOptions): this {
+  required(options?: SchemaSpecValidateOptions): this & BuilderPresent {
     if (!this.spec.$validate) this.spec.$validate = {}
     this.spec.$validate.required = options || true
-    return this
+    return this as this & BuilderPresent
   }
 
   /**
@@ -94,12 +108,13 @@ export abstract class BuilderBase<T = any> {
   // ==================== Filter Methods ====================
 
   /**
-   * Set default value if field is undefined
+   * Set default value if field is undefined. A defaulted field is always
+   * present after filtering, so the inferred key is non-optional.
    */
-  default(value: any): this {
+  default(value: any): this & BuilderPresent {
     if (!this.spec.$filter) this.spec.$filter = {}
     this.spec.$filter.defaultValue = value
-    return this
+    return this as this & BuilderPresent
   }
 
   /**
@@ -170,9 +185,9 @@ export abstract class BuilderBase<T = any> {
    * Allow null value for this field
    * Applies to objects, arrays, and primitive types
    */
-  nullable(): this {
+  nullable(): this & BuilderNullable {
     this.spec.$nullable = true
-    return this
+    return this as this & BuilderNullable
   }
 
   /**

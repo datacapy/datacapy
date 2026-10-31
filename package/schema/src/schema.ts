@@ -13,6 +13,7 @@ import SchemaTransientProcessor from './processors/transient-processor'
 import SchemaFieldPrivateFilter from './processors/field-private-filter'
 import { BuilderBase } from './builder/builder-base'
 import { BuilderSchema } from './builder/builder-schema'
+import type { HasShape } from './builder/infer'
 import { SchemaLimitTracker, SchemaValidationLimits } from './limits'
 
 type SchemaIteratorCallbackOpts = Parameters<SchemaIteratorCallback>[0]
@@ -42,7 +43,10 @@ export interface SchemaQuery {
   [key: string]: SchemaQuery | Array<SchemaQuery> | any
 }
 
-export class Schema {
+export class Schema<S = any> implements HasShape<S> {
+  /** Type-only: the shape this schema was built from. Read by `Infer`. */
+  declare readonly _shape: S
+
   private static readonly VALIDATE_BATCH_SIZE = 1000
 
   config: SchemaConfig
@@ -58,7 +62,7 @@ export class Schema {
   private fieldPrivateFilter?: SchemaFieldPrivateFilter
 
   constructor(
-    spec?: SchemaSpec | BuilderBase | BuilderSchema,
+    spec?: SchemaSpec | BuilderBase | BuilderSchema<S>,
     options?: SchemaConfig
   ) {
     this.config = options == undefined ? {} : options

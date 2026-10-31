@@ -14,6 +14,10 @@ import { BuilderOr } from './builder-or'
 import { BuilderSchema } from './builder-schema'
 import { BuilderBase } from './builder-base'
 import SchemaSpec from '../spec'
+import { ArrayItem, ArrayItemInput } from './builder-array'
+import { BuilderRef } from './builder-ref'
+import { OrValue } from './builder-or'
+import { Infer, InferShape, SchemaThunk, ShapeInput } from './infer'
 
 export class SchemaBuilder {
   /**
@@ -47,47 +51,53 @@ export class SchemaBuilder {
   /**
    * Create an array field builder
    */
-  static array<T = any>(
-    itemSpec?: SchemaSpec | BuilderBase<any>
-  ): BuilderArray<T> {
-    return new BuilderArray<T>(itemSpec)
+  static array(): BuilderArray<any>
+  static array<X extends ArrayItemInput>(
+    itemSpec: X
+  ): BuilderArray<ArrayItem<X>>
+  static array(itemSpec?: ArrayItemInput): BuilderArray<any> {
+    return new BuilderArray(itemSpec)
   }
 
   /**
    * Create an object field builder
    */
-  static object<T extends object = any>(shape?: {
-    [K in keyof T]?: SchemaSpec | BuilderBase<any>
-  }): BuilderObject<T> {
-    return new BuilderObject<T>(shape)
+  static object(): BuilderObject<any>
+  static object<S extends ShapeInput>(shape: S): BuilderObject<InferShape<S>>
+  static object(shape?: ShapeInput): BuilderObject<any> {
+    return new BuilderObject(shape)
   }
 
   /**
    * Create a mixed (any) field builder
    */
-  static mixed(): BuilderMixed {
+  static mixed(): BuilderMixed<unknown> {
     return new BuilderMixed()
   }
 
   /**
    * Create an $or field builder for alternative specs
    */
-  static or(specs: Array<SchemaSpec | BuilderBase<any>>): BuilderOr {
+  static or<const X extends ReadonlyArray<SchemaSpec | BuilderBase<any>>>(
+    specs: X
+  ): BuilderOr<OrValue<X>> {
     return new BuilderOr(specs)
   }
 
   /**
    * Create a top-level schema builder
    */
-  static schema(name?: string): BuilderSchema {
+  static schema(name?: string): BuilderSchema<{}> {
     return new BuilderSchema(name)
   }
 
   /**
-   * Shorthand for creating a schema reference
-   * Example: sb.ref('surveyQuestion') => { $schema: 'surveyQuestion' }
+   * Reference another schema lazily; the type is inferred from the schema.
+   * Example: sb.ref(() => schemaSurveyQuestion)
    */
-  static ref(schemaName: string): SchemaSpec {
-    return { $schema: schemaName }
+  static ref<S extends SchemaThunk>(
+    schema: S
+  ): BuilderRef<Infer<ReturnType<S>>> {
+    return new BuilderRef(schema)
   }
 }

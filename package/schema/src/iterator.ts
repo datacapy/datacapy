@@ -79,7 +79,8 @@ export class SchemaIterator {
 
     if (spec && typeof spec === 'object') {
       if (spec.$schema) {
-        const name = spec.$schema
+        const name =
+          typeof spec.$schema === 'function' ? spec.$schema() : spec.$schema
         if (!this.schemas[name]) {
           throw new Error(`Missing schema reference ${name}`)
         }

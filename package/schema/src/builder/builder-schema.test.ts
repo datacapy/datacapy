@@ -1,5 +1,6 @@
 import { BuilderSchema } from './builder-schema'
 import { SchemaBuilder as sb } from './index'
+import { refTo, refName } from '../test-utils/schema-ref'
 
 /**
  * Test suite for BuilderSchema class
@@ -359,15 +360,15 @@ describe('BuilderSchema', () => {
       const spec = sb
         .schema('order')
         .shape({
-          user: sb.object().schema('user'),
-          items: sb.array().ofSchema('orderItem'),
-          shippingAddress: sb.object().schema('address').nullable(),
+          user: sb.object().schema(refTo('user')),
+          items: sb.array().of(refTo('orderItem')),
+          shippingAddress: sb.object().schema(refTo('address')).nullable(),
         })
         .build()
 
-      expect(spec.user?.$schema).toBe('user')
-      expect(spec.items?.$spec?.$schema).toBe('orderItem')
-      expect(spec.shippingAddress?.$schema).toBe('address')
+      expect(refName(spec.user?.$schema)).toBe('user')
+      expect(refName(spec.items?.$spec?.$schema)).toBe('orderItem')
+      expect(refName(spec.shippingAddress?.$schema)).toBe('address')
       expect(spec.shippingAddress?.$nullable).toBe(true)
     })
 
@@ -461,8 +462,8 @@ describe('BuilderSchema', () => {
       const spec = sb
         .schema('blogPost')
         .shape({
-          author: sb.object().schema('user').relation(),
-          comments: sb.array().ofSchema('comment').relation(),
+          author: sb.object().schema(refTo('user')).relation(),
+          comments: sb.array().of(refTo('comment')).relation(),
           tags: sb.array().of({ $type: String }),
         })
         .build()

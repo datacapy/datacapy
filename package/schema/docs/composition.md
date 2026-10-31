@@ -45,9 +45,12 @@ const address = new Schema(
 const person = new Schema(
   sb.schema('person').shape({
     name: sb.string().required(),
-    home: sb.ref('address'),
-    work: sb.object().schema('address').nullable(),
-    previous: sb.array().ofSchema('address'),
+    home: sb.ref(() => address),
+    work: sb
+      .object()
+      .schema(() => address)
+      .nullable(),
+    previous: sb.array().of(() => address),
   })
 )
 
@@ -63,11 +66,17 @@ result.errors
 The three forms are equivalent ways to say "validate this with the `address`
 schema":
 
-| Form                             | Use for                                                                   |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| `sb.ref('address')`              | A field                                                                   |
-| `sb.object().schema('address')`  | A field that also needs `nullable()`, `strict()` or another object option |
-| `sb.array().ofSchema('address')` | Each element of an array                                                  |
+| Form                                | Use for                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `sb.ref(() => address)`             | A field                                                                   |
+| `sb.object().schema(() => address)` | A field that also needs `nullable()`, `strict()` or another object option |
+| `sb.array().of(() => address)`      | Each element of an array                                                  |
+
+A reference is a function returning the `Schema`, not a name. The function is
+called only when the schema is first used, so `address` can be defined later in
+the file or sit in an import cycle. Its type travels with it, so `Infer` can
+type the field (see [Inferring types](builder.md#inferring-types)). Passing a
+bare schema or a name string is an error.
 
 The `SchemaManager` resolves names. Register every schema with it and call
 `init()` once before validating. Without it, validation throws

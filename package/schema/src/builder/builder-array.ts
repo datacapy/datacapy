@@ -1,12 +1,24 @@
 import { BuilderBase } from './builder-base'
 import SchemaSpec from '../spec'
+import { InferValue, SchemaThunk, Infer } from './infer'
+import { isSchemaThunk, refSpec } from './builder-ref'
+
+/** What `array().of()` accepts: a builder, a plain spec or a lazy schema reference. */
+export type ArrayItemInput = SchemaSpec | BuilderBase | SchemaThunk
+
+/** The item type for an `of()` argument. */
+export type ArrayItem<X> = X extends BuilderBase
+  ? InferValue<X>
+  : X extends () => infer S
+    ? Infer<S>
+    : any
 
 /**
  * Builder for Array field types
  * Provides array-specific configuration methods
  */
 export class BuilderArray<T = any> extends BuilderBase<T[]> {
-  constructor(itemSpec?: SchemaSpec | BuilderBase<any>) {
+  constructor(itemSpec?: ArrayItemInput) {
     super()
     if (itemSpec !== undefined) {
       this.of(itemSpec)
@@ -19,21 +31,17 @@ export class BuilderArray<T = any> extends BuilderBase<T[]> {
 
   /**
    * Specify the schema spec for array items
-   * Accepts either a SchemaSpec object or another builder
+   * Accepts a builder, a SchemaSpec object, or a lazy schema reference such
+   * as `() => schemaQuestion`. The item type is inferred from the argument.
    */
-  of(itemSpec: SchemaSpec | BuilderBase<any>): this {
-    const spec = itemSpec instanceof BuilderBase ? itemSpec.build() : itemSpec
-    this.spec.$spec = spec
-    return this
-  }
-
-  /**
-   * Shorthand for specifying array items using a schema reference
-   * Example: .ofSchema('surveyQuestion')
-   */
-  ofSchema(schemaName: string): this {
-    this.spec.$spec = { $schema: schemaName }
-    return this
+  of<X extends ArrayItemInput>(itemSpec: X): BuilderArray<ArrayItem<X>> {
+    this.spec.$spec =
+      itemSpec instanceof BuilderBase
+        ? itemSpec.build()
+        : isSchemaThunk(itemSpec)
+          ? refSpec(itemSpec)
+          : itemSpec
+    return this as BuilderArray<any>
   }
 
   /**

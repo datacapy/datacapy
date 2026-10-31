@@ -1,11 +1,15 @@
 import { BuilderBase } from './builder-base'
 import SchemaSpec from '../spec'
+import { HasShape, ShapeInput } from './infer'
 
 /**
  * Builder for top-level schema definitions
  * Used to create complete schemas with $name, $construct, etc.
  */
-export class BuilderSchema {
+export class BuilderSchema<S = {}> implements HasShape<S> {
+  /** Type-only: the shape set by `shape()`. */
+  declare readonly _shape: S
+
   private spec: SchemaSpec = {}
 
   constructor(name?: string) {
@@ -47,11 +51,11 @@ export class BuilderSchema {
   /**
    * Define the shape of the schema with specific fields
    */
-  shape(fields: { [key: string]: SchemaSpec | BuilderBase<any> }): this {
+  shape<F extends ShapeInput>(fields: F): BuilderSchema<F> {
     Object.entries(fields).forEach(([key, value]) => {
       this.spec[key] = value instanceof BuilderBase ? value.build() : value
     })
-    return this
+    return this as BuilderSchema<any>
   }
 
   /**

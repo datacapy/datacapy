@@ -95,13 +95,16 @@ export class BuilderString extends BuilderBase<string> {
   /**
    * Value must be one of the specified values
    */
-  inArray(values: string[], options?: SchemaSpecValidateOptionsInArray): this {
+  inArray<const V extends string>(
+    values: readonly V[],
+    options?: SchemaSpecValidateOptionsInArray
+  ): this & { readonly _type: V } {
     if (!this.spec.$validate) this.spec.$validate = {}
     this.spec.$validate.inArray = {
-      values,
+      values: [...values],
       ...options,
     }
-    return this
+    return this as this & { readonly _type: V }
   }
 
   // ==================== String Filter Methods ====================

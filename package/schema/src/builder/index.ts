@@ -15,6 +15,7 @@ import { BuilderMixed } from './builder-mixed'
 import { BuilderOr } from './builder-or'
 import { BuilderSchema } from './builder-schema'
 import { BuilderBase } from './builder-base'
+import { BuilderRef } from './builder-ref'
 
 // Export individual builder classes for advanced use cases
 export {
@@ -29,4 +30,15 @@ export {
   BuilderMixed,
   BuilderOr,
   BuilderSchema,
+  BuilderRef,
 }
+
+export type {
+  Infer,
+  InferShape,
+  InferValue,
+  SchemaThunk,
+  ShapeInput,
+  HasShape,
+} from './infer'
+export type { BuilderPresent, BuilderNullable } from './builder-base'

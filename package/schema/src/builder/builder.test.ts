@@ -1,4 +1,5 @@
 import { SchemaBuilder as sb } from './index'
+import { refTo, refName } from '../test-utils/schema-ref'
 
 /**
  * Test suite for builder nullable() and relation() methods
@@ -76,9 +77,9 @@ describe('Builder nullable() method', () => {
   })
 
   it('should work with schema references in arrays', () => {
-    const spec = sb.array().nullable().ofSchema('address').build()
+    const spec = sb.array().nullable().of(refTo('address')).build()
     expect(spec.$nullable).toBe(true)
-    expect(spec.$spec?.$schema).toBe('address')
+    expect(refName(spec.$spec?.$schema)).toBe('address')
   })
 })
 
@@ -100,15 +101,15 @@ describe('Builder relation() method', () => {
   })
 
   it('should work on array fields', () => {
-    const spec = sb.array().relation().ofSchema('userClient').build()
+    const spec = sb.array().relation().of(refTo('userClient')).build()
     expect(spec.$relation).toBe(true)
-    expect(spec.$spec?.$schema).toBe('userClient')
+    expect(refName(spec.$spec?.$schema)).toBe('userClient')
   })
 
   it('should work on object fields', () => {
-    const spec = sb.object().relation().schema('user').build()
+    const spec = sb.object().relation().schema(refTo('user')).build()
     expect(spec.$relation).toBe(true)
-    expect(spec.$schema).toBe('user')
+    expect(refName(spec.$schema)).toBe('user')
   })
 
   it('should chain with other methods', () => {
@@ -169,11 +170,16 @@ describe('Builder combined nullable() and relation()', () => {
   })
 
   it('should chain with schema reference and default value', () => {
-    const spec = sb.object().nullable().default(null).schema('l10nHtml').build()
+    const spec = sb
+      .object()
+      .nullable()
+      .default(null)
+      .schema(refTo('l10nHtml'))
+      .build()
 
     expect(spec.$nullable).toBe(true)
     expect(spec.$filter?.defaultValue).toBeNull()
-    expect(spec.$schema).toBe('l10nHtml')
+    expect(refName(spec.$schema)).toBe('l10nHtml')
   })
 })
 
@@ -197,9 +203,9 @@ describe('Builder method order independence', () => {
   })
 
   it('should produce same result regardless of relation position', () => {
-    const spec1 = sb.array().relation().private().ofSchema('test').build()
-    const spec2 = sb.array().private().relation().ofSchema('test').build()
-    const spec3 = sb.array().ofSchema('test').relation().private().build()
+    const spec1 = sb.array().relation().private().of(refTo('test')).build()
+    const spec2 = sb.array().private().relation().of(refTo('test')).build()
+    const spec3 = sb.array().of(refTo('test')).relation().private().build()
 
     expect(spec1.$relation).toBe(true)
     expect(spec2.$relation).toBe(true)
@@ -209,8 +215,8 @@ describe('Builder method order independence', () => {
     expect(spec2.$filter?.private).toBe(true)
     expect(spec3.$filter?.private).toBe(true)
 
-    expect(spec1.$spec?.$schema).toBe('test')
-    expect(spec2.$spec?.$schema).toBe('test')
-    expect(spec3.$spec?.$schema).toBe('test')
+    expect(refName(spec1.$spec?.$schema)).toBe('test')
+    expect(refName(spec2.$spec?.$schema)).toBe('test')
+    expect(refName(spec3.$spec?.$schema)).toBe('test')
   })
 })
