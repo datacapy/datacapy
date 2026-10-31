@@ -154,11 +154,33 @@ export type Note = Infer<typeof noteShape>
 | `object(shape)`, `.shape()` | The inferred object type                                         |
 | `or([a, b])`                | The union of the alternatives                                    |
 | `ref(() => s)`, `.schema()` | The referenced schema's inferred type                            |
+| `object().matchAll(spec)`   | `Record<string, T>`, with `T` inferred from `spec`               |
+| `as<T>()`                   | States the type; no runtime effect. See below                    |
 | `mixed()`                   | `unknown`; `mixed().as<T>()` states a type (no runtime effect)   |
 
 `required()` is both a validator and the type marker, so a field the type calls
 non-optional must say so in the schema. A plain spec object
 (`{ $type: String }`) has no type information and infers `any`.
+
+**Stating a type with `as<T>()`.** When a spec cannot express the type,
+`as<T>()` on an object, array, mixed or string builder sets it without changing
+the spec. A bare `object()` or `array()` infers `any`, so state the type. On a
+string, `as<U extends string>()` narrows to a literal union that the spec does
+not enforce (use `inArray` when it should be validated).
+
+```ts
+const shape = {
+  options: sb.object().as<Record<string, unknown>>().default({}),
+  kind: sb.string().maxLength(16).as<'a' | 'b'>().default('a'),
+  label: sb.object().matchAll(sb.string()).as<L10n>().default({}),
+}
+```
+
+Put `as<T>()` after the calls that change the type (`shape`, `schema`,
+`matchAll`, `of`), because each of those replaces it. A string builder returned
+by `as` has no string methods, so call `maxLength`, `trim` and the rest first.
+The `required`, `default`, `nullable` and `optional` markers carry across `as`
+in either order.
 
 `new Schema(...)` is generic over its shape, so `Infer<typeof schema>` works on
 a built schema too. A class extending `Schema` passes the shape explicitly:
