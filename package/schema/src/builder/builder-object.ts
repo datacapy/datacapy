@@ -1,6 +1,14 @@
 import { BuilderBase } from './builder-base'
 import SchemaSpec from '../spec'
-import { Infer, InferShape, ShapeInput, SchemaThunk } from './infer'
+import {
+  Infer,
+  InferShape,
+  InferValue,
+  IsAny,
+  Markers,
+  ShapeInput,
+  SchemaThunk,
+} from './infer'
 import { refSpec } from './builder-ref'
 
 /**
@@ -23,22 +31,27 @@ export class BuilderObject<T = any> extends BuilderBase<T> {
    * Define the shape of the object with specific fields
    * Accepts a map of field names to SchemaSpec or builder instances
    */
-  shape<S extends ShapeInput>(fields: S): BuilderObject<InferShape<S>> {
+  shape<S extends ShapeInput>(
+    fields: S
+  ): BuilderObject<InferShape<S>> & Markers<this> {
     Object.entries(fields).forEach(([key, value]) => {
       if (value !== undefined) {
         this.spec[key] = value
       }
     })
-    return this as BuilderObject<any>
+    return this.retyped()
   }
 
   /**
    * Define a match-all '*' spec for dynamic keys
    * This spec will be applied to all properties not explicitly defined
    */
-  matchAll(fieldSpec: SchemaSpec | BuilderBase<any>): this {
+  matchAll<B extends SchemaSpec | BuilderBase<any>>(
+    fieldSpec: B
+  ): BuilderObject<IsAny<T> extends true ? Record<string, InferValue<B>> : T> &
+    Markers<this> {
     this.spec['*'] = fieldSpec
-    return this
+    return this.retyped()
   }
 
   /**
@@ -47,17 +60,17 @@ export class BuilderObject<T = any> extends BuilderBase<T> {
    */
   schema<S extends SchemaThunk>(
     schema: S
-  ): BuilderObject<Infer<ReturnType<S>>> {
+  ): BuilderObject<Infer<ReturnType<S>>> & Markers<this> {
     this.spec.$schema = refSpec(schema).$schema
-    return this as BuilderObject<any>
+    return this.retyped()
   }
 
   /**
    * Type-only escape hatch for an object whose type the shape cannot express.
    * No runtime effect.
    */
-  as<U>(): BuilderObject<U> {
-    return this as BuilderObject<any>
+  as<U>(): BuilderObject<U> & Markers<this> {
+    return this.retyped()
   }
 
   /**

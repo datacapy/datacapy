@@ -55,3 +55,15 @@ export type Infer<X> =
     : X extends BuilderBase
       ? InferValue<X>
       : InferShape<X>
+
+/**
+ * The presence and null markers of a builder, carried over when a
+ * method returns a builder with a new value type (`shape()`, `of()`, `as()`).
+ */
+export type Markers<B extends { _present: unknown; _nullable: unknown }> = Pick<
+  B,
+  '_present' | '_nullable'
+>
+
+/** True for `any`. */
+export type IsAny<T> = 0 extends 1 & T ? true : false

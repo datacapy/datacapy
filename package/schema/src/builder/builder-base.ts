@@ -29,6 +29,14 @@ export abstract class BuilderBase<T = any> {
   protected spec: SchemaSpec = {}
 
   /**
+   * Type-only: the same builder, seen with a new value type. Builder methods
+   * that change the inferred type (`shape()`, `of()`, `as()`) return it.
+   */
+  protected retyped<R>(): R {
+    return this as unknown as R
+  }
+
+  /**
    * Get the type constructor for this field (String, Number, Date, etc.)
    */
   protected abstract getType(): any

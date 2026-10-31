@@ -74,6 +74,23 @@ expectType<
   >
 >()
 
+// markers survive shape(), as(), of() and matchAll()
+const chained = {
+  address: sb.object().default(null).shape({ city: sb.string().required() }),
+  tags: sb.array().nullable().of(sb.string().required()),
+  byName: sb.object().required().matchAll(sb.number()),
+}
+expectType<
+  Equal<
+    Infer<typeof chained>,
+    {
+      address: { city: string } | null
+      byName: Record<string, number>
+      tags?: string[] | null
+    }
+  >
+>()
+
 // or() gives a union; mixed() is unknown until as<T>() states it
 const alt = {
   id: sb.or([sb.string(), sb.number()]).required(),

@@ -1,5 +1,6 @@
 import { BuilderBase } from './builder-base'
 import SchemaTypes from '../types'
+import { Markers } from './infer'
 
 /**
  * Builder for Mixed (any) field types
@@ -14,8 +15,8 @@ export class BuilderMixed<T = unknown> extends BuilderBase<T> {
   /**
    * Type-only: state the value type. No runtime effect.
    */
-  as<U>(): BuilderMixed<U> {
-    return this as BuilderMixed<any>
+  as<U>(): BuilderMixed<U> & Markers<this> {
+    return this.retyped()
   }
 }
 

@@ -1,6 +1,6 @@
 import { BuilderBase } from './builder-base'
 import SchemaSpec from '../spec'
-import { InferValue, SchemaThunk, Infer } from './infer'
+import { InferValue, Markers, SchemaThunk, Infer } from './infer'
 import { isSchemaThunk, refSpec } from './builder-ref'
 
 /** What `array().of()` accepts: a builder, a plain spec or a lazy schema reference. */
@@ -34,17 +34,19 @@ export class BuilderArray<T = any> extends BuilderBase<T[]> {
    * Accepts a builder, a SchemaSpec object, or a lazy schema reference such
    * as `() => schemaQuestion`. The item type is inferred from the argument.
    */
-  of<X extends ArrayItemInput>(itemSpec: X): BuilderArray<ArrayItem<X>> {
+  of<X extends ArrayItemInput>(
+    itemSpec: X
+  ): BuilderArray<ArrayItem<X>> & Markers<this> {
     this.spec.$spec = isSchemaThunk(itemSpec) ? refSpec(itemSpec) : itemSpec
-    return this as BuilderArray<any>
+    return this.retyped()
   }
 
   /**
    * Type-only escape hatch: state the item type when the spec cannot express
    * it. No runtime effect.
    */
-  as<U>(): BuilderArray<U> {
-    return this as BuilderArray<any>
+  as<U>(): BuilderArray<U> & Markers<this> {
+    return this.retyped()
   }
 
   /**
