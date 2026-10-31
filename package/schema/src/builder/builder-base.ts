@@ -213,6 +213,32 @@ export abstract class BuilderBase<T = any> {
     return this
   }
 
+  // ==================== Defaults ====================
+
+  /**
+   * True when `default()` was set on this builder.
+   */
+  hasDefault(): boolean {
+    return this.spec.$filter?.defaultValue !== undefined
+  }
+
+  /**
+   * The default as a plain value, computed synchronously: a function default
+   * is called, and a Date field turns the keyword 'now' into the current time,
+   * as the async default filter does. For constructors that must fill defaults
+   * without running a validation.
+   */
+  resolveDefault(): unknown {
+    const raw = this.spec.$filter?.defaultValue
+    const value = typeof raw === 'function' ? raw() : raw
+    if (this.getType() !== Date || value == null || value instanceof Date) {
+      return value
+    }
+    return typeof value === 'string' && value.trim().toLowerCase() === 'now'
+      ? new Date()
+      : new Date(value)
+  }
+
   // ==================== Build Method ====================
 
   /**

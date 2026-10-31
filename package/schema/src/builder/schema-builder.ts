@@ -100,4 +100,27 @@ export class SchemaBuilder {
   ): BuilderRef<Infer<ReturnType<S>>> {
     return new BuilderRef(schema)
   }
+
+  /**
+   * Fill the defaults of a shape into `data`: each key that is missing or
+   * null takes its `default()` value. Other values pass through untouched, and
+   * a key with no default stays as given. A synchronous counterpart of the
+   * default filter, for a constructor that sets its own fields.
+   */
+  static applyDefaults<S extends ShapeInput>(
+    shape: S,
+    data?: Partial<InferShape<S>> | null
+  ): Partial<InferShape<S>> {
+    const result: Record<string, unknown> = { ...data }
+    for (const [key, field] of Object.entries(shape)) {
+      if (
+        field instanceof BuilderBase &&
+        field.hasDefault() &&
+        result[key] == null
+      ) {
+        result[key] = field.resolveDefault()
+      }
+    }
+    return result as Partial<InferShape<S>>
+  }
 }
