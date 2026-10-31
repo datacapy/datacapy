@@ -41,4 +41,8 @@ export type {
   ShapeInput,
   HasShape,
 } from './infer'
-export type { BuilderPresent, BuilderNullable } from './builder-base'
+export type {
+  BuilderPresent,
+  BuilderNullable,
+  BuilderOptional,
+} from './builder-base'
