@@ -26,7 +26,7 @@ export class BuilderObject<T = any> extends BuilderBase<T> {
   shape<S extends ShapeInput>(fields: S): BuilderObject<InferShape<S>> {
     Object.entries(fields).forEach(([key, value]) => {
       if (value !== undefined) {
-        this.spec[key] = value instanceof BuilderBase ? value.build() : value
+        this.spec[key] = value
       }
     })
     return this as BuilderObject<any>
@@ -37,9 +37,7 @@ export class BuilderObject<T = any> extends BuilderBase<T> {
    * This spec will be applied to all properties not explicitly defined
    */
   matchAll(fieldSpec: SchemaSpec | BuilderBase<any>): this {
-    const spec =
-      fieldSpec instanceof BuilderBase ? fieldSpec.build() : fieldSpec
-    this.spec['*'] = spec
+    this.spec['*'] = fieldSpec
     return this
   }
 

@@ -53,7 +53,7 @@ export class BuilderSchema<S = {}> implements HasShape<S> {
    */
   shape<F extends ShapeInput>(fields: F): BuilderSchema<F> {
     Object.entries(fields).forEach(([key, value]) => {
-      this.spec[key] = value instanceof BuilderBase ? value.build() : value
+      this.spec[key] = value
     })
     return this as BuilderSchema<any>
   }
@@ -62,9 +62,7 @@ export class BuilderSchema<S = {}> implements HasShape<S> {
    * Define a match-all '*' spec for dynamic keys
    */
   matchAll(fieldSpec: SchemaSpec | BuilderBase<any>): this {
-    const spec =
-      fieldSpec instanceof BuilderBase ? fieldSpec.build() : fieldSpec
-    this.spec['*'] = spec
+    this.spec['*'] = fieldSpec
     return this
   }
 

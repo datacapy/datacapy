@@ -35,12 +35,7 @@ export class BuilderArray<T = any> extends BuilderBase<T[]> {
    * as `() => schemaQuestion`. The item type is inferred from the argument.
    */
   of<X extends ArrayItemInput>(itemSpec: X): BuilderArray<ArrayItem<X>> {
-    this.spec.$spec =
-      itemSpec instanceof BuilderBase
-        ? itemSpec.build()
-        : isSchemaThunk(itemSpec)
-          ? refSpec(itemSpec)
-          : itemSpec
+    this.spec.$spec = isSchemaThunk(itemSpec) ? refSpec(itemSpec) : itemSpec
     return this as BuilderArray<any>
   }
 
