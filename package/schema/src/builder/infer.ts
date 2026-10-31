@@ -13,11 +13,15 @@ export type InferValue<B> = B extends { readonly _type: infer T }
     : T
   : any
 
-type IsPresent<B> = B extends { readonly _present: true } ? true : false
+type IsPresent<B> = B extends { readonly _optional: true }
+  ? false
+  : B extends { readonly _present: true }
+    ? true
+    : false
 
 /**
  * Object type for a shape (a map of field name to builder). A key is required
- * only when its builder went through `required()` or `default()`.
+ * only when its builder went through `required()` or `default()` and not `optional()`.
  */
 export type InferShape<S> = Simplify<
   {
@@ -60,10 +64,9 @@ export type Infer<X> =
  * The presence and null markers of a builder, carried over when a
  * method returns a builder with a new value type (`shape()`, `of()`, `as()`).
  */
-export type Markers<B extends { _present: unknown; _nullable: unknown }> = Pick<
-  B,
-  '_present' | '_nullable'
->
+export type Markers<
+  B extends { _present: unknown; _nullable: unknown; _optional: unknown },
+> = Pick<B, '_present' | '_nullable' | '_optional'>
 
 /** True for `any`. */
 export type IsAny<T> = 0 extends 1 & T ? true : false

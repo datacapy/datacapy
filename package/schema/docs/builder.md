@@ -144,16 +144,17 @@ export type Note = Infer<typeof noteShape>
 `Infer` accepts a shape (a plain object of builders), a `BuilderSchema`, a
 `Schema` or a single builder.
 
-| Builder call                | Effect on the type                                             |
-| --------------------------- | -------------------------------------------------------------- |
-| `required()`, `default(v)`  | The key is required. Without either it is optional (`key?: T`) |
-| `nullable()`                | Adds `\| null`                                                 |
-| `string().inArray([...])`   | Narrows to the literal union                                   |
-| `array(item)`, `.of(item)`  | `T[]`, with `T` inferred from a builder, shape or reference    |
-| `object(shape)`, `.shape()` | The inferred object type                                       |
-| `or([a, b])`                | The union of the alternatives                                  |
-| `ref(() => s)`, `.schema()` | The referenced schema's inferred type                          |
-| `mixed()`                   | `unknown`; `mixed().as<T>()` states a type (no runtime effect) |
+| Builder call                | Effect on the type                                               |
+| --------------------------- | ---------------------------------------------------------------- |
+| `required()`, `default(v)`  | The key is required. Without either it is optional (`key?: T`)   |
+| `optional()`                | Keeps the key optional after `default()`/`required()`; type only |
+| `nullable()`                | Adds `\| null`                                                   |
+| `string().inArray([...])`   | Narrows to the literal union                                     |
+| `array(item)`, `.of(item)`  | `T[]`, with `T` inferred from a builder, shape or reference      |
+| `object(shape)`, `.shape()` | The inferred object type                                         |
+| `or([a, b])`                | The union of the alternatives                                    |
+| `ref(() => s)`, `.schema()` | The referenced schema's inferred type                            |
+| `mixed()`                   | `unknown`; `mixed().as<T>()` states a type (no runtime effect)   |
 
 `required()` is both a validator and the type marker, so a field the type calls
 non-optional must say so in the schema. A plain spec object

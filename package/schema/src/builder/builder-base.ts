@@ -10,6 +10,11 @@ export interface BuilderPresent {
   readonly _present: true
 }
 
+/** Marker added to a builder's type by `optional()`; overrides `BuilderPresent`. */
+export interface BuilderOptional {
+  readonly _optional: true
+}
+
 /** Marker added to a builder's type by `nullable()`. */
 export interface BuilderNullable {
   readonly _nullable: true
@@ -25,6 +30,7 @@ export abstract class BuilderBase<T = any> {
   declare readonly _type: T
   declare readonly _present: boolean
   declare readonly _nullable: boolean
+  declare readonly _optional: boolean
 
   protected spec: SchemaSpec = {}
 
@@ -50,6 +56,15 @@ export abstract class BuilderBase<T = any> {
     if (!this.spec.$validate) this.spec.$validate = {}
     this.spec.$validate.required = options || true
     return this as this & BuilderPresent
+  }
+
+  /**
+   * Type-only: keep the inferred key optional (`key?: T`) even after
+   * `default()` or `required()`. No runtime effect; use it where callers build
+   * partial objects and the schema fills the default in.
+   */
+  optional(): this & BuilderOptional {
+    return this as this & BuilderOptional
   }
 
   /**

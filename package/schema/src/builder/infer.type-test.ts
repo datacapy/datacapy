@@ -33,6 +33,16 @@ expectType<
   >
 >()
 
+// optional() keeps the key optional after default(), and survives shape()/as()
+const partial = {
+  a: sb.string().default('x').optional(),
+  b: sb.object().as<{ n: number }>().required().optional(),
+  c: sb.string().optional().default('y'),
+}
+expectType<
+  Equal<Infer<typeof partial>, { a?: string; b?: { n: number }; c?: string }>
+>()
+
 // default(null) makes the field nullable
 const closable = { closedAt: sb.date().default(null) }
 expectType<Equal<Infer<typeof closable>, { closedAt: Date | null }>>()
