@@ -1,4 +1,5 @@
 import { BuilderBase } from './builder-base'
+import { Markers } from './infer'
 import {
   SchemaSpecValidateOptions,
   SchemaSpecValidateOptionsInArray,
@@ -12,6 +13,14 @@ import {
 export class BuilderString extends BuilderBase<string> {
   protected getType() {
     return String
+  }
+
+  /**
+   * Type-only escape hatch: narrow the string to a literal union the spec
+   * does not enforce. No runtime effect.
+   */
+  as<U extends string>(): BuilderBase<U> & Markers<this> {
+    return this.retyped()
   }
 
   // ==================== String Validation Methods ====================

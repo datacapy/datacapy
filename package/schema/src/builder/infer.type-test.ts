@@ -74,13 +74,18 @@ expectType<
 
 // as<T>() states the type of an object or array the spec cannot express
 const stated = {
+  kind: sb.string().maxLength(16).as<'a' | 'b'>().default('a'),
   options: sb.object().as<Record<string, unknown>>().default({}),
   rows: sb.array().as<{ id: string }>().default([]),
 }
 expectType<
   Equal<
     Infer<typeof stated>,
-    { options: Record<string, unknown>; rows: { id: string }[] }
+    {
+      kind: 'a' | 'b'
+      options: Record<string, unknown>
+      rows: { id: string }[]
+    }
   >
 >()
 
