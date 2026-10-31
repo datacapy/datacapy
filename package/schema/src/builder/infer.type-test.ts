@@ -62,6 +62,18 @@ expectType<
   >
 >()
 
+// as<T>() states the type of an object or array the spec cannot express
+const stated = {
+  options: sb.object().as<Record<string, unknown>>().default({}),
+  rows: sb.array().as<{ id: string }>().default([]),
+}
+expectType<
+  Equal<
+    Infer<typeof stated>,
+    { options: Record<string, unknown>; rows: { id: string }[] }
+  >
+>()
+
 // or() gives a union; mixed() is unknown until as<T>() states it
 const alt = {
   id: sb.or([sb.string(), sb.number()]).required(),

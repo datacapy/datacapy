@@ -45,6 +45,14 @@ export class BuilderArray<T = any> extends BuilderBase<T[]> {
   }
 
   /**
+   * Type-only escape hatch: state the item type when the spec cannot express
+   * it. No runtime effect.
+   */
+  as<U>(): BuilderArray<U> {
+    return this as BuilderArray<any>
+  }
+
+  /**
    * Specify constructor function or name for array items
    */
   construct(constructorName: string | Function): this {
