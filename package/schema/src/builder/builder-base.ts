@@ -110,7 +110,10 @@ export abstract class BuilderBase<T = any> {
   /**
    * Set default value if field is undefined. A defaulted field is always
    * present after filtering, so the inferred key is non-optional.
+   * `default(null)` also marks the field nullable.
    */
+  default(value: null): this & BuilderPresent & BuilderNullable
+  default(value: any): this & BuilderPresent
   default(value: any): this & BuilderPresent {
     if (!this.spec.$filter) this.spec.$filter = {}
     this.spec.$filter.defaultValue = value

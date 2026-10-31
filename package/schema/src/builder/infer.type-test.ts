@@ -33,6 +33,10 @@ expectType<
   >
 >()
 
+// default(null) makes the field nullable
+const closable = { closedAt: sb.date().default(null) }
+expectType<Equal<Infer<typeof closable>, { closedAt: Date | null }>>()
+
 // chained string methods keep the type
 const trimmed = sb.string().required().trim().length(1, 280)
 expectType<Equal<Infer<typeof trimmed>, string>>()
