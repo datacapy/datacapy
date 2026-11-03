@@ -13,6 +13,7 @@ import SchemaTransientProcessor from './processors/transient-processor'
 import SchemaFieldPrivateFilter from './processors/field-private-filter'
 import { BuilderBase } from './builder/builder-base'
 import { BuilderSchema } from './builder/builder-schema'
+import type { HasBuilderFields, HasSpec, SpecInput } from './builder/infer'
 import { SchemaLimitTracker, SchemaValidationLimits } from './limits'
 
 type SchemaIteratorCallbackOpts = Parameters<SchemaIteratorCallback>[0]
@@ -42,8 +43,29 @@ export interface SchemaQuery {
   [key: string]: SchemaQuery | Array<SchemaQuery> | any
 }
 
-export class Schema {
+export class Schema<S = any> implements HasSpec<S>, HasBuilderFields<S> {
+  /** Type-only: the schema spec this schema was built from. Read by `Infer`. */
+  declare readonly _spec: S
+
   private static readonly VALIDATE_BATCH_SIZE = 1000
+
+  /**
+   * A base class for a schema defined in one place: the class carries the
+   * spec type, so no separate exported spec object is needed.
+   *
+   *   class SchemaNote extends Schema.from(sb.schema('note').shape({ ... })) {}
+   */
+  static from<S extends SpecInput>(
+    builder: BuilderSchema<S>
+  ): new () => Schema<S> {
+    return class extends Schema<S> {
+      constructor() {
+        super(builder)
+      }
+    }
+  }
+
+  private builders: SpecInput = {}
 
   config: SchemaConfig
   name: string
@@ -58,12 +80,14 @@ export class Schema {
   private fieldPrivateFilter?: SchemaFieldPrivateFilter
 
   constructor(
-    spec?: SchemaSpec | BuilderBase | BuilderSchema,
+    spec?: SchemaSpec | BuilderBase | BuilderSchema<S>,
     options?: SchemaConfig
   ) {
     this.config = options == undefined ? {} : options
     this.config.name = this.config.name ? this.config.name : ''
     this.config.spec = spec ? this.resolveSpec(spec) : {}
+    if (spec instanceof BuilderSchema)
+      this.builders = spec.getFields() as SpecInput
     this.config.constructors = this.config.constructors
       ? this.config.constructors
       : {}
@@ -94,6 +118,11 @@ export class Schema {
   ): SchemaSpec {
     if (spec instanceof BuilderSchema) return spec.build()
     return BuilderBase.resolve(spec)
+  }
+
+  /** The builders this schema was made from; empty for a plain spec. */
+  builderFields(): S {
+    return this.builders as S
   }
 
   init() {

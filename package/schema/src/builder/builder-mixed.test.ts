@@ -337,3 +337,12 @@ describe('BuilderMixed', () => {
     })
   })
 })
+
+describe('BuilderMixed construct()', () => {
+  it('sets $construct from a class or a thunk', () => {
+    class Box {}
+    expect(sb.mixed().construct(Box).build().$construct).toBe(Box)
+    const thunk = () => Box
+    expect(sb.mixed().construct(thunk).build().$construct).toBe(thunk)
+  })
+})

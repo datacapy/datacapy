@@ -3,6 +3,7 @@ import Collection from '../utilities/collection'
 import SchemaTypes from '../types'
 import ObjectPathAccessor from '../utilities/object-path-accessor'
 import SchemaFieldTypeCaster from './field-type-caster'
+import { resolveConstructor } from '../utilities/resolve-constructor'
 
 /**
  * Interface for SchemaTransientProcessor
@@ -137,6 +138,13 @@ export class SchemaTransientProcessor implements SchemaTransientProcessorInterfa
               Collection
           } else {
             construct = spec?.$construct || spec?.$spec?.$construct
+          }
+          const declared = construct
+          construct = resolveConstructor(construct)
+          if (declared && !construct) {
+            throw new Error(
+              `Constructor thunk did not return a class for path "${path}" in schema ${schemaName}`
+            )
           }
           // Skip constructor if value is null and field is nullable
           const isNullable = spec?.$nullable || spec?.$spec?.$nullable

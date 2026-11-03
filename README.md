@@ -49,30 +49,33 @@ A schema defined once. It is plain TypeScript, so a shared package can import it
 and the server alike.
 
 ```ts
-// shared/noteSchema.ts
-import { Schema, SchemaBuilder as sb } from '@datacapy/schema'
+// shared/Note.ts
+import { Schema, SchemaBuilder as sb, SchemaConstructor } from '@datacapy/schema'
 
-export const noteSchema = new Schema(
+export class SchemaNote extends Schema.from(
   sb.schema('note').shape({
     _id: sb.string(),
     text: sb.string().required().trim().length(1, 280),
     owner: sb.string(),
   }),
-)
+) {}
+
+export class Note extends SchemaConstructor.from(SchemaNote) {}
 ```
+
+`SchemaNote` validates. `Note` is the model: its fields are typed from the schema, so there is no
+hand-written `type Note` to keep in step, and `new Note({ text: 'Hello' })` accepts plain data.
 
 A repository that validates every write against it, a service that holds the logic, and the config
 that exposes it:
 
 ```ts
 import Server, { Repo, Service, ServerErrorNotFound } from '@datacapy/server'
-import { noteSchema } from './shared/noteSchema'
-
-type Note = { _id: string; text: string; owner: string }
+import { Note, SchemaNote } from './shared/Note'
 
 class NoteRepo extends Repo<Note> {
   constructor() {
-    super({ name: 'note', dataSource: 'db', schema: noteSchema })
+    super({ name: 'note', dataSource: 'db', schema: new SchemaNote() })
   }
 }
 
@@ -111,7 +114,7 @@ GET /api/note/n9   (signed in)        404 {"message":"No such note","name":"Serv
 In the browser, the same schema checks a form before anything is sent:
 
 ```ts
-const { isValid, errors } = await noteSchema.validate({ text: '' })
+const { isValid, errors } = await new SchemaNote().validate({ text: '' })
 // isValid: false, errors: { text: ['text must be at least 1 characters long'] }
 ```
 
@@ -157,47 +160,38 @@ import {
   DataSourceMock,
   Schema,
   SchemaBuilder as sb,
+  SchemaConstructor,
   RepoRelationBuilder as relb,
 } from '@datacapy/om'
 import genUniqueId from '@datacapy/id'
 
-class Order {
-  _id!: string
-  number!: string
-  total!: number
-  customerId!: string
-  constructor(data: Pick<Order, '_id' | 'number' | 'total' | 'customerId'>) {
-    Object.assign(this, data)
-  }
-}
-
-class Customer {
-  _id!: string
-  name!: string
-  orders?: Order[]
-  constructor(data: Pick<Customer, '_id' | 'name'>) {
-    Object.assign(this, data)
-  }
-  greeting() {
-    return `Hello, ${this.name}`
-  }
-}
-
-const customerSchema = new Schema(
-  sb
-    .schema('customer')
-    .construct(Customer)
-    .shape({ _id: sb.string(), name: sb.string().required().trim() }),
-)
-
-const orderSchema = new Schema(
-  sb.schema('order').construct(Order).shape({
+class SchemaOrder extends Schema.from(
+  sb.schema('order').construct('Order').shape({
     _id: sb.string(),
     number: sb.string(),
     total: sb.number(),
     customerId: sb.string(),
   }),
-)
+) {}
+
+class Order extends SchemaConstructor.from(SchemaOrder) {}
+
+class SchemaCustomer extends Schema.from(
+  sb
+    .schema('customer')
+    .construct('Customer')
+    .shape({
+      _id: sb.string(),
+      name: sb.string().required().trim(),
+      orders: sb.array(sb.ref(() => new SchemaOrder())).relation(),
+    }),
+) {}
+
+class Customer extends SchemaConstructor.from(SchemaCustomer) {
+  greeting() {
+    return `Hello, ${this.name}`
+  }
+}
 
 class CustomerRepo extends Repo<Customer> {
   constructor() {
@@ -220,7 +214,7 @@ class OrderRepo extends Repo<Order> {
 const adaId = genUniqueId()
 
 const modelManager = new ModelManager({
-  schemas: [customerSchema, orderSchema],
+  schemas: [new SchemaCustomer(), new SchemaOrder()],
   constructors: [Customer, Order],
 })
 modelManager.addDataSource(
@@ -244,11 +238,17 @@ found[0].greeting() // 'Hello, Ada Lovelace'
 found[0].orders?.[0] instanceof Order // true
 ```
 
-`Repo<Customer>` is the TypeScript type, so `find()` returns `Customer[]`. `construct(Customer)` and the
-model manager's `constructors` are the runtime half: `init()` hands the registered classes to every repo,
-which turns each stored document into a `Customer` instance, populated `orders` included. The model
-manager also assigns each schema to the repo of the same name, so the repos declare none. The two are independent, and using the same class for both is the
-convention. See [Composition](package/schema/docs/composition.md#constructors).
+Each model is defined once. The schema is the source of the fields: `SchemaConstructor.from(SchemaCustomer)`
+gives `Customer` its field types and a constructor that accepts plain data, so there is no hand-written
+class body to keep in step. `orders` is a `.relation()`: related data that a query populates, never stored
+on the customer. `Repo<Customer>` makes `find()` return `Customer[]`.
+
+`construct('Customer')` and the model manager's `constructors` are the runtime half: `init()` hands the
+registered classes to every repo, which turns each stored document into a `Customer` instance, populated
+`orders` included. The name is a string because the class is derived from the schema and cannot be named
+inside it. The model manager also assigns each schema to the repo of the same name, so the repos declare
+none. See [Constructors and raw data](package/schema/docs/constructors.md) and
+[Composition](package/schema/docs/composition.md#constructors).
 
 ## Packages
 

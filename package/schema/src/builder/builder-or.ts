@@ -1,16 +1,17 @@
 import { BuilderBase } from './builder-base'
 import SchemaSpec from '../spec'
+import { InferValue } from './infer'
 
 /**
  * Builder for $or operator support
  * Allows multiple alternative schema specs where any one can match
  */
-export class BuilderOr extends BuilderBase<any> {
+export class BuilderOr<T = any> extends BuilderBase<T> {
   private orSpecs: Array<SchemaSpec | BuilderBase<any>> = []
 
-  constructor(specs: Array<SchemaSpec | BuilderBase<any>>) {
+  constructor(specs: ReadonlyArray<SchemaSpec | BuilderBase<any>>) {
     super()
-    this.orSpecs = specs
+    this.orSpecs = [...specs]
   }
 
   protected getType() {
@@ -30,5 +31,8 @@ export class BuilderOr extends BuilderBase<any> {
     }
   }
 }
+
+/** The union of the alternatives' value types. */
+export type OrValue<X extends ReadonlyArray<unknown>> = InferValue<X[number]>
 
 export default BuilderOr

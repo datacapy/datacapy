@@ -5,6 +5,7 @@ export interface SchemaSpec {
   $spec?: SchemaSpec
   $or?: SchemaSpec[]
   $pathRef?: string
+  $relation?: boolean
   $construct?: Function | string
   $constructCollection?: Function | string
   $filter?: SchemaSpecFilter

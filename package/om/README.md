@@ -27,15 +27,18 @@ repositories and services.
 ### Define a Schema
 
 ```typescript
-import { Schema, SchemaBuilder as sb } from '@datacapy/om'
+import { Schema, SchemaBuilder as sb, SchemaConstructor } from '@datacapy/om'
 
-const userSchema = new Schema(
+class SchemaUser extends Schema.from(
   sb.schema('user').shape({
     name: sb.string().required(),
     email: sb.string().email(),
     age: sb.number(),
   })
-)
+) {}
+
+// The model: fields are typed from the schema, so no separate `type User`
+class User extends SchemaConstructor.from(SchemaUser) {}
 ```
 
 ### Create a Repository
@@ -47,7 +50,7 @@ export class RepoUser extends Repo<User> {
   constructor() {
     super({
       name: 'user',
-      schema: userSchema,
+      schema: new SchemaUser(),
       relations: {
         posts: relb.hasMany('post').pkey('_id').key('authorId'),
       },

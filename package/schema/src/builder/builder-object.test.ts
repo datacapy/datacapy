@@ -1,5 +1,6 @@
 import { BuilderObject } from './builder-object'
 import { SchemaBuilder as sb } from './index'
+import { refTo, refName } from '../test-utils/schema-ref'
 
 /**
  * Test suite for BuilderObject class
@@ -141,15 +142,15 @@ describe('BuilderObject', () => {
 
     describe('schema()', () => {
       it('should set schema reference', () => {
-        const spec = sb.object().schema('user').build()
+        const spec = sb.object().schema(refTo('user')).build()
 
-        expect(spec.$schema).toBe('user')
+        expect(refName(spec.$schema)).toBe('user')
       })
 
       it('should combine with other methods', () => {
-        const spec = sb.object().schema('l10n').nullable().build()
+        const spec = sb.object().schema(refTo('l10n')).nullable().build()
 
-        expect(spec.$schema).toBe('l10n')
+        expect(refName(spec.$schema)).toBe('l10n')
         expect(spec.$nullable).toBe(true)
       })
     })
@@ -350,13 +351,13 @@ describe('BuilderObject', () => {
     it('should allow schema reference with shape', () => {
       const spec = sb
         .object()
-        .schema('user')
+        .schema(refTo('user'))
         .shape({
           extraField: sb.string(),
         })
         .build()
 
-      expect(spec.$schema).toBe('user')
+      expect(refName(spec.$schema)).toBe('user')
       expect(spec.extraField?.$type).toBe(String)
     })
 
@@ -367,9 +368,13 @@ describe('BuilderObject', () => {
     })
 
     it('should overwrite schema when called multiple times', () => {
-      const spec = sb.object().schema('user').schema('admin').build()
+      const spec = sb
+        .object()
+        .schema(refTo('user'))
+        .schema(refTo('admin'))
+        .build()
 
-      expect(spec.$schema).toBe('admin')
+      expect(refName(spec.$schema)).toBe('admin')
     })
   })
 
@@ -411,12 +416,12 @@ describe('BuilderObject', () => {
     it('should create a schema reference object', () => {
       const spec = sb
         .object()
-        .schema('address')
+        .schema(refTo('address'))
         .nullable()
         .label('Shipping Address')
         .build()
 
-      expect(spec.$schema).toBe('address')
+      expect(refName(spec.$schema)).toBe('address')
       expect(spec.$nullable).toBe(true)
       expect(spec.$label).toBe('Shipping Address')
     })
@@ -424,13 +429,13 @@ describe('BuilderObject', () => {
     it('should create a relation object', () => {
       const spec = sb
         .object()
-        .schema('user')
+        .schema(refTo('user'))
         .relation()
         .private()
         .construct('User')
         .build()
 
-      expect(spec.$schema).toBe('user')
+      expect(refName(spec.$schema)).toBe('user')
       expect(spec.$relation).toBe(true)
       expect((spec.$filter as any)?.private).toBe(true)
       expect(spec.$construct).toBe('User')

@@ -1,5 +1,6 @@
 import { BuilderArray } from './builder-array'
 import { SchemaBuilder as sb } from './index'
+import { refTo, refName } from '../test-utils/schema-ref'
 
 /**
  * Test suite for BuilderArray class
@@ -96,15 +97,16 @@ describe('BuilderArray', () => {
       })
     })
 
-    describe('ofSchema()', () => {
+    describe('of() with a lazy schema reference', () => {
       it('should set schema reference for array items', () => {
-        const spec = sb.array().ofSchema('surveyQuestion').build()
-        expect(spec.$spec?.$schema).toBe('surveyQuestion')
+        const spec = sb.array().of(refTo('surveyQuestion')).build()
+        expect(refName(spec.$spec?.$schema)).toBe('surveyQuestion')
       })
 
       it('should create shorthand for schema references', () => {
-        const spec = sb.array().ofSchema('user').build()
-        expect(spec.$spec).toEqual({ $schema: 'user' })
+        const spec = sb.array().of(refTo('user')).build()
+        expect(Object.keys(spec.$spec ?? {})).toEqual(['$schema'])
+        expect(refName(spec.$spec?.$schema)).toBe('user')
       })
     })
 
@@ -230,13 +232,13 @@ describe('BuilderArray', () => {
     it('should chain array methods with validation', () => {
       const spec = sb
         .array()
-        .ofSchema('product')
+        .of(refTo('product'))
         .required()
         .notEmpty()
         .relation()
         .build()
 
-      expect(spec.$spec?.$schema).toBe('product')
+      expect(refName(spec.$spec?.$schema)).toBe('product')
       expect(spec.$validate?.required).toBe(true)
       expect(spec.$validate?.notEmpty).toBe(true)
       expect(spec.$relation).toBe(true)
@@ -295,9 +297,9 @@ describe('BuilderArray', () => {
     })
 
     it('should allow ofSchema() to replace of()', () => {
-      const spec = sb.array().of({ $type: String }).ofSchema('user').build()
+      const spec = sb.array().of({ $type: String }).of(refTo('user')).build()
 
-      expect(spec.$spec?.$schema).toBe('user')
+      expect(refName(spec.$spec?.$schema)).toBe('user')
       expect(spec.$spec?.$type).toBeUndefined()
     })
   })
@@ -314,13 +316,13 @@ describe('BuilderArray', () => {
     it('should create an array of schema references', () => {
       const spec = sb
         .array()
-        .ofSchema('comment')
+        .of(refTo('comment'))
         .relation()
         .label('Comments')
         .build()
 
       expect(spec.$type).toBe(Array)
-      expect(spec.$spec?.$schema).toBe('comment')
+      expect(refName(spec.$spec?.$schema)).toBe('comment')
       expect(spec.$relation).toBe(true)
       expect(spec.$label).toBe('Comments')
     })
@@ -328,14 +330,14 @@ describe('BuilderArray', () => {
     it('should create an array with custom collection class', () => {
       const spec = sb
         .array()
-        .ofSchema('userClient')
+        .of(refTo('userClient'))
         .relation()
         .private()
         .construct('UserClient')
         .constructCollection('Collection')
         .build()
 
-      expect(spec.$spec?.$schema).toBe('userClient')
+      expect(refName(spec.$spec?.$schema)).toBe('userClient')
       expect(spec.$relation).toBe(true)
       expect((spec.$filter as any)?.private).toBe(true)
       expect(spec.$construct).toBe('UserClient')

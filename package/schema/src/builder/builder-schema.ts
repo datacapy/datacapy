@@ -1,12 +1,17 @@
 import { BuilderBase } from './builder-base'
 import SchemaSpec from '../spec'
+import { HasSpec, SpecInput } from './infer'
 
 /**
  * Builder for top-level schema definitions
  * Used to create complete schemas with $name, $construct, etc.
  */
-export class BuilderSchema {
+export class BuilderSchema<S = {}> implements HasSpec<S> {
+  /** Type-only: the schema spec set by `shape()`. */
+  declare readonly _spec: S
+
   private spec: SchemaSpec = {}
+  private fields: SpecInput = {}
 
   constructor(name?: string) {
     if (name) this.spec.$name = name
@@ -44,23 +49,27 @@ export class BuilderSchema {
     return this
   }
 
+  /** The builders passed to `shape()`, for `defaultsFor`. */
+  getFields(): S {
+    return this.fields as S
+  }
+
   /**
    * Define the shape of the schema with specific fields
    */
-  shape(fields: { [key: string]: SchemaSpec | BuilderBase<any> }): this {
+  shape<F extends SpecInput>(fields: F): BuilderSchema<F> {
     Object.entries(fields).forEach(([key, value]) => {
-      this.spec[key] = value instanceof BuilderBase ? value.build() : value
+      this.fields[key] = value
+      this.spec[key] = value
     })
-    return this
+    return this as BuilderSchema<any>
   }
 
   /**
    * Define a match-all '*' spec for dynamic keys
    */
   matchAll(fieldSpec: SchemaSpec | BuilderBase<any>): this {
-    const spec =
-      fieldSpec instanceof BuilderBase ? fieldSpec.build() : fieldSpec
-    this.spec['*'] = spec
+    this.spec['*'] = fieldSpec
     return this
   }
 
