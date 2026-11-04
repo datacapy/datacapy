@@ -2,7 +2,7 @@
   "name": "@datacapy/server",
   "type": "commonjs",
   "version": "0.3.0",
-  "description": "Datacapy server: REST API server over the object model",
+  "description": "Expose services as validated, access-controlled REST endpoints from config, on plain Express",
   "main": "dist/index",
   "types": "dist/index.d.ts",
   "scripts": {

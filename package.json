@@ -2,7 +2,7 @@
   "name": "datacapy",
   "version": "0.1.0",
   "private": true,
-  "description": "Datacapy",
+  "description": "A TypeScript framework for structured Node.js backends: schemas, repositories and config-driven REST endpoints",
   "scripts": {
     "build": "pnpm -r --stream build",
     "test": "pnpm -r --stream test",
