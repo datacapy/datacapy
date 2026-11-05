@@ -83,6 +83,13 @@ and `RedisTransactionLease` binds a dedicated pipeline. Across all three, DDL
 (`drop`/`createIndex`/`dropIndex`/`dropIndexes`) always delegates straight back
 to the parent, unscoped: DDL never participates in a transaction.
 
+`transaction()` retries the whole of `fn` in a new transaction when MySQL
+reports a deadlock (errno 1213) or lock wait timeout (1205): 3 attempts by
+default, randomised backoff, each retry logged at warn. Tune with
+`{ maxAttempts, backoffMs }` as the third argument; `maxAttempts: 1` turns it
+off. Because `fn` can run more than once, keep non-database side effects (email,
+files, events) outside it.
+
 See the "Transactions" section in [DataSource Context](dynamic-datasource.md)
 for the call pattern, and `src/repo/repo.ts` (`transaction()`),
 `src/data-source/mysql.ts` (`MysqlTransactionLease`),

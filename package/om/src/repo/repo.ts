@@ -30,6 +30,13 @@ import { RepoIndexBuilder } from './builder/index-builder'
 import { RepoRelationBuilder } from './builder/relation-builder'
 import { RepoQueryOptions } from './query-options'
 
+export interface TransactionOptions {
+  /** Total tries including the first. Default 3; 1 disables retry. */
+  maxAttempts?: number
+  /** Delay in ms before retry n (last value reused). Default is randomised 20-100ms scaled by attempt. */
+  backoffMs?: number[]
+}
+
 export interface RepoConfig {
   model?: ModelManagerConfig
   pkey?: string
@@ -399,16 +406,64 @@ export class Repo<T> {
    * 4. Commits on success; rolls back and rethrows on error.
    * 5. Always releases the initial registry ref in a finally block - regardless of whether
    *    fn/commit/rollback threw.
+   *
+   * On a MySQL deadlock (errno 1213) or lock wait timeout (1205) the whole of `fn` is re-run in a
+   * fresh transaction, up to `options.maxAttempts` times (default 3), so `fn` must be safe to
+   * re-run: keep side effects outside the database (email, files, events) until after it returns.
    */
   async transaction<R>(
     context: DataSourceContext,
-    fn: (context: DataSourceContext, tx: DataSourceInterface) => Promise<R>
+    fn: (context: DataSourceContext, tx: DataSourceInterface) => Promise<R>,
+    options: TransactionOptions = {}
   ): Promise<R> {
     if (!this.config.dataSource) {
       throw new Error(`No dataSource configured for repo: ${this.getName()}`)
     }
-    const dataSourceName = this.config.dataSource
+    const maxAttempts = Math.max(
+      1,
+      options.maxAttempts ?? Repo.DEFAULT_TRANSACTION_ATTEMPTS
+    )
 
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.transactionOnce(context, fn)
+      } catch (error) {
+        if (attempt >= maxAttempts || !Repo.isRetryableLockError(error)) {
+          throw error
+        }
+        const delayMs = Repo.retryDelayMs(attempt, options.backoffMs)
+        this.logger.warn(
+          `Transaction on ${this.getName()} hit a lock conflict (attempt ${attempt}/${maxAttempts}), retrying in ${delayMs}ms`
+        )
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+
+  private static readonly DEFAULT_TRANSACTION_ATTEMPTS = 3
+
+  // Deadlock victim (1213) and lock wait timeout (1205): both are rolled back by the server
+  // and designed to be retried by the client.
+  private static isRetryableLockError(error: unknown): boolean {
+    const errno =
+      typeof error === 'object' && error !== null
+        ? (error as { errno?: unknown }).errno
+        : undefined
+    return errno === 1213 || errno === 1205
+  }
+
+  private static retryDelayMs(attempt: number, backoffMs?: number[]): number {
+    if (backoffMs) {
+      return backoffMs[Math.min(attempt, backoffMs.length) - 1] ?? 0
+    }
+    return 20 + Math.floor(Math.random() * 80) * attempt
+  }
+
+  private async transactionOnce<R>(
+    context: DataSourceContext,
+    fn: (context: DataSourceContext, tx: DataSourceInterface) => Promise<R>
+  ): Promise<R> {
+    const dataSourceName = this.config.dataSource
     const dataSource = await this.getDataSource(context)
 
     try {

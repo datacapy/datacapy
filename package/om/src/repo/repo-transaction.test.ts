@@ -80,4 +80,98 @@ describe('Repo#transaction', () => {
     expect(context.getActiveDataSource(dataSourceName)).toBeUndefined()
     expect(repo.releaseDataSource).toHaveBeenCalledWith(context)
   })
+
+  describe('deadlock retry', () => {
+    const deadlock = () =>
+      Object.assign(new Error('Deadlock found'), {
+        errno: 1213,
+        code: 'ER_LOCK_DEADLOCK',
+      })
+
+    it('re-runs fn on a deadlock and returns the later result', async () => {
+      const lease = makeLease()
+      const { repo, dataSource } = makeRepoAndDataSource(lease)
+      repo.setLogger({
+        warn: jest.fn(),
+        error: jest.fn(),
+        log: jest.fn(),
+      } as any)
+      let calls = 0
+
+      const result = await repo.transaction(
+        new DataSourceContext(),
+        async () => {
+          calls += 1
+          if (calls < 3) throw deadlock()
+          return 'ok'
+        },
+        { backoffMs: [0, 0] }
+      )
+
+      expect(result).toBe('ok')
+      expect(calls).toBe(3)
+      expect(dataSource.transactionStart).toHaveBeenCalledTimes(3)
+      expect(lease.transactionRollback).toHaveBeenCalledTimes(2)
+      expect(lease.transactionCommit).toHaveBeenCalledTimes(1)
+    })
+
+    it('retries lock wait timeouts (errno 1205)', async () => {
+      const lease = makeLease()
+      const { repo } = makeRepoAndDataSource(lease)
+      repo.setLogger({
+        warn: jest.fn(),
+        error: jest.fn(),
+        log: jest.fn(),
+      } as any)
+      let calls = 0
+      await repo.transaction(
+        new DataSourceContext(),
+        async () => {
+          calls += 1
+          if (calls === 1) throw Object.assign(new Error('x'), { errno: 1205 })
+        },
+        { backoffMs: [0] }
+      )
+      expect(calls).toBe(2)
+    })
+
+    it('gives up after maxAttempts and rethrows the deadlock', async () => {
+      const lease = makeLease()
+      const { repo } = makeRepoAndDataSource(lease)
+      repo.setLogger({
+        warn: jest.fn(),
+        error: jest.fn(),
+        log: jest.fn(),
+      } as any)
+      const fn = jest.fn().mockRejectedValue(deadlock())
+
+      await expect(
+        repo.transaction(new DataSourceContext(), fn, {
+          maxAttempts: 2,
+          backoffMs: [0],
+        })
+      ).rejects.toMatchObject({ errno: 1213 })
+      expect(fn).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not retry other errors', async () => {
+      const lease = makeLease()
+      const { repo } = makeRepoAndDataSource(lease)
+      const fn = jest.fn().mockRejectedValue(new Error('boom'))
+      await expect(
+        repo.transaction(new DataSourceContext(), fn)
+      ).rejects.toThrow('boom')
+      expect(fn).toHaveBeenCalledTimes(1)
+    })
+
+    it('maxAttempts of 1 disables retry', async () => {
+      const lease = makeLease()
+      const { repo } = makeRepoAndDataSource(lease)
+      const fn = jest.fn().mockRejectedValue(deadlock())
+      await expect(
+        repo.transaction(new DataSourceContext(), fn, { maxAttempts: 1 })
+      ).rejects.toMatchObject({ errno: 1213 })
+      expect(fn).toHaveBeenCalledTimes(1)
+    })
+  })
 })
