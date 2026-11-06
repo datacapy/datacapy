@@ -1,7 +1,7 @@
 {
   "name": "@datacapy/id",
   "type": "commonjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Short, time-ordered Base62 IDs for relational databases",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",

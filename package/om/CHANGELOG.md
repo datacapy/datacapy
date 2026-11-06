@@ -1,5 +1,45 @@
 # @datacapy/om
 
+## 2.0.0
+
+### Major Changes
+
+- e83b25d: Remove the `sb`, `relb` and `repib` exports (and the default `sb`
+  export). Import `SchemaBuilder`, `RepoRelationBuilder` and `RepoIndexBuilder`
+  and alias them locally, e.g.
+  `import { SchemaBuilder as sb } from '@datacapy/schema'`.
+
+### Minor Changes
+
+- c135f9e: `Repo.transaction()` now re-runs `fn` in a fresh transaction on a
+  MySQL deadlock (errno 1213) or lock wait timeout (1205), up to 3 attempts by
+  default. Pass `{ maxAttempts, backoffMs }` as a third argument to tune it;
+  `maxAttempts: 1` disables retry. `fn` must be safe to re-run.
+
+### Patch Changes
+
+- a5df4fa: Package descriptions on npm now say what each package does.
+- Updated dependencies [e83b25d]
+- Updated dependencies [a5df4fa]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c3b6ea1]
+- Updated dependencies [d6da426]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [c1164a8]
+- Updated dependencies [21f850e]
+  - @datacapy/schema@2.0.0
+
 ## 1.1.0
 
 ### Minor Changes

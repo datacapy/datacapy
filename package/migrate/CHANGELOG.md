@@ -1,5 +1,16 @@
 # @datacapy/migrate
 
+## 0.1.5
+
+### Patch Changes
+
+- a5df4fa: Package descriptions on npm now say what each package does.
+- Updated dependencies [e83b25d]
+- Updated dependencies [a5df4fa]
+- Updated dependencies [c135f9e]
+  - @datacapy/om@2.0.0
+  - @datacapy/id@0.1.1
+
 ## 0.1.4
 
 ### Patch Changes

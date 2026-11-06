@@ -1,5 +1,22 @@
 # @datacapy/server
 
+## 1.0.0
+
+### Major Changes
+
+- e83b25d: Remove the `sb`, `relb` and `repib` exports (and the default `sb`
+  export). Import `SchemaBuilder`, `RepoRelationBuilder` and `RepoIndexBuilder`
+  and alias them locally, e.g.
+  `import { SchemaBuilder as sb } from '@datacapy/schema'`.
+
+### Patch Changes
+
+- a5df4fa: Package descriptions on npm now say what each package does.
+- Updated dependencies [e83b25d]
+- Updated dependencies [a5df4fa]
+- Updated dependencies [c135f9e]
+  - @datacapy/om@2.0.0
+
 ## 0.3.0
 
 ### Minor Changes
