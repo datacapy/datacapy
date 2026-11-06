@@ -67,10 +67,12 @@ consumes them via the pnpm `workspace:*` protocol.
   `pnpm changeset`, picking the affected package(s), the bump level (patch/minor/major), and
   writing the changelog summary.
 - To cut a release: `./scripts/release.sh`. Runs `pnpm changeset version`, commits, tags
-  each bumped package `<package-name>@<version>`, and pushes. Prints the `gh release create`
-  command(s) to run afterwards for each tag.
+  each bumped package `<package-name>@<version>`, and pushes.
 - To publish to npm: `./scripts/publish.sh --dry-run` first (build, test, and list each
   tarball), then `./scripts/publish.sh`. It skips versions already on the registry and
   publishes in dependency order via `pnpm -r publish`, which rewrites `workspace:*` to real
-  versions. Needs `npm login` (2FA one-time password is prompted).
+  versions. Needs `npm login` (2FA one-time password is prompted). After publishing it runs
+  `./scripts/github-release.sh`, which creates a GitHub release (notes from `CHANGELOG.md`)
+  for each current version that has a pushed tag but no release. It is idempotent and can be
+  run alone (`--dry-run` to preview); needs `gh auth login`.
 - Manual, maintainer-triggered flow for now: no CI release automation yet.

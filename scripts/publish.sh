@@ -5,7 +5,8 @@ set -euo pipefail
 # Publishes the @datacapy/* packages to npm.
 #
 # Run ./scripts/release.sh first when there are pending changesets: it bumps versions and
-# tags. This script only publishes whatever versions are in the package.json files and not
+# tags. After publishing, this script creates the matching GitHub releases through
+# ./scripts/github-release.sh. Otherwise it only publishes whatever versions are in the package.json files and not
 # yet on the registry, in dependency order. pnpm rewrites `workspace:*` dependencies to the
 # real version numbers in the published tarballs (plain `npm publish` would not).
 #
@@ -113,3 +114,7 @@ pnpm -r publish --access public --no-git-checks
 
 echo
 echo "Published. Check https://www.npmjs.com/org/datacapy"
+
+echo
+echo "Creating GitHub releases:"
+./scripts/github-release.sh
