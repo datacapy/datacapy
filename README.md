@@ -326,7 +326,7 @@ Use them together or separately.
 
 ## Contributing
 
-See [Developing DataCapy](docs/development.md) for build and test commands.
+See [Developing DataCapy](docs/development.md) for build and test commands. See [Releasing](docs/releasing.md) for publishing to npm.
 
 ## License
 
