@@ -11,7 +11,7 @@ How `datacapy-gen` turns an interface property into a builder chain. Source: `sr
 | `number`                                   | `sb.number()`                                          |
 | `boolean`                                  | `sb.boolean()`                                         |
 | `Date`                                     | `sb.date()`                                            |
-| `unknown`                                  | `sb.mixed()`                                           |
+| `unknown`                                  | `sb.mixed()`; with tags (`unknown & t.Relation`) too   |
 | `T[]`                                      | `sb.array(<T>)`; items are always `required()`         |
 | `{ a: string }`                            | `sb.object({ a: ... })`                                |
 | `{ [k: string]: V }`, `Record<string, V>`  | `sb.object().matchAll(<V>)`; entries carry no presence |
@@ -56,7 +56,7 @@ An interface whose only member is a string index signature, marked `@schema`, em
 
 ## Not supported yet
 
-Numeric literal unions, tuples, `Map`, index signatures mixed with named properties, numeric keys, `sb.mixed` with tags, and `Date` ranges. An unsupported type fails the run and names the property path, for example `NoteData.meta: unsupported type Map<string, string>`. An unknown tag, a tag argument that is not a literal, and `Validate`, `Filter`, `InitFn` or `DefaultFn` without a `registry` fail the same way.
+Numeric literal unions, tuples, `Map`, index signatures mixed with named properties, numeric keys, and `Date` ranges. An unsupported type fails the run and names the property path, for example `NoteData.meta: unsupported type Map<string, string>`. An unknown tag, a tag argument that is not a literal, and `Validate`, `Filter`, `InitFn` or `DefaultFn` without a `registry` fail the same way.
 
 ## Keeping this page honest
 

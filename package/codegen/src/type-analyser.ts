@@ -36,7 +36,8 @@ export class TypeAnalyser {
     }
 
     return {
-      base: this.baseKind(bases, path),
+      // `unknown & Tag` collapses to the tag alone, so a tag with no base is `unknown`
+      base: bases.length === 0 && tags.size > 0 ? { kind: 'mixed' } : this.baseKind(bases, path),
       nullable,
       optional,
       tags,

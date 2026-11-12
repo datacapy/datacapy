@@ -8,7 +8,9 @@ type TagKey = `$dc:${string}`
  * `string & Trim` becomes `string`, a literal union keeps its members, and
  * objects and arrays are stripped recursively. `Date` stays `Date`. A tagged
  * literal (`'a' & Default<'a'>`) cannot be stripped, because a primitive has no
- * tag key to remove, so it is kept as is and compared by {@link Same}.
+ * tag key to remove, so it is kept as is and compared by {@link Same}. A type
+ * with nothing but tag keys is what `unknown & Tag` collapses to, so it becomes
+ * `unknown`.
  */
 export type Untag<T> = T extends Date
   ? Date
@@ -27,7 +29,15 @@ export type Untag<T> = T extends Date
           : T extends readonly (infer U)[]
             ? Untag<U>[]
             : T extends object
-              ? { [K in keyof T as K extends TagKey ? never : K]: Untag<T[K]> }
+              ? [keyof T] extends [never]
+                ? T
+                : [keyof T] extends [TagKey]
+                  ? unknown
+                  : {
+                      [K in keyof T as K extends TagKey ? never : K]: Untag<
+                        T[K]
+                      >
+                    }
               : T
 
 /** The type a schema spec must infer to for the interface `T`. */
