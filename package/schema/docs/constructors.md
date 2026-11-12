@@ -34,3 +34,24 @@ defaults (so `''`, `0` and `false` are kept), and leaves an absent key absent.
 See
 [Filling defaults in a constructor](builder.md#filling-defaults-in-a-constructor)
 for what each option does and when to use it.
+
+## A class that owns its fields
+
+When the schema is generated from the class (`@schema` on a class, see the
+[codegen guide](../../codegen/docs/guide.md#describe-a-class-instead)), the
+class cannot extend a base built from that schema. Extend
+`SchemaConstructorBase<T>` instead, naming the class as the type argument:
+
+```ts
+class Note extends SchemaConstructorBase<Note> {
+  text!: string
+  greeting() {
+    return `Hello, ${this.text}`
+  }
+}
+
+new Note({ text: 'Hi' }).greeting()
+```
+
+The input is the class's data fields, each optional and nullable, with methods
+dropped. The constructor copies the data and does not fill defaults.

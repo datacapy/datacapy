@@ -121,7 +121,7 @@ export class SchemaBuilder {
    * refer to each other in a cycle: `sb.ref` would infer the type from the schema
    * class, which TypeScript cannot resolve when the class is in its own base
    * expression. The generated code uses it for every reference.
-   * Example: sb.refTo<SpecFor<AuthorData>>(() => SchemaAuthor)
+   * Example: sb.refTo<SpecFor<AuthorData>>(() => new SchemaAuthor())
    */
   static refTo<T>(schema: () => unknown): BuilderRef<T> {
     return new BuilderRef<T>(schema as SchemaThunk)

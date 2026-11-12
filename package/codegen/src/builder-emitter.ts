@@ -186,7 +186,7 @@ export class BuilderEmitter {
         return `sb.object().as<${base.type}>()`
       case 'ref':
         ctx.refs.push(base.target)
-        return `sb.refTo<SpecFor<${base.target.interfaceName}>>((): unknown => ${base.target.className})`
+        return `sb.refTo<SpecFor<${base.target.interfaceName}>>((): unknown => new ${base.target.className}())`
       case 'or': {
         const members = base.members.map((m, i) => this.emit(m, `${path}|${i}`, ctx))
         return `sb.or([${members.join(', ')}])`

@@ -131,6 +131,71 @@ describe('SchemaGenerator', () => {
     })
   })
 
+  describe('classes fixture', () => {
+    const CLASSES = path.resolve(__dirname, '../fixtures/classes')
+    const gen = () => new SchemaGenerator(new ConfigLoader().load(CLASSES))
+    const read = async (name: string) =>
+      (await gen().generate()).find((f) => f.path.endsWith(name))!.content
+
+    it('generates only the data fields of a class, and constructs by class name', async () => {
+      const c = await read('note.schema.ts')
+      expect(c.replace(/\s+/g, '')).toContain(
+        "sb.schema('note').construct('Note')".replace(/\s+/g, ''),
+      )
+      expect(c).toContain('text: sb.string().required().minLength(1).maxLength(280).trim(),')
+      expect(c).toContain('pinned: sb.boolean().default(false),')
+      expect(c).toContain('_id: sb.string(),')
+      for (const left of ['greeting', 'shout', 'secret', 'count']) {
+        expect(c).not.toContain(`${left}:`)
+      }
+      expect(c.replace(/\s+/g, '')).toContain(
+        "AssertSchema<SchemaNote,Pick<Note,'_id'|'text'|'owner'|'pinned'>>",
+      )
+    })
+
+    it('includes inherited fields and references other marked classes', async () => {
+      const c = await read('post.schema.ts')
+      expect(c).toContain('createdBy: sb.string(),')
+      expect(c).not.toContain('touch')
+      expect(c).toContain(
+        'author: sb.refTo<SpecFor<Author>>((): unknown => new SchemaAuthor()).required(),',
+      )
+      expect(c.replace(/\s+/g, '')).toContain(".construct('Post').strict()")
+    })
+
+    it('matches the checked-in files', async () => {
+      expect((await gen().check()).stale).toEqual([])
+    })
+
+    it('compiles with exact types', () => {
+      const configFile = ts.readConfigFile(path.join(CLASSES, 'tsconfig.json'), ts.sys.readFile)
+      const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, CLASSES)
+      const program = ts.createProgram(parsed.fileNames, {
+        ...parsed.options,
+        strictNullChecks: true,
+      })
+      const errors = ts
+        .getPreEmitDiagnostics(program)
+        .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'))
+      expect(errors).toEqual([])
+    })
+
+    it('builds instances of the class, with methods, from raw data', async () => {
+      const { SchemaPost, SchemaAuthor } = await import('../fixtures/classes/src/post.schema')
+      const { Post, Author } = await import('../fixtures/classes/src/post')
+      const schema = new SchemaPost()
+      schema.addSchema(new SchemaAuthor())
+      schema.addConstructors([Post, Author])
+      const post = schema.applyTransients({ title: 'T', author: { name: 'A' } })
+      expect(await schema.validate({ title: 'T', author: { name: ' A ' } })).toMatchObject({
+        isValid: true,
+      })
+      expect(post).toBeInstanceOf(Post)
+      expect(post.author).toBeInstanceOf(Author)
+      expect(typeof post.save).toBe('function')
+    })
+  })
+
   describe('shapes fixture', () => {
     const SHAPES = path.resolve(__dirname, '../fixtures/shapes')
     const gen = () => new SchemaGenerator(new ConfigLoader().load(SHAPES))
@@ -144,11 +209,11 @@ describe('SchemaGenerator', () => {
       expect(post).toContain('createdAt: sb.date().default(initialisers.now),')
       expect(post).toContain('.validate(validators.slugUnique)')
       expect(post).toContain('.filter(filters.stripEmoji)')
-      expect(post).toContain('sb.refTo<SpecFor<AuthorData>>((): unknown => SchemaAuthor)')
+      expect(post).toContain('sb.refTo<SpecFor<AuthorData>>((): unknown => new SchemaAuthor())')
       expect(post).toContain("import type { AuthorData } from './author'")
       expect(post).toMatch(/\.required\(\)\s*\.relation\(\)/)
       expect(post).toMatch(
-        /reviewer: sb\s*\.refTo<SpecFor<AuthorData>>\(\(\): unknown => SchemaAuthor\)\s*\.nullable\(\)/,
+        /reviewer: sb\s*\.refTo<SpecFor<AuthorData>>\(\(\): unknown => new SchemaAuthor\(\)\)\s*\.nullable\(\)/,
       )
       expect(post).toMatch(/\.or\(\[\s*sb\.refTo<SpecFor<ParagraphData>>/)
       expect(post).toContain('lat: sb.number().required()')
@@ -314,6 +379,24 @@ describe('SchemaGenerator', () => {
       const [file] = await generate(src, { collections: { a: 'ACollection' } })
       expect(file.content).toContain("sb.schema('a').constructCollection('ACollection')")
       expect(file.content).not.toContain('.construct(')
+    })
+
+    it('rejects a construct= that disagrees with the class name', async () => {
+      await expect(
+        generate('/** @schema a construct=Other */\nexport class A { n!: number }\n'),
+      ).rejects.toThrow(/construct=Other must match the class name/)
+    })
+
+    it('reports unsupported properties of a class', async () => {
+      fs.writeFileSync(
+        path.join(dir, 'src/a.ts'),
+        '/** @schema a */\nexport class A { ok!: string; m!: Map<string, string>; f(): void {} }\n',
+      )
+      expect(
+        generator()
+          .report()
+          .map((e) => e.message),
+      ).toEqual(['A.m: unsupported type Map<string, string>'])
     })
 
     it('rejects an index signature mixed with named properties', async () => {

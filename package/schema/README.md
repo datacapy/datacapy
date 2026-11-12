@@ -183,7 +183,7 @@ export class SchemaSurvey extends Schema.from(
       sections: sb
         .array(
           sb
-            .refTo<SpecFor<SectionData>>((): unknown => SchemaSection)
+            .refTo<SpecFor<SectionData>>((): unknown => new SchemaSection())
             .required()
         )
         .required()

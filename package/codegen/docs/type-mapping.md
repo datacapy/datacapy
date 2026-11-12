@@ -18,7 +18,7 @@ How `datacapy-gen` turns an interface property into a builder chain. Source: `sr
 | `Record<string, unknown>`                  | `sb.object().as<Record<string, unknown>>()`            |
 | `object`                                   | `sb.object().as<object>()`                             |
 | `A \| B` (objects or `@schema` interfaces) | `sb.or([<A>, <B>])`; members carry no presence         |
-| Another `@schema` interface                | `sb.refTo<SpecFor<X>>((): unknown => SchemaX)`         |
+| Another `@schema` interface                | `sb.refTo<SpecFor<X>>((): unknown => new SchemaX())`   |
 
 ## Presence and nullability
 
@@ -43,6 +43,10 @@ Fixed, because the order of intersection members is unreliable in the checker:
 5. flag tags: `email`, `notEmpty`, `trim`, `lowercase`, `uppercase`, `stripHtml`, `private`, `privateValue`, `encrypt`, `noCast`, `relation`
 6. callbacks: `validate(validators.x)`, `filter(filters.x)`; `InitFn` and `DefaultFn` take the place of `init` and `default` as `init(initialisers.x)`, `default(initialisers.x)`
 7. `nullable()`, then `optional()`
+
+## Classes
+
+A `@schema` class is read like an interface, restricted to its data fields. The generated check compares the schema with those fields only: `AssertSchema<SchemaNote, Pick<Note, 'text' | 'owner'>>`. Methods, getters, `private` and `protected` members and statics are not fields. The schema is constructed by the class name.
 
 ## Schema options
 

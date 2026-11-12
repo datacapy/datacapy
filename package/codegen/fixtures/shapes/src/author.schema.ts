@@ -9,7 +9,7 @@ import type { PostData } from './post'
 export class SchemaAuthor extends Schema.from(
   sb.schema('author').shape({
     name: sb.string().required().trim(),
-    posts: sb.array(sb.refTo<SpecFor<PostData>>((): unknown => SchemaPost).required()),
+    posts: sb.array(sb.refTo<SpecFor<PostData>>((): unknown => new SchemaPost()).required()),
   }),
 ) {}
 

@@ -16,7 +16,7 @@ export class SchemaThing extends Schema.from(
     .schema('thing')
     .strict()
     .shape({
-      title: sb.refTo<SpecFor<L10nData>>((): unknown => SchemaL10n).required(),
+      title: sb.refTo<SpecFor<L10nData>>((): unknown => new SchemaL10n()).required(),
       attributes: sb.object().matchAll(sb.string().stripHtml()).required(),
       counts: sb.object().matchAll(sb.number()).required(),
       meta: sb.object().as<Record<string, unknown>>().required(),

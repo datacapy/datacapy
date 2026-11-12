@@ -20,6 +20,11 @@ export interface CheckResult {
   stale: string[]
 }
 
+/** An interface, or a class with a name, that carries the marker. */
+type ModelDeclaration = (ts.InterfaceDeclaration | ts.ClassDeclaration) & {
+  name: ts.Identifier
+}
+
 /** What the `@schema` marker says: `name [construct=Name] [strict|no-strict]`. */
 interface MarkerOptions {
   schemaName: string
@@ -29,7 +34,7 @@ interface MarkerOptions {
 }
 
 interface MarkedInterface {
-  node: ts.InterfaceDeclaration
+  node: ModelDeclaration
   schemaName: string
   construct: string | null
   strict: boolean
@@ -79,7 +84,7 @@ export class SchemaGenerator {
       if (!this.isIncluded(source.fileName)) continue
       const analyser = new TypeAnalyser(checker, (type) => this.resolveRef(type, source.fileName))
       for (const statement of source.statements) {
-        if (!ts.isInterfaceDeclaration(statement)) continue
+        if (!this.isModelDeclaration(statement)) continue
         if (!ts.getJSDocTags(statement).some((t) => t.tagName.text === this.config.marker)) {
           continue
         }
@@ -90,7 +95,7 @@ export class SchemaGenerator {
   }
 
   private reportInterface(
-    node: ts.InterfaceDeclaration,
+    node: ModelDeclaration,
     checker: ts.TypeChecker,
     analyser: TypeAnalyser,
     problems: GeneratorError[],
@@ -107,7 +112,7 @@ export class SchemaGenerator {
       })
       return
     }
-    for (const prop of checker.getPropertiesOfType(type)) {
+    for (const prop of this.fieldsOf(checker, node, type)) {
       const fieldPath = `${node.name.text}.${prop.name}`
       this.collect(problems, () => {
         this.emitter.emit(analyser.analyseProperty(prop, fieldPath), fieldPath, ctx)
@@ -182,14 +187,14 @@ export class SchemaGenerator {
   private findMarked(source: ts.SourceFile): MarkedInterface[] {
     const found: MarkedInterface[] = []
     for (const statement of source.statements) {
-      if (!ts.isInterfaceDeclaration(statement)) continue
+      if (!this.isModelDeclaration(statement)) continue
       const tag = ts.getJSDocTags(statement).find((t) => t.tagName.text === this.config.marker)
       if (!tag) continue
       const options = this.parseMarker(statement, ts.getTextOfJSDocComment(tag.comment) ?? '')
       found.push({
         node: statement,
         schemaName: options.schemaName,
-        construct: options.construct,
+        construct: this.constructFor(statement, options),
         strict: options.strict ?? this.config.strict,
       })
     }
@@ -239,8 +244,8 @@ export class SchemaGenerator {
     if (mapValue) {
       return this.renderMapSchema(marked, type, mapValue, analyser, ctx, className)
     }
-    const fields = checker
-      .getPropertiesOfType(type)
+    const props = this.fieldsOf(checker, marked.node, type)
+    const fields = props
       .map((prop) => {
         const fieldPath = `${iface}.${prop.name}`
         const model = analyser.analyseProperty(prop, fieldPath)
@@ -255,7 +260,7 @@ export class SchemaGenerator {
       '  }),',
       ') {}',
       '',
-      `const _check${className}: AssertSchema<${className}, ${iface}> = true`,
+      `const _check${className}: AssertSchema<${className}, ${this.assertTarget(marked, props)}> = true`,
       `void _check${className}`,
       '',
     ].join('\n')
@@ -283,10 +288,21 @@ export class SchemaGenerator {
       `  ${this.schemaHead(marked)}.matchAll(${value}),`,
       ') {}',
       '',
-      `const _check${className}: AssertSchema<${className}, ${iface}> = true`,
+      `const _check${className}: AssertSchema<${className}, ${this.assertTarget(marked, [])}> = true`,
       `void _check${className}`,
       '',
     ].join('\n')
+  }
+
+  /**
+   * A class also has methods, accessors and private members that are not schema fields, so it is
+   * checked only on the fields that were generated.
+   */
+  private assertTarget(marked: MarkedInterface, props: ts.Symbol[]): string {
+    const name = marked.node.name.text
+    if (!ts.isClassDeclaration(marked.node)) return name
+    const keys = props.map((prop) => `'${prop.name}'`).join(' | ')
+    return props.length > 0 ? `Pick<${name}, ${keys}>` : name
   }
 
   private schemaHead(marked: MarkedInterface): string {
@@ -328,7 +344,9 @@ export class SchemaGenerator {
 
   /** The schema generated for a marked interface, as seen from `fromSource`. */
   private resolveRef(type: ts.Type, fromSource: string): SchemaTarget | undefined {
-    const declaration = type.symbol?.declarations?.find(ts.isInterfaceDeclaration)
+    const declaration = type.symbol?.declarations?.find((d): d is ModelDeclaration =>
+      this.isModelDeclaration(d),
+    )
     if (!declaration) return undefined
     const schemaName = this.markerName(declaration)
     if (!schemaName) return undefined
@@ -355,13 +373,40 @@ export class SchemaGenerator {
     }
   }
 
-  private markerName(node: ts.InterfaceDeclaration): string | undefined {
+  /** A class is its own constructor, so `construct` is its name; an interface says so in the marker. */
+  private constructFor(node: ModelDeclaration, options: MarkerOptions): string | null {
+    if (!ts.isClassDeclaration(node)) return options.construct
+    if (options.construct && options.construct !== node.name.text) {
+      throw new GeneratorError(
+        node.name.text,
+        `construct=${options.construct} must match the class name; omit it on a class`,
+      )
+    }
+    return node.name.text
+  }
+
+  private isModelDeclaration(node: ts.Node): node is ModelDeclaration {
+    return (ts.isInterfaceDeclaration(node) || ts.isClassDeclaration(node)) && !!node.name
+  }
+
+  /** The properties that become schema fields: every interface member, a class's data fields only. */
+  private fieldsOf(checker: ts.TypeChecker, node: ModelDeclaration, type: ts.Type): ts.Symbol[] {
+    const props = checker.getPropertiesOfType(type)
+    if (!ts.isClassDeclaration(node)) return props
+    return props.filter((prop) => {
+      if (!(prop.flags & ts.SymbolFlags.Property)) return false
+      const flags = ts.getCombinedModifierFlags(prop.valueDeclaration!)
+      return !(flags & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected))
+    })
+  }
+
+  private markerName(node: ModelDeclaration): string | undefined {
     const tag = ts.getJSDocTags(node).find((t) => t.tagName.text === this.config.marker)
     if (!tag) return undefined
     return this.parseMarker(node, ts.getTextOfJSDocComment(tag.comment) ?? '').schemaName
   }
 
-  private parseMarker(node: ts.InterfaceDeclaration, text: string): MarkerOptions {
+  private parseMarker(node: ModelDeclaration, text: string): MarkerOptions {
     const interfaceName = node.name.text
     const [schemaName, ...words] = text.trim().split(/\s+/).filter(Boolean)
     if (

@@ -13,10 +13,10 @@ export class SchemaPost extends Schema.from(
     createdAt: sb.date().default(initialisers.now),
     slug: sb.string().required().validate(validators.slugUnique).filter(filters.stripEmoji),
     author: sb
-      .refTo<SpecFor<AuthorData>>((): unknown => SchemaAuthor)
+      .refTo<SpecFor<AuthorData>>((): unknown => new SchemaAuthor())
       .required()
       .relation(),
-    reviewer: sb.refTo<SpecFor<AuthorData>>((): unknown => SchemaAuthor).nullable(),
+    reviewer: sb.refTo<SpecFor<AuthorData>>((): unknown => new SchemaAuthor()).nullable(),
     geo: sb
       .object({
         lat: sb.number().required(),
@@ -29,8 +29,8 @@ export class SchemaPost extends Schema.from(
       .required(),
     body: sb
       .or([
-        sb.refTo<SpecFor<ParagraphData>>((): unknown => SchemaParagraph),
-        sb.refTo<SpecFor<ImageData>>((): unknown => SchemaImage),
+        sb.refTo<SpecFor<ParagraphData>>((): unknown => new SchemaParagraph()),
+        sb.refTo<SpecFor<ImageData>>((): unknown => new SchemaImage()),
       ])
       .required(),
   }),
