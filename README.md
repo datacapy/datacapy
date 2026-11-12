@@ -248,12 +248,11 @@ Add `@datacapy/codegen` as a dev dependency, and set `schemaModule` so the gener
 { "schemaModule": "@datacapy/om", "strict": true }
 ```
 
-Declare the models as classes. `Customer` has a method, and `orders` is related data:
+Declare the models as classes, one file each. `Customer` has a method, and `orders` is related data:
 
 ```ts
-// models.ts
+// Order.ts
 import { SchemaConstructorBase } from '@datacapy/om'
-import type { tags as t } from '@datacapy/om'
 
 /** @schema order */
 export class Order extends SchemaConstructorBase<Order> {
@@ -262,6 +261,14 @@ export class Order extends SchemaConstructorBase<Order> {
   total!: number
   customerId!: string
 }
+```
+
+```ts
+// Customer.ts
+import { SchemaConstructorBase } from '@datacapy/om'
+import type { tags as t } from '@datacapy/om'
+
+import type { Order } from './Order'
 
 /** @schema customer */
 export class Customer extends SchemaConstructorBase<Customer> {
@@ -275,15 +282,17 @@ export class Customer extends SchemaConstructorBase<Customer> {
 }
 ```
 
-Run `datacapy-gen` to write `models.schema.ts`, then run the models against an in-memory datasource
+Run `datacapy-gen` to write `Order.schema.ts` and `Customer.schema.ts` beside them, then run the models against an in-memory datasource
 seeded with data:
 
 ```ts
 import { ModelManager, Repo, DataSourceMock, RepoRelationBuilder as relb } from '@datacapy/om'
 import genUniqueId from '@datacapy/id'
 
-import { Customer, Order } from './models'
-import { SchemaCustomer, SchemaOrder } from './models.schema'
+import { Customer } from './Customer'
+import { SchemaCustomer } from './Customer.schema'
+import { Order } from './Order'
+import { SchemaOrder } from './Order.schema'
 
 class RepoCustomer extends Repo<Customer> {
   constructor() {
