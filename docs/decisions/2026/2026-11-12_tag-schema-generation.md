@@ -27,7 +27,7 @@ Describe rules with type-only tags on a TypeScript interface, and generate the c
 - **`strictNullChecks` is always on** for the generator's program, because consumers that build with it off would lose `T | null`.
 - **Output is formatted with the consumer's Prettier** (child process), so a formatting hook never makes `--check` report stale files.
 - **A non-optional key with only `Init` gets no `required()`.** `Init` already supplies the value on insert.
-- **References use `sb.refTo<SpecFor<X>>((): unknown => SchemaX)`.** The stated type and the `unknown` return annotation avoid "referenced in its own base expression" in cycles.
+- **References use `sb.refTo<SpecFor<X>>((): unknown => new SchemaX())`.** The stated type and the `unknown` return annotation avoid "referenced in its own base expression" in cycles.
 - **Chain order is fixed**, since intersection order in the checker is unreliable.
 
 ## Rejected alternatives
