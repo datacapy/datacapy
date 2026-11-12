@@ -14,13 +14,14 @@ so any Express middleware works.
   datasource in config and the queries do not change.
 - **API layer:** nothing is reachable until you declare an endpoint. Each request is cast,
   validated and access-checked before your code runs.
-- **Shared schemas:** the same definitions validate in the browser and on the server, and give your
-  models their types.
+- **Shared schemas:** write a model once as a class with type tags. DataCapy generates the schema
+  that validates in the browser and on the server, and the class keeps its methods.
 - **Also included:** in-memory testing, versioned migrations, field-level encryption and
   multi-tenant datasources.
 
 ```bash
 pnpm add @datacapy/server @datacapy/schema
+pnpm add -D @datacapy/codegen
 ```
 
 `@datacapy/server` re-exports `@datacapy/om` and its `Schema` exports; `@datacapy/schema` is the
@@ -36,8 +37,8 @@ Every layer is its own package, so you can adopt the whole stack or just the par
   HTTP.
 - **Shared validation only:** [`@datacapy/schema`](package/schema/README.md) runs in the browser and
   on the server.
-- **Interface-first schemas:** [`@datacapy/codegen`](package/codegen/README.md) generates schemas
-  from tagged TypeScript interfaces.
+- **Class-first schemas:** [`@datacapy/codegen`](package/codegen/README.md) generates schemas from
+  tagged TypeScript classes (or interfaces), so a model is declared once.
 
 ## The shape of a DataCapy app
 
@@ -56,7 +57,7 @@ Every layer is its own package, so you can adopt the whole stack or just the par
                                    Express             plain Express underneath
 
   alongside:  @datacapy/migrate (versioned database patches)   @datacapy/id (time-ordered IDs)
-              @datacapy/codegen (dev tool: tagged interfaces → @datacapy/schema modules)
+              @datacapy/codegen (dev tool: tagged classes → @datacapy/schema modules)
 ```
 
 ## One example, all the layers
@@ -69,57 +70,53 @@ GET /api/note/n1   (signed in)        200 {"_id":"n1","text":"Hello","owner":"ke
 GET /api/note/n9   (signed in)        404 {"message":"No such note","name":"ServerErrorNotFound"}
 ```
 
-It takes three pieces. First, the model, defined once as a TypeScript interface. Type tags carry the
-rules, and `datacapy-gen` writes the schema from it. Both are plain TypeScript, so a shared package
-can import them into the browser and the server alike.
+It takes four pieces. First, the model, defined once as a class. Type tags carry the rules, the
+class keeps its methods, and `datacapy-gen` writes the schema from it. Both files are plain
+TypeScript, so a shared package can import them into the browser and the server alike.
 
 ```ts
-// shared/NoteData.ts
+// shared/Note.ts
+import { SchemaConstructorBase } from '@datacapy/schema'
 import type { tags as t } from '@datacapy/schema'
 
 /** @schema note */
-export interface NoteData {
+export class Note extends SchemaConstructorBase<Note> {
   _id?: string
-  text: string & t.Trim & t.MinLength<1> & t.MaxLength<280>
+  text!: string & t.Trim & t.MinLength<1> & t.MaxLength<280>
   owner?: string
 }
 ```
 
-Running `datacapy-gen` writes `shared/NoteData.schema.ts`, which you commit and never edit:
+`SchemaConstructorBase` copies the data given to `new Note({ ... })` onto the instance; a class that
+needs more writes its own constructor instead. Set `useDefineForClassFields` to `false` in the
+tsconfig, or the field declarations reset the copied values.
+
+Second, run `datacapy-gen`. It writes `shared/Note.schema.ts`, which you commit and never edit:
 
 ```ts
 export class SchemaNote extends Schema.from(
-  sb.schema('note').shape({
-    _id: sb.string(),
-    text: sb.string().required().minLength(1).maxLength(280).trim(),
-    owner: sb.string(),
-  }),
+  sb
+    .schema('note')
+    .construct('Note')
+    .shape({
+      _id: sb.string(),
+      text: sb.string().required().minLength(1).maxLength(280).trim(),
+      owner: sb.string(),
+    }),
 ) {}
 
-const _checkSchemaNote: AssertSchema<SchemaNote, NoteData> = true
+const _checkSchemaNote: AssertSchema<SchemaNote, Pick<Note, '_id' | 'text' | 'owner'>> = true
 ```
 
-The last line fails the build if the schema and the interface ever disagree. The model class is then
-one line:
+The last line fails the build if the schema and the class ever disagree. Only the data fields
+become schema fields: methods, getters, statics and private members are left out. The schema
+constructs `Note` by name, so the class and the schema are linked without importing each other.
+Prefer to write the schema by hand? The builder works the same way; see the
+[`schema` README](package/schema/README.md).
 
-```ts
-// shared/Note.ts
-import { SchemaConstructor } from '@datacapy/schema'
-import { SchemaNote } from './NoteData.schema'
-
-export { SchemaNote }
-export class Note extends SchemaConstructor.from(SchemaNote) {}
-```
-
-`Note` is the model: its fields are typed from the schema, so there is no second hand-written type to
-keep in step, and `new Note({ text: 'Hello' })` accepts plain data. If you prefer, write the schema
-with the builder instead and skip the generator; the rest of this example is the same. See the
-[`codegen` README](package/codegen/README.md).
-
-Second, a repository that validates every write against the schema, a service that holds the logic,
-and a role assessor. DataCapy does not authenticate anyone: the assessor reads whatever credential
-your application uses and decides which roles the request has. This one trusts a header, which is
-fine for a demo and not for production.
+Third, a repository, a service that holds the logic, and a role assessor. DataCapy does not
+authenticate anyone: the assessor reads whatever credential your application uses and decides which
+roles the request has. This one trusts a header, which is fine for a demo and not for production.
 
 ```ts
 // server.ts
@@ -130,11 +127,12 @@ import Server, {
   ServerAclRoleAssessor,
   ServerErrorNotFound,
 } from '@datacapy/server'
-import { Note, SchemaNote } from './shared/Note'
+import { Note } from './shared/Note'
+import { SchemaNote } from './shared/Note.schema'
 
 class NoteRepo extends Repo<Note> {
   constructor() {
-    super({ name: 'note', dataSource: 'db', schema: new SchemaNote() })
+    super({ name: 'note', dataSource: 'db' })
   }
 }
 
@@ -166,6 +164,8 @@ class Authed extends ServerAclRoleAssessor {
 
 const server = new Server({ port: 3838, path: '/api' })
 
+server.modelManager.addSchemas([new SchemaNote()])
+server.modelManager.addConstructors([Note])
 server.modelManager.addDataSource(
   'db',
   new DataSourceMock({ note: [{ _id: 'n1', text: 'Hello', owner: 'kevin' }] }),
@@ -175,7 +175,11 @@ server.modelManager.addService(new NoteService())
 server.addRoleAssessor(new Authed())
 ```
 
-Third, the config that exposes the service:
+The model manager links the pieces by name: it gives the `note` schema to the `note` repo, and uses the
+registered `Note` class to turn each stored document into a `Note` instance, so the repo declares no
+schema.
+
+Fourth, the config that exposes the service:
 
 ```ts
 server.addApiConfig({
@@ -215,8 +219,9 @@ const { isValid, errors } = await new SchemaNote().validate({ text: '' })
   Redis and an in-memory mock. Swap the datasource in config and the queries do not change.
   Relations (has-one, has-many, belongs-to, counts, embedded, composite keys) load in one call and
   can span databases. See [Relations](package/om/docs/relations.md).
-- **One definition.** A schema validates writes on the server and form input in the browser, with no
-  second copy of the rules to keep in step.
+- **One definition.** A tagged class is the model, its methods and its rules. The generated schema
+  validates writes on the server and form input in the browser, and a build-time check fails if the
+  two drift apart.
 - **Easy to test.** Point a repository at a seeded in-memory datasource and a service runs without
   a database, as in [Try it with no database](#try-it-with-no-database). The mock serves reads; it
   does not keep writes.
@@ -236,47 +241,49 @@ pnpm add @datacapy/om @datacapy/id
 real database add `mysql2` or `mongodb`, and add `@datacapy/server` for REST endpoints. To use a
 git checkout instead of npm, see [workspace install](docs/workspace-install.md).
 
-This version runs against an in-memory datasource seeded with data:
+Add `@datacapy/codegen` as a dev dependency, and set `schemaModule` so the generated files import from
+`@datacapy/om`:
+
+```json
+{ "schemaModule": "@datacapy/om", "strict": true }
+```
+
+Declare the models as classes. `Customer` has a method, and `orders` is related data:
 
 ```ts
-import {
-  ModelManager,
-  Repo,
-  DataSourceMock,
-  Schema,
-  SchemaBuilder as sb,
-  SchemaConstructor,
-  RepoRelationBuilder as relb,
-} from '@datacapy/om'
-import genUniqueId from '@datacapy/id'
+// models.ts
+import { SchemaConstructorBase } from '@datacapy/om'
+import type { tags as t } from '@datacapy/om'
 
-class SchemaOrder extends Schema.from(
-  sb.schema('order').construct('Order').shape({
-    _id: sb.string(),
-    number: sb.string(),
-    total: sb.number(),
-    customerId: sb.string(),
-  }),
-) {}
+/** @schema order */
+export class Order extends SchemaConstructorBase<Order> {
+  _id?: string
+  number!: string
+  total!: number
+  customerId!: string
+}
 
-class Order extends SchemaConstructor.from(SchemaOrder) {}
+/** @schema customer */
+export class Customer extends SchemaConstructorBase<Customer> {
+  _id?: string
+  name!: string & t.Trim
+  orders?: Order[] & t.Relation
 
-class SchemaCustomer extends Schema.from(
-  sb
-    .schema('customer')
-    .construct('Customer')
-    .shape({
-      _id: sb.string(),
-      name: sb.string().required().trim(),
-      orders: sb.array(sb.ref(() => new SchemaOrder())).relation(),
-    }),
-) {}
-
-class Customer extends SchemaConstructor.from(SchemaCustomer) {
   greeting() {
     return `Hello, ${this.name}`
   }
 }
+```
+
+Run `datacapy-gen` to write `models.schema.ts`, then run the models against an in-memory datasource
+seeded with data:
+
+```ts
+import { ModelManager, Repo, DataSourceMock, RepoRelationBuilder as relb } from '@datacapy/om'
+import genUniqueId from '@datacapy/id'
+
+import { Customer, Order } from './models'
+import { SchemaCustomer, SchemaOrder } from './models.schema'
 
 class CustomerRepo extends Repo<Customer> {
   constructor() {
@@ -323,16 +330,15 @@ found[0].greeting() // 'Hello, Ada Lovelace'
 found[0].orders?.[0] instanceof Order // true
 ```
 
-Each model is defined once. The schema is the source of the fields: `SchemaConstructor.from(SchemaCustomer)`
-gives `Customer` its field types and a constructor that accepts plain data, so there is no hand-written
-class body to keep in step. `orders` is a `.relation()`: related data that a query populates, never stored
-on the customer. `Repo<Customer>` makes `find()` return `Customer[]`.
+Each model is declared once, as a class. The generated schema is checked against the class's data
+fields, `orders` is a `Relation`: related data that a query populates, never stored on the customer, and
+`Repo<Customer>` makes `find()` return `Customer[]`.
 
-`construct('Customer')` and the model manager's `constructors` are the runtime half: `init()` hands the
-registered classes to every repo, which turns each stored document into a `Customer` instance, populated
-`orders` included. The name is a string because the class is derived from the schema and cannot be named
-inside it. The model manager also assigns each schema to the repo of the same name, so the repos declare
-none. See [Constructors and raw data](package/schema/docs/constructors.md) and
+The link between a class and its schema is the name. The generated schema says `construct('Customer')`,
+and the model manager's `constructors` hold the class of that name; `init()` hands them to every repo,
+which turns each stored document into a `Customer` instance, populated `orders` included. The model
+manager also assigns each schema to the repo of the same name, so the repos declare none. See
+[Constructors and raw data](package/schema/docs/constructors.md) and
 [Composition](package/schema/docs/composition.md#constructors).
 
 ## Packages
