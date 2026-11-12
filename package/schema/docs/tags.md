@@ -24,6 +24,7 @@ Each tag is an optional phantom property, so plain data stays assignable:
 | Tag                                                                    | Builder method                                                                  |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `Default<V>`, `Init<V>`                                                | `default(V)`, `init(V)`                                                         |
+| `EmptyObject`                                                          | the value `{}` for `Default<t.EmptyObject>`                                     |
 | `Required`                                                             | `required()` as well as `default()` or `init()`                                 |
 | `OneOf<V>`                                                             | `inArray<string>([...])` on a plain `string`                                    |
 | `Email`, `Pattern<P>`, `MinLength<N>`, `MaxLength<N>`, `NotEmpty`      | `email()`, `regex(P)`, `minLength(N)`, `maxLength(N)`, `notEmpty()`             |
@@ -58,7 +59,7 @@ emits the same check at the end of each file.
 ## Semantics
 
 - `Default<V>`: used when the field is missing. `Default<null>` also makes the
-  field nullable. `Default<{}>` defaults to an empty object.
+  field nullable. `Default<t.EmptyObject>` defaults to an empty object.
 - `Init<V>`: set once on insert; the key needs no `required()`.
 - `Required`: a key with `Default` or `Init` is not `required()` on its own. Add
   `Required` when the schema also needs the presence check.

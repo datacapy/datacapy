@@ -14,7 +14,7 @@ export interface NoteData {
   closedAt: (Date & t.Default<null>) | null
   note?: string & t.Default<'n'>
   extra?: unknown
-  meta: Record<string, unknown> & t.Default<{}>
+  meta: Record<string, unknown> & t.Default<t.EmptyObject>
   mode: ('a' | 'b') & t.Required & t.Default<'a'>
   kind: string & t.OneOf<'a' | 'b'>
   code: string & t.Required & t.Default<'x'>

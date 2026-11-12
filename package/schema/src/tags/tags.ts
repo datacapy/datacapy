@@ -4,12 +4,14 @@
 // to a tagged type (`const s: string & Trim = 'x'` compiles) and tags combine
 // with `&`.
 
-/** Value used when the field is missing (`default()`). `null` also makes it nullable. `{}` is the empty object. */
-export type Default<
-  V extends string | number | boolean | null | Record<string, never>,
-> = {
-  readonly '$dc:default'?: V
-}
+/** The empty-object value of `Default`, spelled as a type. */
+export type EmptyObject = Record<string, never>
+
+/** Value used when the field is missing (`default()`). `null` also makes it nullable. */
+export type Default<V extends string | number | boolean | null | EmptyObject> =
+  {
+    readonly '$dc:default'?: V
+  }
 /** Value set once on insert (`init()`). */
 export type Init<V extends string | number | boolean | null> = {
   readonly '$dc:init'?: V
