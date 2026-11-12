@@ -19,6 +19,7 @@ export class SchemaNote extends Schema.from(
     note: sb.string().default('n').optional(),
     extra: sb.mixed(),
     meta: sb.object().as<Record<string, unknown>>().default({}),
+    mode: sb.string().required().default('a').inArray(['a', 'b']),
     kind: sb.string().required().inArray<string>(['a', 'b']),
     code: sb.string().required().default('x'),
   }),

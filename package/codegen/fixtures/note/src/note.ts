@@ -15,6 +15,7 @@ export interface NoteData {
   note?: string & t.Default<'n'>
   extra?: unknown
   meta: Record<string, unknown> & t.Default<{}>
+  mode: ('a' | 'b') & t.Required & t.Default<'a'>
   kind: string & t.OneOf<'a' | 'b'>
   code: string & t.Required & t.Default<'x'>
 }

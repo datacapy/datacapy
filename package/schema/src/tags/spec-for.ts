@@ -6,7 +6,9 @@ type TagKey = `$dc:${string}`
 /**
  * An interface with its tags removed: the plain data type the tags annotate.
  * `string & Trim` becomes `string`, a literal union keeps its members, and
- * objects and arrays are stripped recursively. `Date` stays `Date`.
+ * objects and arrays are stripped recursively. `Date` stays `Date`. A tagged
+ * literal (`'a' & Default<'a'>`) cannot be stripped, because a primitive has no
+ * tag key to remove, so it is kept as is and compared by {@link Same}.
  */
 export type Untag<T> = T extends Date
   ? Date
@@ -15,7 +17,7 @@ export type Untag<T> = T extends Date
       ? string
       : T extends `${infer L}`
         ? L
-        : string
+        : T
     : T extends number
       ? number
       : T extends boolean
@@ -36,8 +38,17 @@ type Equal<A, B> =
     ? true
     : false
 
+type Mutual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+
+/**
+ * Exact equality, or each-way assignment when the types are only different
+ * spellings. A tagged literal union is not identical to the plain union but is
+ * assignable both ways, while a wrong or missing literal is not.
+ */
+type Same<A, B> = Equal<A, B> extends true ? true : Mutual<A, B>
+
 /** `true` when `InferSpec<S>` is exactly the untagged interface `T`. */
-export type SpecMatches<S, T> = Equal<InferSpec<S>, SpecFor<T>>
+export type SpecMatches<S, T> = Same<InferSpec<S>, SpecFor<T>>
 
 /**
  * Compile-time exactness check for a hand-written (or generated) spec against
@@ -61,7 +72,7 @@ export type AssertSpec<S, T> =
  *   const _check: AssertSchema<SchemaNote, NoteData> = true
  */
 export type AssertSchema<X, T> =
-  Equal<Infer<X>, SpecFor<T>> extends true
+  Same<Infer<X>, SpecFor<T>> extends true
     ? true
     : {
         error: 'schema does not match the interface'

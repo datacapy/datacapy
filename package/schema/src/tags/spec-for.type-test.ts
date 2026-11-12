@@ -64,4 +64,21 @@ const loose = { ...spec, status: sb.string().inArray(['draft', 'published']) }
 type Loose = AssertSpec<typeof loose, NoteData>
 expectType<Equal<Loose extends true ? true : false, false>>()
 
-export { ok }
+// a tagged literal union matches the schema, and a wrong or missing literal does not
+interface ModeData {
+  mode: ('a' | 'b') & t.Required & t.Default<'a'>
+}
+const modeSpec = {
+  mode: sb.string().required().inArray(['a', 'b']).default('a'),
+}
+const modeOk: AssertSpec<typeof modeSpec, ModeData> = true
+const wrongMode = {
+  mode: sb.string().required().inArray(['a', 'c']).default('a'),
+}
+type WrongMode = AssertSpec<typeof wrongMode, ModeData>
+expectType<Equal<WrongMode extends true ? true : false, false>>()
+const fewerModes = { mode: sb.string().required().inArray(['a']).default('a') }
+type FewerModes = AssertSpec<typeof fewerModes, ModeData>
+expectType<Equal<FewerModes extends true ? true : false, false>>()
+
+export { ok, modeOk }
