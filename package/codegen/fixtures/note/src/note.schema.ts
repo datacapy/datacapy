@@ -18,6 +18,8 @@ export class SchemaNote extends Schema.from(
     closedAt: sb.date().default(null),
     note: sb.string().default('n').optional(),
     extra: sb.mixed(),
+    kind: sb.string().required().inArray<string>(['a', 'b']),
+    code: sb.string().required().default('x'),
   }),
 ) {}
 

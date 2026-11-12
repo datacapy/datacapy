@@ -36,8 +36,8 @@ How `datacapy-gen` turns an interface property into a builder chain. Source: `sr
 
 Fixed, because the order of intersection members is unreliable in the checker:
 
-1. presence: `required()`, `default()`, `init()`
-2. base refinement: `inArray()`
+1. presence: `required()`, `default()`, `init()` (`t.Required` adds `required()` beside the other two)
+2. base refinement: `inArray()` (a literal union, or `t.OneOf<...>` on a plain `string`)
 3. `constructCollection('Name')` for `ConstructCollection<Name>` on an array
 4. tags with a value: `regex`, `minLength`, `maxLength`, `label`
 5. flag tags: `email`, `notEmpty`, `trim`, `lowercase`, `uppercase`, `stripHtml`, `private`, `privateValue`, `encrypt`, `noCast`, `relation`

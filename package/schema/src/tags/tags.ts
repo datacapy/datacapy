@@ -22,6 +22,11 @@ export type ConstructCollection<Name extends string> = {
   readonly '$dc:constructCollection'?: Name
 }
 
+/** `required()` in addition to `Default` or `Init`, which otherwise stand in for it. */
+export type Required = { readonly '$dc:required'?: true }
+/** `inArray()` on a plain `string`, for when the TypeScript type is deliberately wider than the allowed values. */
+export type OneOf<V extends string> = { readonly '$dc:oneOf'?: V }
+
 /** `email()` */
 export type Email = { readonly '$dc:email'?: true }
 /** `regex()`; the pattern is a string literal. */

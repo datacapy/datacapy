@@ -24,6 +24,8 @@ Each tag is an optional phantom property, so plain data stays assignable:
 | Tag                                                                    | Builder method                                                                  |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `Default<V>`, `Init<V>`                                                | `default(V)`, `init(V)`                                                         |
+| `Required`                                                             | `required()` as well as `default()` or `init()`                                 |
+| `OneOf<V>`                                                             | `inArray<string>([...])` on a plain `string`                                    |
 | `Email`, `Pattern<P>`, `MinLength<N>`, `MaxLength<N>`, `NotEmpty`      | `email()`, `regex(P)`, `minLength(N)`, `maxLength(N)`, `notEmpty()`             |
 | `Trim`, `Lowercase`, `Uppercase`, `StripHtml`                          | the filter of the same name                                                     |
 | `Private`, `PrivateValue`, `Encrypt`, `Label<L>`, `Relation`, `NoCast` | the method of the same name                                                     |
@@ -58,6 +60,11 @@ emits the same check at the end of each file.
 - `Default<V>`: used when the field is missing. `Default<null>` also makes the
   field nullable.
 - `Init<V>`: set once on insert; the key needs no `required()`.
+- `Required`: a key with `Default` or `Init` is not `required()` on its own. Add
+  `Required` when the schema also needs the presence check.
+- `OneOf<'a' | 'b'>`: restricts a `string` to the listed values while the
+  TypeScript type stays `string`. Use a literal union instead when the wider
+  type is not needed.
 - `Label<L>`: the name used in validation error messages.
 - `Private`, `PrivateValue`: removed by `filterPrivate` (see
   [filtering](filtering.md#private-fields)).

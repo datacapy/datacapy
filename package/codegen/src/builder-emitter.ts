@@ -28,6 +28,8 @@ const VALUE_TAGS: ReadonlyArray<[string, string]> = [
 const KNOWN_TAGS = new Set([
   'default',
   'init',
+  'required',
+  'oneOf',
   'initFn',
   'constructCollection',
   'defaultFn',
@@ -51,7 +53,7 @@ export class BuilderEmitter {
     this.checkTags(field, path)
     const calls = [
       ...this.presenceCalls(field, path, ctx),
-      ...this.baseCalls(field.base),
+      ...this.baseCalls(field, path),
       ...this.collectionCalls(field, path),
       ...this.tagCalls(field),
       ...this.callbackCalls(field, path, ctx),
@@ -87,7 +89,7 @@ export class BuilderEmitter {
         throw new GeneratorError(path, `tags ${literalTag} and ${fnTag} cannot be combined`)
       }
     }
-    if (!field.optional && !this.hasDefaultOrInit(field)) {
+    if (field.tags.has('required') || (!field.optional && !this.hasDefaultOrInit(field))) {
       calls.push('required()')
     }
     if (field.tags.has('default')) {
@@ -107,7 +109,14 @@ export class BuilderEmitter {
     return calls
   }
 
-  private baseCalls(base: BaseKind): string[] {
+  private baseCalls(field: FieldModel, path: string): string[] {
+    const { base } = field
+    if (field.tags.has('oneOf')) {
+      if (base.kind !== 'string') {
+        throw new GeneratorError(path, 'tag oneOf only applies to a plain string')
+      }
+      return [`inArray<string>(${this.literal(field.tags.get('oneOf')!)})`]
+    }
     if (base.kind !== 'literals') return []
     return [`inArray([${base.values.map((v) => this.literal(v)).join(', ')}])`]
   }
@@ -207,6 +216,7 @@ export class BuilderEmitter {
     if (typeof value === 'string') {
       return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
     }
+    if (Array.isArray(value)) return `[${value.map((v) => this.literal(v)).join(', ')}]`
     return String(value)
   }
 }

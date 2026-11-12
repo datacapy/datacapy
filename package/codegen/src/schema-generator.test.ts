@@ -374,6 +374,23 @@ describe('SchemaGenerator', () => {
       ).rejects.toThrow(/A\.r: tag constructCollection only applies to arrays/)
     })
 
+    it('rejects oneOf on a non-string', async () => {
+      const tags = `type O = { readonly '$dc:oneOf'?: 'a' | 'b' }\n`
+      await expect(
+        generate(`${tags}/** @schema a */\nexport interface A { n: number & O }\n`),
+      ).rejects.toThrow(/A\.n: tag oneOf only applies to a plain string/)
+    })
+
+    it('emits required beside a default and oneOf as inArray', async () => {
+      const tags = `type R = { readonly '$dc:required'?: true }\ntype D = { readonly '$dc:default'?: 'a' }\ntype O = { readonly '$dc:oneOf'?: 'a' | 'b' }\n`
+      const [file] = await generate(
+        `${tags}/** @schema a */\nexport interface A { r: string & R & D & O }\n`,
+      )
+      expect(file.content.replace(/\s+/g, '')).toContain(
+        "r:sb.string().required().default('a').inArray<string>(['a','b'])",
+      )
+    })
+
     it('emits constructCollection from the config without a construct', async () => {
       const src = '/** @schema a */\nexport interface A { n: number }\n'
       const [file] = await generate(src, { collections: { a: 'ACollection' } })
