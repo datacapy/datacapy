@@ -48,7 +48,7 @@ import Server, {
   ServerErrorNotFound,
 } from '@datacapy/server'
 
-class NoteService extends Service {
+class ServiceNote extends Service {
   private notes = [{ id: 1, text: 'Hello', owner: 'kevin' }]
 
   constructor() {
@@ -94,7 +94,7 @@ class Authed extends ServerAclRoleAssessor {
 
 const server = new Server({ port: 3838, path: '/api' })
 
-server.modelManager.addService(new NoteService())
+server.modelManager.addService(new ServiceNote())
 server.addRoleAssessor(new Authed())
 
 server.addApiConfig({

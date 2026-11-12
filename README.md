@@ -130,19 +130,19 @@ import Server, {
 import { Note } from './shared/Note'
 import { SchemaNote } from './shared/Note.schema'
 
-class NoteRepo extends Repo<Note> {
+class RepoNote extends Repo<Note> {
   constructor() {
     super({ name: 'note', dataSource: 'db' })
   }
 }
 
-class NoteService extends Service {
+class ServiceNote extends Service {
   constructor() {
     super({ name: 'note' })
   }
 
   async get({ id }: { id: string }) {
-    const note = await this.getRepo<NoteRepo>('note').findOne({ _id: id })
+    const note = await this.getRepo<RepoNote>('note').findOne({ _id: id })
     if (!note) throw new ServerErrorNotFound({ message: 'No such note' })
     return note
   }
@@ -170,8 +170,8 @@ server.modelManager.addDataSource(
   'db',
   new DataSourceMock({ note: [{ _id: 'n1', text: 'Hello', owner: 'kevin' }] }),
 )
-server.modelManager.addRepo(new NoteRepo())
-server.modelManager.addService(new NoteService())
+server.modelManager.addRepo(new RepoNote())
+server.modelManager.addService(new ServiceNote())
 server.addRoleAssessor(new Authed())
 ```
 
@@ -285,7 +285,7 @@ import genUniqueId from '@datacapy/id'
 import { Customer, Order } from './models'
 import { SchemaCustomer, SchemaOrder } from './models.schema'
 
-class CustomerRepo extends Repo<Customer> {
+class RepoCustomer extends Repo<Customer> {
   constructor() {
     super({
       name: 'customer',
@@ -297,7 +297,7 @@ class CustomerRepo extends Repo<Customer> {
   }
 }
 
-class OrderRepo extends Repo<Order> {
+class RepoOrder extends Repo<Order> {
   constructor() {
     super({ name: 'order', dataSource: 'db' })
   }
@@ -320,9 +320,9 @@ modelManager.addDataSource(
   }),
 )
 
-const customers = new CustomerRepo()
+const customers = new RepoCustomer()
 modelManager.addRepo(customers)
-modelManager.addRepo(new OrderRepo())
+modelManager.addRepo(new RepoOrder())
 await modelManager.init()
 
 const found = await customers.find({}, { populate: { orders: true } })
