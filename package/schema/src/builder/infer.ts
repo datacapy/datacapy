@@ -23,7 +23,25 @@ type IsPresent<B> = B extends { readonly _optional: true }
  * Object type for a schema spec (a map of field name to builder). A key is required
  * only when its builder went through `required()` or `default()` and not `optional()`.
  */
-export type InferSpec<S> = Simplify<
+export type InferSpec<S> =
+  HasMatchAll<S> extends true
+    ? { [key: string]: InferValue<S[Extract<'*', keyof S>]> }
+    : InferNamedSpec<S>
+
+/**
+ * True when `S` declares the `'*'` match-all key and has a closed set of keys.
+ * `any` and index-signature specs (`SpecInput`) are not match-all specs.
+ */
+type HasMatchAll<S> =
+  IsAny<S> extends true
+    ? false
+    : string extends keyof S
+      ? false
+      : '*' extends keyof S
+        ? true
+        : false
+
+type InferNamedSpec<S> = Simplify<
   {
     -readonly [
       K in keyof S as IsPresent<S[K]> extends true ? K : never

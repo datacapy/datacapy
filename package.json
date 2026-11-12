@@ -32,7 +32,11 @@
     "build:migrate": "pnpm --filter @datacapy/migrate build",
     "test:migrate": "pnpm --filter @datacapy/migrate test",
     "format:migrate": "pnpm --filter @datacapy/migrate format",
-    "typecheck:migrate": "pnpm --filter @datacapy/migrate typecheck"
+    "typecheck:migrate": "pnpm --filter @datacapy/migrate typecheck",
+    "build:codegen": "pnpm --filter @datacapy/codegen build",
+    "test:codegen": "pnpm --filter @datacapy/codegen test",
+    "format:codegen": "pnpm --filter @datacapy/codegen format",
+    "typecheck:codegen": "pnpm --filter @datacapy/codegen typecheck"
   },
   "config": {
     "commitizen": {

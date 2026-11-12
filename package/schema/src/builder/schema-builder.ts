@@ -117,6 +117,17 @@ export class SchemaBuilder {
   }
 
   /**
+   * Reference another schema lazily with a stated value type. Use it where schemas
+   * refer to each other in a cycle: `sb.ref` would infer the type from the schema
+   * class, which TypeScript cannot resolve when the class is in its own base
+   * expression. The generated code uses it for every reference.
+   * Example: sb.refTo<SpecFor<AuthorData>>(() => SchemaAuthor)
+   */
+  static refTo<T>(schema: () => unknown): BuilderRef<T> {
+    return new BuilderRef<T>(schema as SchemaThunk)
+  }
+
+  /**
    * Fill the defaults of a shape into `data`: each key that is `undefined` or `null` takes
    * its `default()` value, else its `init()` value. Other values pass through
    * untouched, and a key with no starting value stays as given. A synchronous

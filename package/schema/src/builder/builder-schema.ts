@@ -68,9 +68,11 @@ export class BuilderSchema<S = {}> implements HasSpec<S> {
   /**
    * Define a match-all '*' spec for dynamic keys
    */
-  matchAll(fieldSpec: SchemaSpec | BuilderBase<any>): this {
+  matchAll<B extends SchemaSpec | BuilderBase<any>>(
+    fieldSpec: B
+  ): BuilderSchema<S & { '*': B }> {
     this.spec['*'] = fieldSpec
-    return this
+    return this as BuilderSchema<any>
   }
 
   /**

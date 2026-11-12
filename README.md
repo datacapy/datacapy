@@ -36,6 +36,8 @@ Every layer is its own package, so you can adopt the whole stack or just the par
   HTTP.
 - **Shared validation only:** [`@datacapy/schema`](package/schema/README.md) runs in the browser and
   on the server.
+- **Interface-first schemas:** [`@datacapy/codegen`](package/codegen/README.md) generates schemas
+  from tagged TypeScript interfaces.
 
 ## The shape of a DataCapy app
 
@@ -54,6 +56,7 @@ Every layer is its own package, so you can adopt the whole stack or just the par
                                    Express             plain Express underneath
 
   alongside:  @datacapy/migrate (versioned database patches)   @datacapy/id (time-ordered IDs)
+              @datacapy/codegen (dev tool: tagged interfaces → @datacapy/schema modules)
 ```
 
 ## One example, all the layers

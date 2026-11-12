@@ -10,7 +10,7 @@ pnpm install
 pnpm build
 pnpm test
 
-# Build or test one package (id, schema, om, server, migrate)
+# Build or test one package (id, schema, om, server, migrate, codegen)
 pnpm build:om
 pnpm test:om
 

@@ -58,7 +58,7 @@ Timestamp fields use the `xxxAt` suffix (e.g. `createdAt`, `updatedAt`, `deleted
 
 ### Releases
 
-Each `@datacapy/*` package (`id`, `migrate`, `om`, `schema`, `server`) has its own
+Each `@datacapy/*` package (`id`, `migrate`, `om`, `schema`, `server`, `codegen`) has its own
 independent semver line, tracked via [Changesets](https://github.com/changesets/changesets)
 (`.changeset/`). They are published to npm under the `@datacapy` scope, and `veysur`
 consumes them via the pnpm `workspace:*` protocol.

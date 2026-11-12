@@ -121,6 +121,10 @@ await schema.validate(data)
 // data.title is { en: 'Hello', de: 'Hallo' }
 ```
 
+A whole schema can be a map: `sb.schema('l10n').matchAll(sb.string().trim())`
+infers `{ [key: string]: string }`, with every entry typed and no declared
+fields. `Infer` and `AssertSchema` treat it that way.
+
 The spec applies to every property of the object, including any you declare
 alongside it, so do not mix declared fields with `matchAll` expecting the
 declared ones to be exempt.

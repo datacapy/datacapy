@@ -250,3 +250,24 @@ void bagFromPlain
 // null is accepted on every key: it counts as missing
 const nullId: In = { _id: null }
 void nullId
+
+// refTo states the value type, so a cycle needs no inference from the class
+const author = sb.schema('author').shape({ name: sb.string().required() })
+const viaRefTo = {
+  author: sb.refTo<{ name: string }>(() => author).required(),
+  editor: sb.refTo<{ name: string }>(() => author).nullable(),
+}
+expectType<
+  Equal<
+    Infer<typeof viaRefTo>,
+    { author: { name: string }; editor?: { name: string } | null }
+  >
+>()
+
+// schema-level matchAll infers a string-keyed map with required entries
+class SchemaMap extends Schema.from(
+  sb.schema('map').construct('Map').strict().matchAll(sb.string().trim())
+) {}
+expectType<Equal<Infer<SchemaMap>, { [key: string]: string }>>()
+// specs with named keys, and the open SpecInput shape, are not affected
+expectType<Equal<Infer<{ a: ReturnType<typeof sb.string> }>, { a?: string }>>()

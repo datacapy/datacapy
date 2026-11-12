@@ -102,6 +102,7 @@ Validate a clone if you need to keep the input untouched.
 | [Filtering](docs/filtering.md)     | Defaults, string filters, conditional and custom filters, private fields                                                                                                                                            |
 | [Encryption](docs/encryption.md)   | Marking fields, the encryption service interface, encrypting and decrypting                                                                                                                                         |
 | [Composition](docs/composition.md) | Schema references, arrays, `$or`, dynamic keys, constructors, relations                                                                                                                                             |
+| [Type tags](docs/tags.md)          | Type-only tags for describing schema rules on an interface, and the `AssertSpec` / `AssertSchema` exactness checks; [generate the schema](../codegen/README.md) from the interface                                  |
 
 ## Typed models
 

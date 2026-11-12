@@ -1,6 +1,6 @@
 # Releasing DataCapy
 
-Each `@datacapy/*` package (`id`, `migrate`, `om`, `schema`, `server`) has its own semver line, tracked with [Changesets](https://github.com/changesets/changesets). Releases are manual and run from `master`.
+Each `@datacapy/*` package (`id`, `migrate`, `om`, `schema`, `server`, `codegen`) has its own semver line, tracked with [Changesets](https://github.com/changesets/changesets). Releases are manual and run from `master`.
 
 ## 1. Add a changeset with the change
 

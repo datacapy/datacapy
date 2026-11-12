@@ -180,6 +180,9 @@ Shorthand also works in plain specs: `age: Number` is the same as
 
 ## Inferring types
 
+To write the interface first and generate the schema from it, see
+[type tags](tags.md) and the [codegen guide](../../codegen/docs/guide.md).
+
 The schema is the single source of a model's data type. `Infer` reads it, so the
 type is not written a second time:
 
@@ -216,6 +219,7 @@ schema class, a schema instance or a spec of builders.
 | `or([a, b])`                | The union of the alternatives                                    |
 | `ref(() => s)`, `.schema()` | The referenced schema's inferred type                            |
 | `object().matchAll(spec)`   | `Record<string, T>`, with `T` inferred from `spec`               |
+| `schema().matchAll(spec)`   | `{ [key: string]: T }`, with `T` inferred from `spec`            |
 | `as<T>()`                   | States the type; no runtime effect. See below                    |
 | `mixed()`                   | `unknown`; `mixed().as<T>()` states a type (no runtime effect)   |
 

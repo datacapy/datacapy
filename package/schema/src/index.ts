@@ -20,6 +20,7 @@ export * from './filter'
 export * from './validator'
 export * from './builder'
 export * from './type'
+export * from './tags'
 export * from './encryption'
 
 export default Schema
