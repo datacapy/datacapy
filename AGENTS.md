@@ -66,6 +66,10 @@ consumes them via the pnpm `workspace:*` protocol.
 - When a PR changes one or more packages' behaviour, add a changeset:
   `pnpm changeset`, picking the affected package(s), the bump level (patch/minor/major), and
   writing the changelog summary.
+- **Below 1.0, a breaking change is a `minor` changeset, never `major`.** Changesets turns a
+  `major` on a 0.x package into 1.0.0, and going to 1.0 is a decision, not a side effect.
+  `release.sh` and `publish.sh` refuse it unless you pass `--allow-first-major=<package>`.
+  See `docs/releasing.md`.
 - To cut a release: `./scripts/release.sh`. Runs `pnpm changeset version`, commits, tags
   each bumped package `<package-name>@<version>`, and pushes.
 - To publish to npm: `./scripts/publish.sh --dry-run` first (build, test, and list each

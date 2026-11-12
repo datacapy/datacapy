@@ -13,6 +13,7 @@ set -euo pipefail
 # Usage:
 #   ./scripts/publish.sh --dry-run   build, test, and show each tarball without publishing
 #   ./scripts/publish.sh             the same, then confirm and publish for real
+#   --allow-first-major=<package>[,<package>...]   permit a package's first 1.0.0 release
 #
 # A real publish needs an npm granular access token with read/write on @datacapy and
 # "Bypass two-factor authentication" ticked (npm rejects 2FA-less publishes otherwise).
@@ -23,12 +24,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DRY_RUN=false
+ALLOW_FIRST_MAJOR=""
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
+    --allow-first-major=*) ALLOW_FIRST_MAJOR="${arg#*=}" ;;
     *)
       echo "Unknown argument: $arg" >&2
-      echo "Usage: $0 [--dry-run]" >&2
+      echo "Usage: $0 [--dry-run] [--allow-first-major=<package>[,<package>...]]" >&2
       exit 2
       ;;
   esac
@@ -71,6 +74,7 @@ echo "npm user: $NPM_USER"
 echo
 echo "Packages and registry status:"
 TO_PUBLISH=0
+UNPUBLISHED=()
 for f in package/*/package.json; do
   name=$(node -p "require('./$f').name")
   version=$(node -p "require('./$f').version")
@@ -79,6 +83,7 @@ for f in package/*/package.json; do
   else
     echo "  ${name}@${version}  to publish"
     TO_PUBLISH=$((TO_PUBLISH + 1))
+    UNPUBLISHED+=("${name}@${version}")
   fi
 done
 
@@ -87,6 +92,8 @@ if [[ "$TO_PUBLISH" -eq 0 ]]; then
   echo "Nothing to publish: every version is already on the registry." >&2
   exit 1
 fi
+
+./scripts/changeset-check-first-major.sh publish "$ALLOW_FIRST_MAJOR" "${UNPUBLISHED[@]}"
 
 echo
 pnpm install --frozen-lockfile

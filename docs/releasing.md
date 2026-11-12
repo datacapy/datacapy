@@ -10,6 +10,19 @@ pnpm changeset
 
 Pick the affected packages, the bump level (patch, minor, major) and write the changelog summary. Commit the generated `.changeset/*.md` file with the code change.
 
+**Below 1.0, a breaking change is a `minor` bump, never `major`.** Changesets turns a `major` on a 0.x package into 1.0.0, so going to 1.0 must be a decision, not a side effect of classifying a change. `release.sh` and `publish.sh` enforce this with `scripts/changeset-check-first-major.sh`. Once a package is at 1.0 or above, `major` works as normal.
+
+### Going to 1.0 on purpose
+
+Add the `major` changeset, then name the package when releasing and publishing:
+
+```bash
+./scripts/release.sh --allow-first-major=@datacapy/id
+./scripts/publish.sh --allow-first-major=@datacapy/id
+```
+
+`release.sh` checks the changesets before versioning and the resulting versions afterwards (restoring the tree on failure). `publish.sh` also refuses any unpublished `1.0.0` that is not named, which catches versions bumped by hand.
+
 ## 2. Version, tag and push
 
 ```bash
