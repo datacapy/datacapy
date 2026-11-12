@@ -39,11 +39,11 @@ for what each option does and when to use it.
 
 When the schema is generated from the class (`@schema` on a class, see the
 [codegen guide](../../codegen/docs/guide.md#describe-a-class-instead)), the
-class cannot extend a base built from that schema. Extend
-`SchemaConstructorBase<T>` instead, naming the class as the type argument:
+class cannot extend a base built from that schema. Extend `SchemaConstructor<T>`
+instead, naming the class as the type argument:
 
 ```ts
-class Note extends SchemaConstructorBase<Note> {
+class Note extends SchemaConstructor<Note> {
   text!: string
   greeting() {
     return `Hello, ${this.text}`

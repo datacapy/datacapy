@@ -1,6 +1,6 @@
-import { SchemaConstructorBase } from './schema-constructor-base'
+import { SchemaConstructor } from './schema-constructor'
 
-class Note extends SchemaConstructorBase<Note> {
+class Note extends SchemaConstructor<Note> {
   declare text: string
   declare owner?: string
   declare pinned: boolean
@@ -10,7 +10,7 @@ class Note extends SchemaConstructorBase<Note> {
   }
 }
 
-describe('SchemaConstructorBase', () => {
+describe('SchemaConstructor<T> as a base class', () => {
   it('copies the data onto the instance, with methods intact', () => {
     const note = new Note({ text: 'Hi', owner: 'kevin' })
     expect(note).toBeInstanceOf(Note)

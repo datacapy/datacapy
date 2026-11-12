@@ -76,18 +76,18 @@ TypeScript, so a shared package can import them into the browser and the server 
 
 ```ts
 // shared/Note.ts
-import { SchemaConstructorBase } from '@datacapy/schema'
+import { SchemaConstructor } from '@datacapy/schema'
 import type { tags as t } from '@datacapy/schema'
 
 /** @schema note */
-export class Note extends SchemaConstructorBase<Note> {
+export class Note extends SchemaConstructor<Note> {
   _id?: string
   text!: string & t.Trim & t.MinLength<1> & t.MaxLength<280>
   owner?: string
 }
 ```
 
-`SchemaConstructorBase` copies the data given to `new Note({ ... })` onto the instance; a class that
+`SchemaConstructor` copies the data given to `new Note({ ... })` onto the instance; a class that
 needs more writes its own constructor instead. Set `useDefineForClassFields` to `false` in the
 tsconfig, or the field declarations reset the copied values.
 
@@ -252,10 +252,10 @@ Declare the models as classes, one file each. `Customer` has a method, and `orde
 
 ```ts
 // Order.ts
-import { SchemaConstructorBase } from '@datacapy/om'
+import { SchemaConstructor } from '@datacapy/om'
 
 /** @schema order */
-export class Order extends SchemaConstructorBase<Order> {
+export class Order extends SchemaConstructor<Order> {
   _id?: string
   number!: string
   total!: number
@@ -265,13 +265,13 @@ export class Order extends SchemaConstructorBase<Order> {
 
 ```ts
 // Customer.ts
-import { SchemaConstructorBase } from '@datacapy/om'
+import { SchemaConstructor } from '@datacapy/om'
 import type { tags as t } from '@datacapy/om'
 
 import type { Order } from './Order'
 
 /** @schema customer */
-export class Customer extends SchemaConstructorBase<Customer> {
+export class Customer extends SchemaConstructor<Customer> {
   _id?: string
   name!: string & t.Trim
   orders?: Order[] & t.Relation

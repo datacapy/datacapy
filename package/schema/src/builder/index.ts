@@ -34,9 +34,10 @@ export {
 }
 
 export { SchemaConstructor } from './schema-constructor'
-export type { SchemaConstructorClass } from './schema-constructor'
-export { SchemaConstructorBase } from './schema-constructor-base'
-export type { SchemaConstructorBaseInput } from './schema-constructor-base'
+export type {
+  SchemaConstructorClass,
+  SchemaConstructorInput,
+} from './schema-constructor'
 export type {
   Infer,
   InferSpec,

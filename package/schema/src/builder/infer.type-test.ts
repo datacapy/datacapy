@@ -4,7 +4,6 @@ import { SchemaBuilder as sb } from './index'
 import { Schema } from '../schema'
 import type { Infer, InferInputSpec } from './infer'
 import { SchemaConstructor } from './schema-constructor'
-import { SchemaConstructorBase } from './schema-constructor-base'
 import type { Plain } from './infer'
 
 type Equal<A, B> =
@@ -274,8 +273,8 @@ expectType<Equal<Infer<SchemaMap>, { [key: string]: string }>>()
 // specs with named keys, and the open SpecInput shape, are not affected
 expectType<Equal<Infer<{ a: ReturnType<typeof sb.string> }>, { a?: string }>>()
 
-// SchemaConstructorBase takes the fields of the class, without its methods
-class BaseNote extends SchemaConstructorBase<BaseNote> {
+// SchemaConstructor<T> takes the fields of the class, without its methods
+class BaseNote extends SchemaConstructor<BaseNote> {
   declare text: string
   declare owner?: string
   declare child: BaseNote | null
