@@ -1,5 +1,28 @@
 # @datacapy/schema
 
+## 2.1.0
+
+### Minor Changes
+
+- 1e1f917: Add the `ConstructCollection<Name>` tag. On an array property, or an
+  array element of another array, the generator emits
+  `.constructCollection('Name')`. On any other type it fails the run.
+- 1e1f917: Add the `InitFn<Name>` and `DefaultFn<Name>` tags. The generator
+  emits `init(initialisers.Name)` and `default(initialisers.Name)`, importing
+  `initialisers` from the configured `registry` module beside `validators` and
+  `filters`.
+- 1e1f917: Generate references to other `@schema` interfaces, inline objects,
+  unions of objects, `Relation`, and `Validate`/`Filter` callbacks from a
+  registry module. Output is formatted with the consumer's Prettier. Add
+  `datacapy-gen --staged` for lint-staged. `@datacapy/schema` gains
+  `sb.refTo<T>()`, a reference with a stated type that works in a schema cycle.
+- 1e1f917: `sb.schema().matchAll(spec)` now infers a string-keyed map
+  (`{ [key: string]: V }`) instead of `{}`, so `Infer` and `AssertSchema` work
+  for map schemas such as a localised string.
+- 1e1f917: Add type-only `tags` for describing schema rules on a TypeScript
+  interface, and the `SpecFor`, `AssertSpec` and `AssertSchema` exactness
+  checks.
+
 ## 2.0.0
 
 ### Major Changes

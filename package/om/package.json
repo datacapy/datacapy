@@ -1,7 +1,7 @@
 {
   "name": "@datacapy/om",
   "type": "commonjs",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Repositories, relations and services over MySQL, MongoDB and Redis with one query language",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",

@@ -1,5 +1,11 @@
 # @datacapy/migrate
 
+## 0.1.6
+
+### Patch Changes
+
+- @datacapy/om@2.0.1
+
 ## 0.1.5
 
 ### Patch Changes
