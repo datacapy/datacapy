@@ -69,26 +69,52 @@ GET /api/note/n1   (signed in)        200 {"_id":"n1","text":"Hello","owner":"ke
 GET /api/note/n9   (signed in)        404 {"message":"No such note","name":"ServerErrorNotFound"}
 ```
 
-It takes three pieces. First, the schema, defined once. It is plain TypeScript, so a shared package
-can import it into the browser and the server alike.
+It takes three pieces. First, the model, defined once as a TypeScript interface. Type tags carry the
+rules, and `datacapy-gen` writes the schema from it. Both are plain TypeScript, so a shared package
+can import them into the browser and the server alike.
 
 ```ts
-// shared/Note.ts
-import { Schema, SchemaBuilder as sb, SchemaConstructor } from '@datacapy/schema'
+// shared/NoteData.ts
+import type { tags as t } from '@datacapy/schema'
 
+/** @schema note */
+export interface NoteData {
+  _id?: string
+  text: string & t.Trim & t.MinLength<1> & t.MaxLength<280>
+  owner?: string
+}
+```
+
+Running `datacapy-gen` writes `shared/NoteData.schema.ts`, which you commit and never edit:
+
+```ts
 export class SchemaNote extends Schema.from(
   sb.schema('note').shape({
     _id: sb.string(),
-    text: sb.string().required().trim().length(1, 280),
+    text: sb.string().required().minLength(1).maxLength(280).trim(),
     owner: sb.string(),
   }),
 ) {}
 
+const _checkSchemaNote: AssertSchema<SchemaNote, NoteData> = true
+```
+
+The last line fails the build if the schema and the interface ever disagree. The model class is then
+one line:
+
+```ts
+// shared/Note.ts
+import { SchemaConstructor } from '@datacapy/schema'
+import { SchemaNote } from './NoteData.schema'
+
+export { SchemaNote }
 export class Note extends SchemaConstructor.from(SchemaNote) {}
 ```
 
-`Note` is the model: its fields are typed from the schema, so there is no hand-written `type Note` to
-keep in step, and `new Note({ text: 'Hello' })` accepts plain data.
+`Note` is the model: its fields are typed from the schema, so there is no second hand-written type to
+keep in step, and `new Note({ text: 'Hello' })` accepts plain data. If you prefer, write the schema
+with the builder instead and skip the generator; the rest of this example is the same. See the
+[`codegen` README](package/codegen/README.md).
 
 Second, a repository that validates every write against the schema, a service that holds the logic,
 and a role assessor. DataCapy does not authenticate anyone: the assessor reads whatever credential

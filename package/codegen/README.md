@@ -3,13 +3,38 @@
 Generates DataCapy schemas from TypeScript interfaces that carry [type tags](../schema/docs/tags.md). The interface is the only hand-edited input; the `*.schema.ts` module beside it is generated, checked in, and ends with a compile-time check that it infers exactly the interface.
 
 ```ts
-/** @schema note */
+/** @schema note construct=Note strict */
 export interface NoteData {
+  _id: string & t.InitFn<'genUniqueId'>
   title: string & t.Default<'untitled'> & t.Trim & t.MaxLength<200>
+  status: 'draft' | 'published'
+  labels: Record<string, string>
+  tags: (string & t.Lowercase)[] & t.ConstructCollection<'TagCollection'>
 }
 ```
 
-becomes `note.schema.ts` with `export class SchemaNote extends Schema.from(sb.schema('note').shape({ ... })) {}`.
+becomes `note.schema.ts`:
+
+```ts
+export class SchemaNote extends Schema.from(
+  sb
+    .schema('note')
+    .construct('Note')
+    .strict()
+    .shape({
+      _id: sb.string().init(initialisers.genUniqueId),
+      title: sb.string().default('untitled').maxLength(200).trim(),
+      status: sb.string().required().inArray(['draft', 'published']),
+      labels: sb.object().matchAll(sb.string()).required(),
+      tags: sb
+        .array(sb.string().required().lowercase())
+        .required()
+        .constructCollection('TagCollection'),
+    }),
+) {}
+
+const _checkSchemaNote: AssertSchema<SchemaNote, NoteData> = true
+```
 
 ## Usage
 

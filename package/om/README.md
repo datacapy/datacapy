@@ -41,6 +41,10 @@ class SchemaUser extends Schema.from(
 class User extends SchemaConstructor.from(SchemaUser) {}
 ```
 
+To write an interface with type tags and generate this schema instead, see
+[`@datacapy/codegen`](../codegen/README.md) (set its `schemaModule` to
+`@datacapy/om` if that is where your code imports `Schema` from).
+
 ### Create a Repository
 
 ```typescript

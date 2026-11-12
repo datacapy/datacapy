@@ -143,6 +143,61 @@ starting values from the same schema, either through `SchemaConstructor.from`
 [Filling defaults in a constructor](docs/builder.md#filling-defaults-in-a-constructor)
 and [Constructors and raw data](docs/constructors.md).
 
+## Describe the model as an interface
+
+Instead of writing the builder chain, write the interface and let
+[`datacapy-gen`](../codegen/README.md) generate the schema. Type tags carry the
+rules, and the generated file ends with an `AssertSchema` check that fails the
+build if the schema and the interface disagree.
+
+```ts
+import type { tags as t } from '@datacapy/schema'
+
+/** @schema section */
+export interface SectionData {
+  name: string
+}
+
+/** @schema survey construct=Survey strict */
+export interface SurveyData {
+  _id: string & t.InitFn<'genUniqueId'>
+  title: { [language: string]: string & t.Trim }
+  status: 'draft' | 'published'
+  sections: SectionData[] & t.ConstructCollection<'SectionCollection'>
+  meta: Record<string, unknown>
+}
+```
+
+generates (with `SchemaSection` beside it, and the registry import omitted)
+
+```ts
+export class SchemaSurvey extends Schema.from(
+  sb
+    .schema('survey')
+    .construct('Survey')
+    .strict()
+    .shape({
+      _id: sb.string().init(initialisers.genUniqueId),
+      title: sb.object().matchAll(sb.string().trim()).required(),
+      status: sb.string().required().inArray(['draft', 'published']),
+      sections: sb
+        .array(
+          sb
+            .refTo<SpecFor<SectionData>>((): unknown => SchemaSection)
+            .required()
+        )
+        .required()
+        .constructCollection('SectionCollection'),
+      meta: sb.object().as<Record<string, unknown>>().required(),
+    })
+) {}
+```
+
+`construct=` and `strict` come from the marker, string-keyed maps become
+`matchAll`, and `InitFn` names a function from the package's registry. See
+[Type tags](docs/tags.md) for every tag and the
+[type mapping](../codegen/docs/type-mapping.md) for what each type generates.
+
 ## Plain-object specs
 
 The builder produces a plain object, and `new Schema()` accepts one directly.
