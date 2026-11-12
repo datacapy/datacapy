@@ -58,7 +58,7 @@ emits the same check at the end of each file.
 ## Semantics
 
 - `Default<V>`: used when the field is missing. `Default<null>` also makes the
-  field nullable.
+  field nullable. `Default<{}>` defaults to an empty object.
 - `Init<V>`: set once on insert; the key needs no `required()`.
 - `Required`: a key with `Default` or `Init` is not `required()` on its own. Add
   `Required` when the schema also needs the presence check.

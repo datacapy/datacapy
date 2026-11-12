@@ -1,4 +1,4 @@
-export type TagValue = string | number | boolean | null | string[]
+export type TagValue = string | number | boolean | null | string[] | Record<string, never>
 
 export type BaseKind =
   | { kind: 'string' }

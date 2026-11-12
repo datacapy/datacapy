@@ -78,6 +78,9 @@ export class TypeAnalyser {
       return this.checker.typeToString(type) === 'true'
     }
     if (type.flags & ts.TypeFlags.Null) return null
+    if (type.flags & ts.TypeFlags.Object && this.checker.getPropertiesOfType(type).length === 0) {
+      return {}
+    }
     if (type.isUnion()) {
       const members = type.types.filter((member) => !(member.flags & ts.TypeFlags.Undefined))
       if (members.every((member) => member.isStringLiteral())) {

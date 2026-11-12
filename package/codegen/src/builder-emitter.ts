@@ -216,6 +216,7 @@ export class BuilderEmitter {
     if (typeof value === 'string') {
       return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
     }
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) return '{}'
     if (Array.isArray(value)) return `[${value.map((v) => this.literal(v)).join(', ')}]`
     return String(value)
   }
