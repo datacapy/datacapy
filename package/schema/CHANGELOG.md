@@ -1,5 +1,40 @@
 # @datacapy/schema
 
+## 2.2.0
+
+### Minor Changes
+
+- 76ad074: `Default` and `Init` accept an array of literals, such as
+  `Default<['en']>`, and generate `.default(['en'])`. `ArrayValue` is the new
+  tag value type; `EmptyArray` still works.
+- 2976ad6: Generate a schema from a class. `/** @schema name */` on a class
+  reads its data fields (methods, accessors, statics and private members are
+  left out, inherited fields are included) and constructs by the class name.
+  `@datacapy/schema` adds `SchemaConstructor<T>`, an optional base that copies
+  the constructor data onto the instance.
+- 76ad074: Add the `Construct<Name>` tag, which generates `construct('Name')`
+  with the constructor found by name. It carries a constructed relation such as
+  a populated child record, and keeps `nullable()` beside `Default<null>` so the
+  constructor is skipped for a null value.
+- 76ad074: Add the `NotNull` tag, which generates `notNull()`. `required()`
+  alone accepts `null`, so a field that must reject it needs the tag.
+- 76ad074: `Default` and `Init` accept an object of literals, such as
+  `Init<{ period: 'month'; day: 1; reminderSentAt: null }>`, and generate
+  `.init({ period: 'month', day: 1, reminderSentAt: null })`. Nested objects
+  work too.
+- 76ad074: Add the `EmptyArray`, `NonStrict` and `Opaque` tags, so free-form
+  arrays and objects can be generated: `Default<t.EmptyArray>`, `strict(false)`,
+  and `as<T>()` without validating the contents.
+- 37a51e8: Add the `Required` and `OneOf` tags. `Required` keeps `required()` on
+  a key that also has `Default` or `Init`, which otherwise replace it.
+  `OneOf<'a' | 'b'>` restricts a plain `string` with `inArray<string>([...])`,
+  for a model whose TypeScript type is deliberately wider than its allowed
+  values. `Default<EmptyObject>` now defaults a field to an empty object.
+  `unknown & Relation` (any tag on `unknown`) generates `sb.mixed()` with the
+  tag. `AssertSchema` and `AssertSpec` accept a tagged literal union such as
+  `('a' | 'b') & Default<'a'>`, which cannot be stripped to the plain union, by
+  checking that the two types are assignable to each other.
+
 ## 2.1.0
 
 ### Minor Changes

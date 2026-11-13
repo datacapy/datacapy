@@ -1,7 +1,7 @@
 {
   "name": "@datacapy/migrate",
   "type": "commonjs",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Versioned database migrations with transactions and a dry-run mode, for @datacapy/om applications",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",

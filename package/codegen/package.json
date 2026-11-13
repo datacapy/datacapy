@@ -1,7 +1,7 @@
 {
   "name": "@datacapy/codegen",
   "type": "commonjs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Generate DataCapy schemas from tagged TypeScript interfaces",
   "main": "./dist/index",
   "types": "./dist/index.d.ts",

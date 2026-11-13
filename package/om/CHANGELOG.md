@@ -1,5 +1,18 @@
 # @datacapy/om
 
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [76ad074]
+- Updated dependencies [2976ad6]
+- Updated dependencies [76ad074]
+- Updated dependencies [76ad074]
+- Updated dependencies [76ad074]
+- Updated dependencies [76ad074]
+- Updated dependencies [37a51e8]
+  - @datacapy/schema@2.2.0
+
 ## 2.0.1
 
 ### Patch Changes
