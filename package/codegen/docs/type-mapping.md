@@ -38,9 +38,9 @@ Fixed, because the order of intersection members is unreliable in the checker:
 
 1. presence: `required()`, `default()`, `init()` (`t.Required` adds `required()` beside the other two)
 2. base refinement: `inArray()` (a literal union, or `t.OneOf<...>` on a plain `string`)
-3. `constructCollection('Name')` for `ConstructCollection<Name>` on an array
+3. `constructCollection('Name')` for `ConstructCollection<Name>` on an array, then `strict(false)` for `NonStrict`
 4. tags with a value: `regex`, `minLength`, `maxLength`, `label`
-5. flag tags: `email`, `notEmpty`, `trim`, `lowercase`, `uppercase`, `stripHtml`, `private`, `privateValue`, `encrypt`, `noCast`, `relation`
+5. flag tags: `email`, `notNull`, `notEmpty`, `trim`, `lowercase`, `uppercase`, `stripHtml`, `private`, `privateValue`, `encrypt`, `noCast`, `relation`
 6. callbacks: `validate(validators.x)`, `filter(filters.x)`; `InitFn` and `DefaultFn` take the place of `init` and `default` as `init(initialisers.x)`, `default(initialisers.x)`
 7. `nullable()`, then `optional()`
 

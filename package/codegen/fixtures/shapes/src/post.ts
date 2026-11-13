@@ -8,6 +8,7 @@ export interface PostData {
   createdAt: Date & t.DefaultFn<'now'>
   slug: string & t.Validate<'slugUnique'> & t.Filter<'stripEmoji'>
   author: AuthorData & t.Relation
+  editor?: (unknown & t.Relation & t.Construct<'Editor'> & t.Default<null>) | null
   reviewer?: AuthorData | null
   geo: { lat: number; lng: number; label?: string & t.Trim }
   history: { at: Date & t.Default<'now'>; by: string }[]

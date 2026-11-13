@@ -16,6 +16,7 @@ export class SchemaPost extends Schema.from(
       .refTo<SpecFor<AuthorData>>((): unknown => new SchemaAuthor())
       .required()
       .relation(),
+    editor: sb.mixed().default(null).construct('Editor').relation().nullable().optional(),
     reviewer: sb.refTo<SpecFor<AuthorData>>((): unknown => new SchemaAuthor()).nullable(),
     geo: sb
       .object({

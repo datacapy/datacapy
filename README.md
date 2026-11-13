@@ -14,7 +14,7 @@ so any Express middleware works.
   datasource in config and the queries do not change.
 - **API layer:** nothing is reachable until you declare an endpoint. Each request is cast,
   validated and access-checked before your code runs.
-- **Shared schemas:** write a model once as a class with type tags. DataCapy generates the schema
+- **Shared schemas:** write a constructor once as a class with type tags. DataCapy generates the schema
   that validates in the browser and on the server, and the class keeps its methods.
 - **Also included:** in-memory testing, versioned migrations, field-level encryption and
   multi-tenant datasources.
@@ -38,7 +38,7 @@ Every layer is its own package, so you can adopt the whole stack or just the par
 - **Shared validation only:** [`@datacapy/schema`](package/schema/README.md) runs in the browser and
   on the server.
 - **Class-first schemas:** [`@datacapy/codegen`](package/codegen/README.md) generates schemas from
-  tagged TypeScript classes (or interfaces), so a model is declared once.
+  tagged TypeScript classes (or interfaces), so a constructor is declared once.
 
 ## The shape of a DataCapy app
 
@@ -66,13 +66,18 @@ A note API, and what it returns. `kevin` is signed in; the first request has no 
 
 ```
 GET /api/note/n1   (no credentials)   401 {"name":"ServerErrorUnauthorized"}
-GET /api/note/n1   (signed in)        200 {"_id":"n1","text":"Hello","owner":"kevin"}
+GET /api/note/n1   (signed in)        200 {"_id":"n1","text":"Hello","owner":"kevin","status":"published"}
 GET /api/note/n9   (signed in)        404 {"message":"No such note","name":"ServerErrorNotFound"}
 ```
 
-It takes four pieces. First, the model, defined once as a class. Type tags carry the rules, the
-class keeps its methods, and `datacapy-gen` writes the schema from it. Both files are plain
-TypeScript, so a shared package can import them into the browser and the server alike.
+Four pieces:
+
+1. **Constructor:** one class. Type tags carry the rules, and the class keeps its methods.
+2. **Schema:** `datacapy-gen` writes it from the class.
+3. **Server:** a repo, a service and a role assessor.
+4. **Config:** exposes the service as an endpoint.
+
+### 1. The constructor
 
 ```ts
 // shared/Note.ts
@@ -84,14 +89,18 @@ export class Note extends SchemaConstructor<Note> {
   _id?: string
   text!: string & t.Trim & t.MinLength<1> & t.MaxLength<280>
   owner?: string
+  status!: ('draft' | 'published') & t.Required & t.Default<'draft'>
 }
 ```
 
-`SchemaConstructor` copies the data given to `new Note({ ... })` onto the instance; a class that
-needs more writes its own constructor instead. Set `useDefineForClassFields` to `false` in the
-tsconfig, or the field declarations reset the copied values.
+- A literal union becomes the allowed values.
+- `t.Default` fills a missing value; `t.Required` keeps the field required too.
+- `SchemaConstructor` copies `new Note({ ... })` data onto the instance.
+- Setup details: the [codegen guide](package/codegen/docs/guide.md).
 
-Second, run `datacapy-gen`. It writes `shared/Note.schema.ts`, which you commit and never edit:
+### 2. The schema
+
+Run `datacapy-gen`. It writes `shared/Note.schema.ts`; commit it, never edit it.
 
 ```ts
 export class SchemaNote extends Schema.from(
@@ -102,21 +111,20 @@ export class SchemaNote extends Schema.from(
       _id: sb.string(),
       text: sb.string().required().minLength(1).maxLength(280).trim(),
       owner: sb.string(),
+      status: sb.string().required().default('draft').inArray(['draft', 'published']),
     }),
 ) {}
-
-const _checkSchemaNote: AssertSchema<SchemaNote, Pick<Note, '_id' | 'text' | 'owner'>> = true
 ```
 
-The last line fails the build if the schema and the class ever disagree. Only the data fields
-become schema fields: methods, getters, statics and private members are left out. The schema
-constructs `Note` by name, so the class and the schema are linked without importing each other.
-Prefer to write the schema by hand? The builder works the same way; see the
-[`schema` README](package/schema/README.md).
+- A generated type check fails the build if the schema and class disagree.
+- Only data fields become schema fields; methods, getters, statics and private members are left out.
+- The schema constructs `Note` by name, so neither file imports the other.
+- Prefer a hand-written schema? See the [`schema` README](package/schema/README.md).
 
-Third, a repository, a service that holds the logic, and a role assessor. DataCapy does not
-authenticate anyone: the assessor reads whatever credential your application uses and decides which
-roles the request has. This one trusts a header, which is fine for a demo and not for production.
+### 3. The server
+
+A repo, a service for the logic, and a role assessor. DataCapy does not authenticate anyone: the
+assessor decides each request's roles. This one trusts a header, which is for demos only.
 
 ```ts
 // server.ts
@@ -168,18 +176,18 @@ server.modelManager.addSchemas([new SchemaNote()])
 server.modelManager.addConstructors([Note])
 server.modelManager.addDataSource(
   'db',
-  new DataSourceMock({ note: [{ _id: 'n1', text: 'Hello', owner: 'kevin' }] }),
+  new DataSourceMock({
+    note: [{ _id: 'n1', text: 'Hello', owner: 'kevin', status: 'published' }],
+  }),
 )
 server.modelManager.addRepo(new RepoNote())
 server.modelManager.addService(new ServiceNote())
 server.addRoleAssessor(new Authed())
 ```
 
-The model manager links the pieces by name: it gives the `note` schema to the `note` repo, and uses the
-registered `Note` class to turn each stored document into a `Note` instance, so the repo declares no
-schema.
+The model manager links the pieces by name, so the `note` repo needs no schema of its own.
 
-Fourth, the config that exposes the service:
+### 4. The config
 
 ```ts
 server.addApiConfig({
@@ -199,12 +207,15 @@ await server.init()
 await server.start()
 ```
 
-The `data` block validates and casts the request, the `acl` block decides who gets in, and the typed
-error picks the status. In production, swap `DataSourceMock` for a MySQL or MongoDB datasource and
-the service code does not change. The full server setup is in the
-[`server` quick start](package/server/README.md#quick-start).
+- `data` validates and casts the request.
+- `acl` decides who gets in.
+- The typed error picks the status.
+- For production, swap `DataSourceMock` for MySQL or MongoDB; the service code is unchanged.
+- Full setup: [`server` quick start](package/server/README.md#quick-start).
 
-In the browser, the same schema checks a form before anything is sent:
+### In the browser
+
+The same schema checks a form before anything is sent:
 
 ```ts
 const { isValid, errors } = await new SchemaNote().validate({ text: '' })
@@ -219,7 +230,7 @@ const { isValid, errors } = await new SchemaNote().validate({ text: '' })
   Redis and an in-memory mock. Swap the datasource in config and the queries do not change.
   Relations (has-one, has-many, belongs-to, counts, embedded, composite keys) load in one call and
   can span databases. See [Relations](package/om/docs/relations.md).
-- **One definition.** A tagged class is the model, its methods and its rules. The generated schema
+- **One definition.** A tagged class is the constructor, its methods and its rules. The generated schema
   validates writes on the server and form input in the browser, and a build-time check fails if the
   two drift apart.
 - **Easy to test.** Point a repository at a seeded in-memory datasource and a service runs without
@@ -248,7 +259,7 @@ Add `@datacapy/codegen` as a dev dependency, and set `schemaModule` so the gener
 { "schemaModule": "@datacapy/om", "strict": true }
 ```
 
-Declare the models as classes, one file each. `Customer` has a method, and `orders` is related data:
+Declare the constructors as classes, one file each. `Customer` has a method, and `orders` is related data:
 
 ```ts
 // Order.ts
@@ -282,7 +293,7 @@ export class Customer extends SchemaConstructor<Customer> {
 }
 ```
 
-Run `datacapy-gen` to write `Order.schema.ts` and `Customer.schema.ts` beside them, then run the models against an in-memory datasource
+Run `datacapy-gen` to write `Order.schema.ts` and `Customer.schema.ts` beside them, then run the constructors against an in-memory datasource
 seeded with data:
 
 ```ts
@@ -339,7 +350,7 @@ found[0].greeting() // 'Hello, Ada Lovelace'
 found[0].orders?.[0] instanceof Order // true
 ```
 
-Each model is declared once, as a class. The generated schema is checked against the class's data
+Each constructor is declared once, as a class. The generated schema is checked against the class's data
 fields, `orders` is a `Relation`: related data that a query populates, never stored on the customer, and
 `Repo<Customer>` makes `find()` return `Customer[]`.
 

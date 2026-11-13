@@ -1,4 +1,5 @@
-export type TagValue = string | number | boolean | null | string[] | Record<string, never>
+export type TagValue =
+  string | number | boolean | null | TagValue[] | readonly never[] | { [key: string]: TagValue }
 
 export type BaseKind =
   | { kind: 'string' }

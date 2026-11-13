@@ -23,11 +23,21 @@ describe('SchemaGenerator', () => {
     expect(c).toContain("slug: sb.string().required().regex('^[a-z0-9-]+$').label('Slug'),")
     expect(c).toContain('count: sb.number().default(0),')
     expect(c).toContain('pinned: sb.boolean().required(),')
+    expect(c).toContain("NonNullable<NoteData['rows']>[number]>['ref']")
+    expect(c).toContain(".init({ x: 1, label: 'a', tag: null }),")
+    expect(c).toContain("modes: sb.array(sb.string().required()).required().default(['a', 'b']),")
+    expect(c).toContain('owner: sb.string().required().notNull(),')
     expect(c).toContain('tags: sb.array(sb.string().required().lowercase()).required(),')
     expect(c).toContain("createdAt: sb.date().default('now'),")
     expect(c).toContain('closedAt: sb.date().default(null),')
     expect(c).toContain("note: sb.string().default('n').optional(),")
     expect(c).toContain('extra: sb.mixed(),')
+    expect(c).toContain(
+      "entries: sb.array().as<NonNullable<NoteData['entries']>[number]>().default([]),",
+    )
+    expect(c).toContain(
+      "byLang: sb.object().as<NonNullable<NoteData['byLang']>>().default({}).strict(false),",
+    )
     expect(c).toContain("sb.schema('note')")
     expect(c).toContain('export class SchemaNote extends Schema.from(')
   })
@@ -207,6 +217,9 @@ describe('SchemaGenerator', () => {
       expect(post).toContain("import { filters, initialisers, validators } from './registry'")
       expect(post).toContain('_id: sb.string().init(initialisers.genId),')
       expect(post).toContain('createdAt: sb.date().default(initialisers.now),')
+      expect(post).toMatch(
+        /\.default\(null\)\s*\.construct\('Editor'\)\s*\.relation\(\)\s*\.nullable\(\)/,
+      )
       expect(post).toContain('.validate(validators.slugUnique)')
       expect(post).toContain('.filter(filters.stripEmoji)')
       expect(post).toContain('sb.refTo<SpecFor<AuthorData>>((): unknown => new SchemaAuthor())')

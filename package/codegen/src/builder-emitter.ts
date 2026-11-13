@@ -4,6 +4,7 @@ import { BaseKind, FieldModel, SchemaTarget, TagValue } from './field-model'
 /** Tags that call a no-argument builder method, in emit order. */
 const FLAG_TAGS: ReadonlyArray<[string, string]> = [
   ['email', 'email'],
+  ['notNull', 'notNull'],
   ['notEmpty', 'notEmpty'],
   ['trim', 'trim'],
   ['lowercase', 'lowercase'],
@@ -32,7 +33,10 @@ const KNOWN_TAGS = new Set([
   'oneOf',
   'initFn',
   'constructCollection',
+  'construct',
   'defaultFn',
+  'nonStrict',
+  'opaque',
   ...FLAG_TAGS.map(([tag]) => tag),
   ...VALUE_TAGS.map(([tag]) => tag),
   'validate',
@@ -55,16 +59,25 @@ export class BuilderEmitter {
       ...this.presenceCalls(field, path, ctx),
       ...this.baseCalls(field, path),
       ...this.collectionCalls(field, path),
+      ...this.strictCalls(field, path),
       ...this.tagCalls(field),
       ...this.callbackCalls(field, path, ctx),
     ]
-    if (field.nullable && field.tags.get('default') !== null) {
+    if (field.nullable && (field.tags.get('default') !== null || this.keepsNullable(field))) {
       calls.push('nullable()')
     }
     if (field.optional && this.hasDefaultOrInit(field)) {
       calls.push('optional()')
     }
-    return `${this.constructorCall(field.base, path, ctx)}${calls.map((c) => `.${c}`).join('')}`
+    return `${this.constructorCall(field.base, path, ctx, field.tags.has('opaque'))}${calls.map((c) => `.${c}`).join('')}`
+  }
+
+  /**
+   * An object or constructed field keeps `nullable()` beside `default(null)`: the flag keeps a null
+   * value null instead of becoming `{}`, and stops the constructor running on it.
+   */
+  private keepsNullable(field: FieldModel): boolean {
+    return field.tags.has('construct') || ['object', 'map', 'opaque'].includes(field.base.kind)
   }
 
   private checkTags(field: FieldModel, path: string): void {
@@ -121,7 +134,18 @@ export class BuilderEmitter {
     return [`inArray([${base.values.map((v) => this.literal(v)).join(', ')}])`]
   }
 
+  private strictCalls(field: FieldModel, path: string): string[] {
+    if (!field.tags.has('nonStrict')) return []
+    if (!['object', 'map', 'opaque'].includes(field.base.kind) && !field.tags.has('opaque')) {
+      throw new GeneratorError(path, 'tag nonStrict only applies to objects')
+    }
+    return ['strict(false)']
+  }
+
   private collectionCalls(field: FieldModel, path: string): string[] {
+    if (field.tags.has('construct')) {
+      return [`construct(${this.literal(field.tags.get('construct')!)})`]
+    }
     if (!field.tags.has('constructCollection')) return []
     if (field.base.kind !== 'array') {
       throw new GeneratorError(path, 'tag constructCollection only applies to arrays')
@@ -168,7 +192,31 @@ export class BuilderEmitter {
     ctx.registry.add(registry)
   }
 
-  private constructorCall(base: BaseKind, path: string, ctx: EmitContext): string {
+  /** `Iface.a[].b` becomes `NonNullable<NonNullable<Iface['a']>[number]['b']>`; `Iface.a` stays `NonNullable<Iface['a']>`. */
+  private opaqueType(path: string): string {
+    const segments = path.split('.')
+    if (segments.length < 2 || segments.some((s) => !/^\w+(\[\])*$/.test(s))) {
+      throw new GeneratorError(path, 'tag opaque cannot be applied at this path')
+    }
+    let type = segments[0]
+    segments.slice(1).forEach((segment, index) => {
+      const match = /^(\w+)((?:\[\])*)$/.exec(segment)!
+      const parent = index === 0 ? type : `NonNullable<${type}>`
+      type = `${parent}['${match[1]}']`
+      for (let i = 0; i < match[2].length / 2; i++) type = `NonNullable<${type}>[number]`
+    })
+    return `NonNullable<${type}>`
+  }
+
+  private opaqueCall(base: BaseKind, path: string): string {
+    const type = this.opaqueType(path)
+    if (base.kind === 'array') return `sb.array().as<${type}[number]>()`
+    if (['object', 'map', 'opaque'].includes(base.kind)) return `sb.object().as<${type}>()`
+    throw new GeneratorError(path, 'tag opaque only applies to arrays and objects')
+  }
+
+  private constructorCall(base: BaseKind, path: string, ctx: EmitContext, opaque = false): string {
+    if (opaque) return this.opaqueCall(base, path)
     switch (base.kind) {
       case 'string':
       case 'literals':
@@ -182,6 +230,7 @@ export class BuilderEmitter {
       case 'mixed':
         return 'sb.mixed()'
       case 'array':
+        if (base.item.base.kind === 'mixed' && base.item.tags.size === 0) return 'sb.array()'
         return `sb.array(${this.emit(this.asItem(base.item), `${path}[]`, ctx)})`
       case 'object': {
         const fields = base.fields.map(
@@ -216,7 +265,10 @@ export class BuilderEmitter {
     if (typeof value === 'string') {
       return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
     }
-    if (value !== null && typeof value === 'object' && !Array.isArray(value)) return '{}'
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      const entries = Object.entries(value).map(([k, v]) => `${this.key(k)}: ${this.literal(v)}`)
+      return entries.length === 0 ? '{}' : `{ ${entries.join(', ')} }`
+    }
     if (Array.isArray(value)) return `[${value.map((v) => this.literal(v)).join(', ')}]`
     return String(value)
   }

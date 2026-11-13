@@ -35,6 +35,20 @@ export class TypeAnalyser {
       }
     }
 
+    if (tags.has('opaque')) {
+      const mixed: FieldModel = {
+        base: { kind: 'mixed' },
+        nullable: false,
+        optional: false,
+        tags: new Map(),
+      }
+      const isArray = bases.length === 1 && this.checker.isArrayType(bases[0])
+      const base: BaseKind = isArray
+        ? { kind: 'array', item: mixed }
+        : { kind: 'opaque', type: 'object' }
+      return { base, nullable, optional, tags }
+    }
+
     return {
       // `unknown & Tag` collapses to the tag alone, so a tag with no base is `unknown`
       base: bases.length === 0 && tags.size > 0 ? { kind: 'mixed' } : this.baseKind(bases, path),
@@ -79,8 +93,20 @@ export class TypeAnalyser {
       return this.checker.typeToString(type) === 'true'
     }
     if (type.flags & ts.TypeFlags.Null) return null
-    if (type.flags & ts.TypeFlags.Object && this.checker.getPropertiesOfType(type).length === 0) {
-      return {}
+    if (this.checker.isTupleType(type)) {
+      return this.checker
+        .getTypeArguments(type as ts.TypeReference)
+        .map((item, i) => this.tagValue(this.withoutUndefined(item), `${path}[${i}]`))
+    }
+    if (type.flags & ts.TypeFlags.Object) {
+      const value: { [key: string]: TagValue } = {}
+      for (const prop of this.checker.getPropertiesOfType(type)) {
+        value[prop.name] = this.tagValue(
+          this.withoutUndefined(this.checker.getTypeOfSymbol(prop)),
+          `${path}.${prop.name}`,
+        )
+      }
+      return value
     }
     if (type.isUnion()) {
       const members = type.types.filter((member) => !(member.flags & ts.TypeFlags.Undefined))

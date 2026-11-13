@@ -25,12 +25,19 @@ Each tag is an optional phantom property, so plain data stays assignable:
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `Default<V>`, `Init<V>`                                                | `default(V)`, `init(V)`                                                         |
 | `EmptyObject`                                                          | the value `{}` for `Default<t.EmptyObject>`                                     |
+| `ObjectValue`                                                          | an object of literals for `Default<{ a: 1 }>` or `Init<{ a: 'x'; b: null }>`    |
+| `ArrayValue`                                                           | an array of literals for `Default<['en']>` or `Init<['a', 'b']>`                |
+| `EmptyArray`                                                           | the value `[]` for `Default<t.EmptyArray>`                                      |
 | `Required`                                                             | `required()` as well as `default()` or `init()`                                 |
 | `OneOf<V>`                                                             | `inArray<string>([...])` on a plain `string`                                    |
 | `Email`, `Pattern<P>`, `MinLength<N>`, `MaxLength<N>`, `NotEmpty`      | `email()`, `regex(P)`, `minLength(N)`, `maxLength(N)`, `notEmpty()`             |
+| `NotNull`                                                              | `notNull()`                                                                     |
 | `Trim`, `Lowercase`, `Uppercase`, `StripHtml`                          | the filter of the same name                                                     |
 | `Private`, `PrivateValue`, `Encrypt`, `Label<L>`, `Relation`, `NoCast` | the method of the same name                                                     |
 | `InitFn<Name>`, `DefaultFn<Name>`                                      | `init(initialisers.Name)`, `default(initialisers.Name)`                         |
+| `NonStrict`                                                            | `strict(false)` on an object                                                    |
+| `Opaque`                                                               | `sb.array().as<Item>()` / `sb.object().as<T>()`: stored as is, not validated    |
+| `Construct<Name>`                                                      | `construct('Name')`, the constructor found by name                              |
 | `ConstructCollection<Name>`                                            | `constructCollection('Name')`, arrays only                                      |
 | `Validate<Name>`, `Filter<Name>`                                       | `validate(validators.Name)`, `filter(filters.Name)` from the package's registry |
 
@@ -60,7 +67,16 @@ emits the same check at the end of each file.
 
 - `Default<V>`: used when the field is missing. `Default<null>` also makes the
   field nullable. `Default<t.EmptyObject>` defaults to an empty object.
-- `Init<V>`: set once on insert; the key needs no `required()`.
+- `Construct<Name>`: builds the value with the constructor registered under that
+  name. With `| null` it keeps `nullable()` even beside `Default<null>`, so the
+  constructor is skipped for a null value.
+- `NonStrict`: the object keeps keys outside its shape instead of rejecting
+  them.
+- `Opaque`: for an array or object whose contents are stored and typed but never
+  validated (free-form JSON). Top-level properties only; the generated chain is
+  `.as<...>()` on the property type read from the marked interface.
+- `Init<V>`: set once on insert (`Init<t.EmptyObject>` inits to `{}`); the key
+  needs no `required()`.
 - `Required`: a key with `Default` or `Init` is not `required()` on its own. Add
   `Required` when the schema also needs the presence check.
 - `OneOf<'a' | 'b'>`: restricts a `string` to the listed values while the
