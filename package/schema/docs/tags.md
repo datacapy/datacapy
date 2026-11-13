@@ -73,8 +73,9 @@ emits the same check at the end of each file.
 - `NonStrict`: the object keeps keys outside its shape instead of rejecting
   them.
 - `Opaque`: for an array or object whose contents are stored and typed but never
-  validated (free-form JSON). Top-level properties only; the generated chain is
-  `.as<...>()` on the property type read from the marked interface.
+  validated (free-form JSON). It works on a top-level property and on a property
+  nested inside an array of objects (`messages[].user`). The generated chain is
+  `.as<...>()` on the type read from the marked interface.
 - `Init<V>`: set once on insert (`Init<t.EmptyObject>` inits to `{}`); the key
   needs no `required()`.
 - `Required`: a key with `Default` or `Init` is not `required()` on its own. Add
