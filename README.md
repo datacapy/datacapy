@@ -6,7 +6,7 @@
 
 **A TypeScript framework for structured Node.js backends.**
 
-Describe your data, store it in MySQL, MongoDB or Redis through one query language, and expose your
+Describe your data, store it in MySQL or MongoDB through one query language, and expose your
 services as validated, access-controlled REST endpoints from config. It is plain Express underneath,
 so any Express middleware works.
 
@@ -15,7 +15,9 @@ so any Express middleware works.
 - **API layer:** nothing is reachable until you declare an endpoint. Each request is cast,
   validated and access-checked before your code runs.
 - **Shared schemas:** write a constructor once as a class with type tags. DataCapy generates the schema
-  that validates in the browser and on the server, and the class keeps its methods.
+  that validates in the browser and on the server.
+- **Typed documents:** register your constructor classes and repositories return instances of them,
+  methods included, instead of plain objects.
 - **Also included:** in-memory testing, versioned migrations, field-level encryption and
   multi-tenant datasources.
 
@@ -25,8 +27,15 @@ pnpm add -D @datacapy/codegen
 ```
 
 `@datacapy/server` re-exports `@datacapy/om` and its `Schema` exports; `@datacapy/schema` is the
-package a browser or shared package installs on its own. Add `mysql2` or `mongodb` for a real
-database. Licensed under [BSD 3-Clause](LICENSE).
+package a browser or shared package installs on its own. Licensed under [BSD 3-Clause](LICENSE).
+
+For a real database, install the driver in your own project. `mysql2` and `mongodb` are peer
+dependencies of `@datacapy/om`, so add the one you use:
+
+```bash
+pnpm add mysql2
+pnpm add mongodb
+```
 
 ### Start where you are
 
@@ -49,7 +58,7 @@ Every layer is its own package, so you can adopt the whole stack or just the par
                       definitions        │
                                          ▼
                                    @datacapy/om        repositories, relations, services
-                                         │              MySQL · MongoDB · Redis
+                                         │              MySQL · MongoDB
                                          ▼
                                    @datacapy/server    endpoints from config, ACL, errors
                                          │
@@ -72,15 +81,15 @@ GET /api/note/n9   (signed in)        404 {"message":"No such note","name":"Serv
 
 Four pieces:
 
-1. **Constructor:** one class. Type tags carry the rules, and the class keeps its methods.
-2. **Schema:** `datacapy-gen` writes it from the class.
+1. **Constructor:** one class. Type tags carry validation and filtering rules.
+2. **Schema:** `datacapy-gen` writes the schema file from the class.
 3. **Server:** a repo, a service and a role assessor.
 4. **Config:** exposes the service as an endpoint.
 
 ### 1. The constructor
 
 ```ts
-// shared/Note.ts
+// Note.ts
 import { SchemaConstructor } from '@datacapy/schema'
 import type { tags as t } from '@datacapy/schema'
 
@@ -100,7 +109,7 @@ export class Note extends SchemaConstructor<Note> {
 
 ### 2. The schema
 
-Run `datacapy-gen`. It writes `shared/Note.schema.ts`; commit it, never edit it.
+Run `datacapy-gen`. It writes `Note.schema.ts` beside `Note.ts`. Commit it, never edit it.
 
 ```ts
 export class SchemaNote extends Schema.from(
@@ -117,14 +126,13 @@ export class SchemaNote extends Schema.from(
 ```
 
 - A generated type check fails the build if the schema and class disagree.
-- Only data fields become schema fields; methods, getters, statics and private members are left out.
+- Only properties become schema fields; methods, getters, statics and private members are ignored.
 - The schema constructs `Note` by name, so neither file imports the other.
 - Prefer a hand-written schema? See the [`schema` README](package/schema/README.md).
 
 ### 3. The server
 
-A repo, a service for the logic, and a role assessor. DataCapy does not authenticate anyone: the
-assessor decides each request's roles. This one trusts a header, which is for demos only.
+A repo, a service for the logic, and a role assessor.
 
 ```ts
 // server.ts
@@ -135,8 +143,8 @@ import Server, {
   ServerAclRoleAssessor,
   ServerErrorNotFound,
 } from '@datacapy/server'
-import { Note } from './shared/Note'
-import { SchemaNote } from './shared/Note.schema'
+import { Note } from './Note'
+import { SchemaNote } from './Note.schema'
 
 class RepoNote extends Repo<Note> {
   constructor() {
@@ -162,6 +170,7 @@ class Authed extends ServerAclRoleAssessor {
   }
 
   async initContext(request, context) {
+    // demo only: trusts the X-User header
     context.user = request.get('X-User') ?? null
   }
 
@@ -185,18 +194,18 @@ server.modelManager.addService(new ServiceNote())
 server.addRoleAssessor(new Authed())
 ```
 
-The model manager links the pieces by name, so the `note` repo needs no schema of its own.
+The model manager links schema to repo by name, so the `note` repo uses the `note` schema.
 
 ### 4. The config
 
 ```ts
 server.addApiConfig({
-  service: 'note',
+  service: 'note', // matches the service name
   acl: { rules: [{ allow: true, role: 'authed' }] },
   endpoints: {
     getOne: {
       path: '/:id',
-      method: 'get',
+      method: 'get', // calls ServiceNote.get
       verbs: ['get'],
       data: { id: { src: 'param', type: String, required: true } },
     },
@@ -209,35 +218,32 @@ await server.start()
 
 - `data` validates and casts the request.
 - `acl` decides who gets in.
-- The typed error picks the status.
-- For production, swap `DataSourceMock` for MySQL or MongoDB; the service code is unchanged.
+- Typed errors map to response statuses.
+- For production, swap `DataSourceMock` for MySQL, MongoDB or another store; service code is unchanged.
 - Full setup: [`server` quick start](package/server/README.md#quick-start).
 
 ### In the browser
 
-The same schema checks a form before anything is sent:
+The same schema validates a form on the client before anything is sent:
 
 ```ts
 const { isValid, errors } = await new SchemaNote().validate({ text: '' })
 // isValid: false, errors: { text: ['text must be at least 1 characters long'] }
 ```
 
-## Why it feels different
+## Highlights
 
 - **Declare it, get it.** Nothing is reachable until you declare an endpoint. Each request is
   validated, cast and access-checked before your code runs, and typed errors map to HTTP statuses.
-- **One query language.** Repositories speak a MongoDB-style query language over MySQL, MongoDB,
-  Redis and an in-memory mock. Swap the datasource in config and the queries do not change.
+- **One query language.** Repositories speak the same MongoDB-style query language regardless of which
+  database you use (such as MySQL or MongoDB). Swap the datasource in config and the queries do not change.
   Relations (has-one, has-many, belongs-to, counts, embedded, composite keys) load in one call and
-  can span databases. See [Relations](package/om/docs/relations.md).
-- **One definition.** A tagged class is the constructor, its methods and its rules. The generated schema
-  validates writes on the server and form input in the browser, and a build-time check fails if the
-  two drift apart.
+  can span datasources, such as a MySQL table joined to a MongoDB collection. See [Relations](package/om/docs/relations.md).
+- **One source of truth.** A tagged TypeScript class provides the constructor and the validation /
+  filtering rules. The generated schema validates writes on the server and form inputs in the browser; a build-time check fails if the two ever drift apart.
 - **Easy to test.** Point a repository at a seeded in-memory datasource and a service runs without
   a database, as in [Try it with no database](#try-it-with-no-database). The mock serves reads; it
   does not keep writes.
-- **No lock-in.** For a store DataCapy does not cover, implement the
-  [`DataSource`](package/om/src/data-source/interface.ts) interface and it gets the same API.
 
 Also included: field-level encryption at rest with your own encryption service, and multi-tenant
 datasources that route each request to a different database at runtime.
@@ -248,12 +254,11 @@ datasources that route each request to a different database at runtime.
 pnpm add @datacapy/om @datacapy/id
 ```
 
-`@datacapy/om` re-exports `@datacapy/schema`, and `@datacapy/id` generates the `_id` values. For a
-real database add `mysql2` or `mongodb`, and add `@datacapy/server` for REST endpoints. To use a
-git checkout instead of npm, see [workspace install](docs/workspace-install.md).
+`@datacapy/om` re-exports `@datacapy/schema`, and `@datacapy/id` generates the `_id` values. Add
+`@datacapy/server` for REST endpoints. To use a git checkout instead of npm, see [workspace install](docs/workspace-install.md).
 
-Add `@datacapy/codegen` as a dev dependency, and set `schemaModule` so the generated files import from
-`@datacapy/om`:
+To generate schemas from your classes, add `@datacapy/codegen` as a dev dependency and set `schemaModule` in
+`datacapy.config.json` so the generated files import from `@datacapy/om`:
 
 ```json
 { "schemaModule": "@datacapy/om", "strict": true }
