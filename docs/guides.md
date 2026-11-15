@@ -1,0 +1,5 @@
+# Guides
+
+- **om**: [Architecture](../package/om/docs/architecture.md), [Relations](../package/om/docs/relations.md), [Composite Keys](../package/om/docs/composite-keys.md), [Validation](../package/om/docs/validation.md), [Encryption](../package/om/docs/encryption.md), [DataSource Context](../package/om/docs/dynamic-datasource.md), [MySQL Indexes](../package/om/docs/mysql-indexes.md), [Update Operators](../package/om/docs/update-operators.md), [Upsert](../package/om/docs/upsert.md), [Performance](../package/om/docs/performance.md), [Testing](../package/om/docs/testing.md), [Debugging](../package/om/docs/debugging.md)
+- **schema**: [Builder](../package/schema/docs/builder.md), [Validation](../package/schema/docs/validation.md), [Filtering](../package/schema/docs/filtering.md), [Encryption](../package/schema/docs/encryption.md), [Composition](../package/schema/docs/composition.md)
+- **migrate**: [Architecture](../package/migrate/docs/architecture/index.md), [Best Practices](../package/migrate/docs/best-practices/index.md), [Advanced Usage](../package/migrate/docs/advanced-usage/index.md)
