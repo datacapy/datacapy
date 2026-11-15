@@ -1,5 +1,19 @@
 # @datacapy/server
 
+## 1.1.0
+
+### Minor Changes
+
+- db61467: Add the type-only `tagsEndpoint` namespace (`Param`, `Query`, `Body`,
+  `Header`, `Config`, `Request`, `Container`, `Default`, `AclContext`,
+  `AclConditions`) describing where a service method parameter is read from.
+
+### Patch Changes
+
+- db61467: Warn at registration when an endpoint path has a `:name` segment with
+  no `src: 'param'` data entry, or a param data entry names a segment the path
+  lacks.
+
 ## 1.0.2
 
 ### Patch Changes
