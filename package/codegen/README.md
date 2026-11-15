@@ -71,6 +71,7 @@ All paths are relative to the file.
 | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | [Guide](docs/guide.md)                                                           | Interface to generated schema, CI and pre-commit wiring, adopting one schema at a time |
 | [Type mapping](docs/type-mapping.md)                                             | Supported types, presence rules, chain order, unsupported constructs and errors        |
+| [Endpoint configs](docs/endpoints.md)                                            | Generate `ServerApiConfig` from tagged service classes                                 |
 | [Architecture](docs/architecture.md)                                             | Pipeline, class roles, adding a tag, tests                                             |
 | [Type tags](../schema/docs/tags.md)                                              | What each tag means                                                                    |
 | [Decision record](../../docs/decisions/2026/2026-11-12_tag-schema-generation.md) | Why the interface is the source of truth                                               |

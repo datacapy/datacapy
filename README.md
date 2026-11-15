@@ -84,7 +84,7 @@ Four pieces:
 1. **Constructor:** one class. Type tags carry validation and filtering rules.
 2. **Schema:** `datacapy-gen` writes the schema file from the class.
 3. **Server:** a repo, a service and a role assessor.
-4. **Config:** exposes the service as an endpoint.
+4. **Endpoints:** tags on the service expose it, and `datacapy-gen` writes the config.
 
 ### 1. The constructor
 
@@ -132,7 +132,8 @@ export class SchemaNote extends Schema.from(
 
 ### 3. The server
 
-A repo, a service for the logic, and a role assessor.
+A repo, a service for the logic, and a role assessor. The service tags say which methods are
+endpoints, with what path, verb and role.
 
 ```ts
 // server.ts
@@ -143,6 +144,7 @@ import Server, {
   ServerAclRoleAssessor,
   ServerErrorNotFound,
 } from '@datacapy/server'
+import type { tagsEndpoint as e } from '@datacapy/server'
 import { Note } from './Note'
 import { SchemaNote } from './Note.schema'
 
@@ -152,12 +154,17 @@ class RepoNote extends Repo<Note> {
   }
 }
 
+/** @endpoints note */
 class ServiceNote extends Service {
   constructor() {
     super({ name: 'note' })
   }
 
-  async get({ id }: { id: string }) {
+  /**
+   * @route get /:id
+   * @acl authed
+   */
+  async get({ id }: { id: string & e.Param }) {
     const note = await this.getRepo<RepoNote>('note').findOne({ _id: id })
     if (!note) throw new ServerErrorNotFound({ message: 'No such note' })
     return note
@@ -196,31 +203,38 @@ server.addRoleAssessor(new Authed())
 
 The model manager links schema to repo by name, so the `note` repo uses the `note` schema.
 
-### 4. The config
+### 4. The endpoints
+
+Add an `endpoints` section to `datacapy.config.json` and run `datacapy-gen` again. It writes
+`ServiceNote.endpoints.ts` beside the service. Commit it, never edit it.
+
+```json
+{ "endpoints": { "include": ["src/**/Service*.ts"] } }
+```
+
+The glob is set once. Any new `Service*.ts` file with an `@endpoints` class is picked up, so a new
+service needs no config change.
 
 ```ts
-server.addApiConfig({
-  service: 'note', // matches the service name
-  acl: { rules: [{ allow: true, role: 'authed' }] },
-  endpoints: {
-    getOne: {
-      path: '/:id',
-      method: 'get', // calls ServiceNote.get
-      verbs: ['get'],
-      data: { id: { src: 'param', type: String, required: true } },
-    },
-  },
-})
+// endpoints.ts
+export { noteConfig } from './ServiceNote.endpoints'
+```
+
+```ts
+import * as endpoints from './endpoints'
+
+server.addApiConfigs(Object.values(endpoints))
 
 await server.init()
 await server.start()
 ```
 
-- `data` validates and casts the request.
-- `acl` decides who gets in.
+- The endpoint is named after the method (`get`), and `@route` and `@acl` set its path, verbs and role.
+- `e.Param` makes `id` a required string read from the URL; the server validates and casts it.
 - Typed errors map to response statuses.
 - For production, swap `DataSourceMock` for MySQL, MongoDB or another store; service code is unchanged.
-- Full setup: [`server` quick start](package/server/README.md#quick-start).
+- All tags: the [endpoint generator](package/codegen/docs/endpoints.md). To write the config by hand
+  instead, see the [`server` quick start](package/server/README.md#quick-start).
 
 ### In the browser
 
@@ -233,7 +247,7 @@ const { isValid, errors } = await new SchemaNote().validate({ text: '' })
 
 ## Highlights
 
-- **Declare it, get it.** Nothing is reachable until you declare an endpoint. Each request is
+- **Declare it, get it.** Nothing is reachable until you tag an endpoint (or declare one in config). Each request is
   validated, cast and access-checked before your code runs, and typed errors map to HTTP statuses.
 - **One query language.** Repositories speak the same MongoDB-style query language regardless of which
   database you use (such as MySQL or MongoDB). Swap the datasource in config and the queries do not change.

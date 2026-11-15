@@ -23,14 +23,16 @@ generate() / write() / check()   cli.ts: --check, --report, --config, --staged
 
 ## Roles
 
-| Class             | Job                                                                                                               |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `ConfigLoader`    | Reads and validates `datacapy.config.json`, resolves paths                                                        |
-| `SchemaGenerator` | Builds the program, discovers marked interfaces, resolves references, renders files                               |
-| `TypeAnalyser`    | Splits a property type into base kind, `null`, optionality and tags                                               |
-| `BuilderEmitter`  | Writes the chain in a fixed order and records the imports the file needs                                          |
-| `Formatter`       | Formats output with the consumer's Prettier; in a child process because Prettier cannot run in-process under Jest |
-| `GeneratorError`  | Carries the property path in the message                                                                          |
+| Class                                   | Job                                                                                                                  |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `ConfigLoader`                          | Reads and validates `datacapy.config.json`, resolves paths                                                           |
+| `SchemaGenerator`                       | Builds the program, discovers marked interfaces, resolves references, renders files                                  |
+| `SourceHost`                            | Builds the program, selects files by glob, finds the marker tag, computes import paths; shared by both generators    |
+| `EndpointGenerator` / `EndpointEmitter` | Read `@endpoints` classes into `ServiceModel`s and write the `ServerApiConfig` module; see [endpoints](endpoints.md) |
+| `TypeAnalyser`                          | Splits a property type into base kind, `null`, optionality and tags                                                  |
+| `BuilderEmitter`                        | Writes the chain in a fixed order and records the imports the file needs                                             |
+| `Formatter`                             | Formats output with the consumer's Prettier; in a child process because Prettier cannot run in-process under Jest    |
+| `GeneratorError`                        | Carries the property path in the message                                                                             |
 
 `FieldModel` (`field-model.ts`) is the only contract between analyser and emitter.
 

@@ -9,6 +9,7 @@ import {
   LoggerInterface,
 } from './interfaces'
 import { ServerApiConfig } from '../api-config'
+import { EndpointPathChecker } from './endpoint-path-check'
 import ServerAcl from '../acl'
 import { ServerRemoteObject } from '../remote-object'
 import { ErrorTranslator } from '../remote-object/interfaces'
@@ -32,6 +33,7 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
   private apiConfigRegistry: ApiConfigRegistryInterface
   private logger: LoggerInterface
   private errorTranslator?: ErrorTranslator
+  private pathChecker = new EndpointPathChecker()
 
   constructor(
     configurationManager: ConfigurationManagerInterface,
@@ -101,6 +103,10 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
 
     // This service has no end points - nothing more to do
     if (Object.keys(endpoints).length == 0) return
+
+    for (const problem of this.pathChecker.check({ ...config, endpoints })) {
+      this.logger.warn?.(`[${remoteObjectName ?? path}] ${problem}`)
+    }
 
     const acl = new ServerAcl({
       rules: aclConfig.rules,

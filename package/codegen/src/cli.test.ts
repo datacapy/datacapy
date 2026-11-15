@@ -82,3 +82,59 @@ describe('Cli --report', () => {
     expect(log).toHaveBeenCalledWith('No unsupported properties.')
   })
 })
+
+describe('Cli with an endpoints section', () => {
+  let dir: string
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' })
+  const SERVICE =
+    "type Param = { readonly '$dc:param'?: true }\n" +
+    '/** @endpoints svc */\nexport class S {\n' +
+    '  /** @route get /:id\n   * @acl public */\n  m(a: { id: string & Param }) {}\n}\n'
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'datacapy-endpoints-cli-'))
+    fs.mkdirSync(path.join(dir, 'src'))
+    fs.writeFileSync(path.join(dir, 'datacapy.config.json'), '{ "endpoints": {} }')
+    fs.writeFileSync(
+      path.join(dir, 'tsconfig.json'),
+      JSON.stringify({ compilerOptions: { strict: true }, include: ['src'] }),
+    )
+    fs.writeFileSync(path.join(dir, 'src/s.ts'), SERVICE)
+    fs.writeFileSync(path.join(dir, 'src/plain.ts'), 'export const x = 1\n')
+    git('init', '-q')
+    git('add', 'src/s.ts', 'src/plain.ts')
+  })
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true })
+    jest.restoreAllMocks()
+  })
+
+  it('--staged regenerates and stages the endpoint config for a staged @endpoints file', async () => {
+    expect(await new Cli().run(['--staged', 'src/s.ts'], dir)).toBe(0)
+    expect(git('diff', '--cached', '--name-only')).toContain('src/s.endpoints.ts')
+  })
+
+  it('--staged ignores a file with no marker', async () => {
+    expect(await new Cli().run(['--staged', 'src/plain.ts'], dir)).toBe(0)
+    expect(fs.existsSync(path.join(dir, 'src/s.endpoints.ts'))).toBe(false)
+  })
+
+  it('--check fails until the file is written, then passes', async () => {
+    const errors: string[] = []
+    jest.spyOn(console, 'error').mockImplementation((m: string) => void errors.push(m))
+    jest.spyOn(console, 'log').mockImplementation(() => undefined)
+    expect(await new Cli().run(['--check'], dir)).toBe(1)
+    expect(errors.join('\n')).toContain('src/s.endpoints.ts')
+    expect(await new Cli().run([], dir)).toBe(0)
+    expect(await new Cli().run(['--check'], dir)).toBe(0)
+  })
+
+  it('--report lists endpoint problems and writes nothing', async () => {
+    fs.writeFileSync(path.join(dir, 'src/s.ts'), SERVICE.replace('\n   * @acl public', ''))
+    const errors: string[] = []
+    jest.spyOn(console, 'error').mockImplementation((m: string) => void errors.push(m))
+    expect(await new Cli().run(['--report'], dir)).toBe(1)
+    expect(errors.join('\n')).toContain('S.m: @route needs an @acl')
+    expect(fs.existsSync(path.join(dir, 'src/s.endpoints.ts'))).toBe(false)
+  })
+})

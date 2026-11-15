@@ -1,0 +1,1 @@
+{ "include": ["src/**/*.ts"], "endpoints": { "serverModule": "./server-types" } }

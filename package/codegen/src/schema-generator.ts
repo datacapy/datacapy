@@ -7,6 +7,7 @@ import { ResolvedConfig } from './config'
 import { GeneratorError } from './errors'
 import { SchemaTarget } from './field-model'
 import { Formatter } from './formatter'
+import { SourceHost } from './source-host'
 import { TypeAnalyser } from './type-analyser'
 
 export interface GeneratedFile {
@@ -44,19 +45,21 @@ interface MarkedInterface {
 export class SchemaGenerator {
   private readonly emitter = new BuilderEmitter()
   private readonly formatter: Formatter
+  private readonly host: SourceHost
 
   constructor(private readonly config: ResolvedConfig) {
     this.formatter = new Formatter(config.rootDir)
+    this.host = new SourceHost(config)
   }
 
   /** Generates every schema file in memory. */
   async generate(): Promise<GeneratedFile[]> {
-    const program = this.createProgram()
+    const program = this.host.createProgram()
     const checker = program.getTypeChecker()
     const files: GeneratedFile[] = []
 
     for (const source of program.getSourceFiles()) {
-      if (!this.isIncluded(source.fileName)) continue
+      if (!this.host.isIncluded(source.fileName)) continue
       const marked = this.findMarked(source)
       if (marked.length === 0) continue
       const out = this.outputPath(source.fileName)
@@ -77,18 +80,20 @@ export class SchemaGenerator {
    * Writes nothing; used to size the work before adopting the generator.
    */
   report(): GeneratorError[] {
-    const program = this.createProgram()
+    const program = this.host.createProgram()
     const checker = program.getTypeChecker()
     const problems: GeneratorError[] = []
     for (const source of program.getSourceFiles()) {
-      if (!this.isIncluded(source.fileName)) continue
+      if (!this.host.isIncluded(source.fileName)) continue
       const analyser = new TypeAnalyser(checker, (type) => this.resolveRef(type, source.fileName))
       for (const statement of source.statements) {
         if (!this.isModelDeclaration(statement)) continue
-        if (!ts.getJSDocTags(statement).some((t) => t.tagName.text === this.config.marker)) {
+        if (!this.host.markerTag(statement)) {
           continue
         }
-        this.collect(problems, () => this.reportInterface(statement, checker, analyser, problems))
+        this.host.collect(problems, () =>
+          this.reportInterface(statement, checker, analyser, problems),
+        )
       }
     }
     return problems
@@ -100,13 +105,13 @@ export class SchemaGenerator {
     analyser: TypeAnalyser,
     problems: GeneratorError[],
   ): void {
-    const tag = ts.getJSDocTags(node).find((t) => t.tagName.text === this.config.marker)!
-    this.parseMarker(node, ts.getTextOfJSDocComment(tag.comment) ?? '')
+    const tag = this.host.markerTag(node)!
+    this.parseMarker(node, this.host.markerText(tag))
     const ctx = new EmitContext(this.config.registry !== null)
     const type = checker.getTypeAtLocation(node)
     const valueType = analyser.mapValueType(type)
     if (valueType) {
-      this.collect(problems, () => {
+      this.host.collect(problems, () => {
         const iface = node.name.text
         this.emitter.emit(analyser.mapValue(valueType, `${iface}[]`), `${iface}[]`, ctx)
       })
@@ -114,18 +119,9 @@ export class SchemaGenerator {
     }
     for (const prop of this.fieldsOf(checker, node, type)) {
       const fieldPath = `${node.name.text}.${prop.name}`
-      this.collect(problems, () => {
+      this.host.collect(problems, () => {
         this.emitter.emit(analyser.analyseProperty(prop, fieldPath), fieldPath, ctx)
       })
-    }
-  }
-
-  private collect(into: GeneratorError[], run: () => void): void {
-    try {
-      run()
-    } catch (error) {
-      if (!(error instanceof GeneratorError)) throw error
-      into.push(error)
     }
   }
 
@@ -149,48 +145,13 @@ export class SchemaGenerator {
     return { stale }
   }
 
-  private createProgram(): ts.Program {
-    const read = ts.readConfigFile(this.config.tsconfig, ts.sys.readFile)
-    if (read.error) {
-      throw new Error(ts.flattenDiagnosticMessageText(read.error.messageText, '\n'))
-    }
-    const parsed = ts.parseJsonConfigFileContent(
-      read.config,
-      ts.sys,
-      path.dirname(this.config.tsconfig),
-    )
-    // `T | null` and optional keys only survive in the checker with strictNullChecks on
-    return ts.createProgram(parsed.fileNames, {
-      ...parsed.options,
-      strictNullChecks: true,
-      noEmit: true,
-    })
-  }
-
-  private isIncluded(fileName: string): boolean {
-    if (fileName.endsWith('.d.ts') || fileName.includes('node_modules')) {
-      return false
-    }
-    const relative = path.relative(this.config.rootDir, fileName).split(path.sep).join('/')
-    return this.config.include.some((glob) => this.globToRegExp(glob).test(relative))
-  }
-
-  private globToRegExp(glob: string): RegExp {
-    const source = glob
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-      .replace(/\*\*\//g, '\u0000')
-      .replace(/\*/g, '[^/]*')
-      .replace(/\u0000/g, '(?:.*/)?')
-    return new RegExp(`^${source}$`)
-  }
-
   private findMarked(source: ts.SourceFile): MarkedInterface[] {
     const found: MarkedInterface[] = []
     for (const statement of source.statements) {
       if (!this.isModelDeclaration(statement)) continue
-      const tag = ts.getJSDocTags(statement).find((t) => t.tagName.text === this.config.marker)
+      const tag = this.host.markerTag(statement)
       if (!tag) continue
-      const options = this.parseMarker(statement, ts.getTextOfJSDocComment(tag.comment) ?? '')
+      const options = this.parseMarker(statement, this.host.markerText(tag))
       found.push({
         node: statement,
         schemaName: options.schemaName,
@@ -215,7 +176,7 @@ export class SchemaGenerator {
   ): string {
     const ctx = new EmitContext(this.config.registry !== null)
     const out = this.outputPath(sourceFile)
-    const importPath = this.importPath(out, sourceFile)
+    const importPath = this.host.importPath(out, sourceFile)
     const interfaces = marked.map((m) => m.node.name.text)
     const body = marked.map((m) => this.renderSchema(m, checker, analyser, ctx)).join('\n')
 
@@ -337,7 +298,7 @@ export class SchemaGenerator {
     }
     if (ctx.registry.size > 0 && this.config.registry) {
       const names = [...ctx.registry].sort().join(', ')
-      lines.push(`import { ${names} } from '${this.importPath(out, this.config.registry)}'`)
+      lines.push(`import { ${names} } from '${this.host.importPath(out, this.config.registry)}'`)
     }
     return lines
   }
@@ -368,8 +329,8 @@ export class SchemaGenerator {
     return {
       className,
       interfaceName,
-      interfaceModule: this.importPath(this.outputPath(fromSource), declaredIn),
-      module: this.importPath(this.outputPath(fromSource), this.outputPath(declaredIn)),
+      interfaceModule: this.host.importPath(this.outputPath(fromSource), declaredIn),
+      module: this.host.importPath(this.outputPath(fromSource), this.outputPath(declaredIn)),
     }
   }
 
@@ -401,9 +362,9 @@ export class SchemaGenerator {
   }
 
   private markerName(node: ModelDeclaration): string | undefined {
-    const tag = ts.getJSDocTags(node).find((t) => t.tagName.text === this.config.marker)
+    const tag = this.host.markerTag(node)
     if (!tag) return undefined
-    return this.parseMarker(node, ts.getTextOfJSDocComment(tag.comment) ?? '').schemaName
+    return this.parseMarker(node, this.host.markerText(tag)).schemaName
   }
 
   private parseMarker(node: ModelDeclaration, text: string): MarkerOptions {
@@ -441,14 +402,6 @@ export class SchemaGenerator {
       }
     }
     return options
-  }
-
-  private importPath(from: string, to: string): string {
-    const relative = path
-      .relative(path.dirname(from), to.replace(/\.tsx?$/, ''))
-      .split(path.sep)
-      .join('/')
-    return relative.startsWith('.') ? relative : `./${relative}`
   }
 
   private propertyKey(name: string): string {

@@ -400,5 +400,35 @@ describe('EndpointRegistrar', () => {
 
       expect(mockAclRegistry.getRoleAssessors).toHaveBeenCalled()
     })
+
+    it('warns when a path param has no matching data entry', () => {
+      mockApiConfigRegistry.getApiConfigs.mockReturnValue([
+        {
+          service: 'PostService',
+          endpoints: { get: { path: '/:id', data: {} } },
+        },
+      ])
+
+      registrar.registerEndpoints()
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('path param ":id"')
+      )
+    })
+
+    it('does not warn when path params and data agree', () => {
+      mockApiConfigRegistry.getApiConfigs.mockReturnValue([
+        {
+          service: 'PostService',
+          endpoints: {
+            get: { path: '/:id', data: { id: { src: 'param' } } },
+          },
+        },
+      ])
+
+      registrar.registerEndpoints()
+
+      expect(mockLogger.warn).not.toHaveBeenCalled()
+    })
   })
 })

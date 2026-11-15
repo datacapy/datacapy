@@ -19,21 +19,7 @@ export class TypeAnalyser {
   }
 
   analyse(type: ts.Type, path: string, optional: boolean): FieldModel {
-    const tags = new Map<string, TagValue>()
-    let nullable = false
-    const bases: ts.Type[] = []
-
-    for (const member of this.unionMembers(type)) {
-      if (member.flags & ts.TypeFlags.Undefined) continue
-      if (member.flags & ts.TypeFlags.Null) {
-        nullable = true
-        continue
-      }
-      for (const part of this.intersectionParts(member)) {
-        if (this.isTagType(part)) this.readTags(part, tags, path)
-        else bases.push(part)
-      }
-    }
+    const { bases, tags, nullable } = this.split(type, path)
 
     if (tags.has('opaque')) {
       const mixed: FieldModel = {
@@ -56,6 +42,29 @@ export class TypeAnalyser {
       optional,
       tags,
     }
+  }
+
+  /** Separates a type into its non-tag base types, its `$dc:` tags and whether it admits `null`. */
+  split(
+    type: ts.Type,
+    path: string,
+  ): { bases: ts.Type[]; tags: Map<string, TagValue>; nullable: boolean } {
+    const tags = new Map<string, TagValue>()
+    let nullable = false
+    const bases: ts.Type[] = []
+
+    for (const member of this.unionMembers(type)) {
+      if (member.flags & ts.TypeFlags.Undefined) continue
+      if (member.flags & ts.TypeFlags.Null) {
+        nullable = true
+        continue
+      }
+      for (const part of this.intersectionParts(member)) {
+        if (this.isTagType(part)) this.readTags(part, tags, path)
+        else bases.push(part)
+      }
+    }
+    return { bases, tags, nullable }
   }
 
   private unionMembers(type: ts.Type): ts.Type[] {

@@ -31,6 +31,30 @@ export interface CodegenConfig {
    * sibling files. For schemas that live in another package.
    */
   importMap?: Record<string, { schema: string; type: string }>
+  /** Generate endpoint configs from tagged service classes. */
+  endpoints?: EndpointsConfig
+}
+
+/** The optional `endpoints` section of `datacapy.config.json`; absent means no endpoint generation. */
+export interface EndpointsConfig {
+  /** Globs of service source files to scan, relative to the config. Default: the top-level `include`. */
+  include?: string[]
+  /** JSDoc tag that marks a service class. Default `endpoints`. */
+  marker?: string
+  /** Write generated files here, mirroring the source layout. Default: beside each source file. */
+  outDir?: string
+  /** Fail a `@route` that has no `@acl`. Default true. */
+  requireAcl?: boolean
+  /** Module that exports the `ServerApiConfig` type. Default `@datacapy/server`. */
+  serverModule?: string
+}
+
+export interface ResolvedEndpointsConfig {
+  include: string[]
+  marker: string
+  outDir: string | null
+  requireAcl: boolean
+  serverModule: string
 }
 
 export interface ResolvedConfig {
@@ -44,6 +68,7 @@ export interface ResolvedConfig {
   strict: boolean
   collections: Record<string, string>
   importMap: Record<string, { schema: string; type: string }>
+  endpoints: ResolvedEndpointsConfig | null
 }
 
 export const CONFIG_FILE = 'datacapy.config.json'
@@ -69,6 +94,18 @@ export class ConfigLoader {
       strict: raw.strict ?? false,
       collections: raw.collections ?? {},
       importMap: raw.importMap ?? {},
+      endpoints: raw.endpoints ? this.resolveEndpoints(rootDir, raw) : null,
+    }
+  }
+
+  private resolveEndpoints(rootDir: string, raw: CodegenConfig): ResolvedEndpointsConfig {
+    const endpoints = raw.endpoints ?? {}
+    return {
+      include: endpoints.include ?? raw.include ?? ['src/**/*.ts'],
+      marker: endpoints.marker ?? 'endpoints',
+      outDir: endpoints.outDir ? path.resolve(rootDir, endpoints.outDir) : null,
+      requireAcl: endpoints.requireAcl ?? true,
+      serverModule: endpoints.serverModule ?? '@datacapy/server',
     }
   }
 }
