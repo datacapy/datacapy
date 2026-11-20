@@ -26,6 +26,10 @@ export class ExpressAppManager implements ExpressAppManagerInterface {
     return this.router
   }
 
+  setLogger(logger: LoggerInterface): void {
+    this.logger = logger
+  }
+
   mountRouter(path: string): void {
     this.app.use(path, this.router)
   }

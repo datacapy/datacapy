@@ -8,7 +8,7 @@
 **A document-first TypeScript framework for structured Node.js backends.**
 
 Write one class and a config block, and get a validated, access-controlled, typed REST endpoint
-backed by MySQL or MongoDB. It is plain Express underneath, so any Express middleware works.
+backed by MySQL or MongoDB. It runs on Express (the default) or Hono through a neutral HTTP adaptor, so you choose the framework without changing your services.
 
 DataCapy is document-first, not relational. You model documents, as a constructor class and its
 schema, rather than tables, and each [datasource](docs/datasources.md) maps them onto its own

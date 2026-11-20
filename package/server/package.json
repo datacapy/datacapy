@@ -2,7 +2,7 @@
   "name": "@datacapy/server",
   "type": "commonjs",
   "version": "1.1.0",
-  "description": "Expose services as validated, access-controlled REST endpoints from config, on plain Express",
+  "description": "Expose services as validated, access-controlled REST endpoints from config, on Express or Hono",
   "main": "dist/index",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -32,11 +32,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@hono/node-server": "^2.1.11",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.6",
+    "@types/proxy-addr": "^2.0.3",
+    "@types/qs": "^6.9.18",
     "eslint": "^10.14.0",
+    "hono": "^4.13.19",
     "husky": "^9.1.7",
     "jest": "^30.5.2",
     "lint-staged": "^17.6.0",
@@ -44,15 +48,17 @@
     "ts-jest": "^29.4.15",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.2"
+    "typescript-eslint": "^8.72.2",
+    "express": "^5.3.0"
   },
   "dependencies": {
+    "@datacapy/om": "workspace:*",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.4.0",
-    "express": "^5.3.0",
     "merge": "^2.1.1",
     "mongodb": "^7.9.0",
-    "@datacapy/om": "workspace:*"
+    "proxy-addr": "^2.0.7",
+    "qs": "^6.16.1"
   },
   "files": [
     "/dist",
@@ -63,5 +69,46 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "express": "^5.0.0",
+    "hono": "^4.0.0",
+    "@hono/node-server": "^1.0.0 || ^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    },
+    "@hono/node-server": {
+      "optional": true
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./express": {
+      "types": "./dist/adaptor/express/index.d.ts",
+      "default": "./dist/adaptor/express/index.js"
+    },
+    "./hono": {
+      "types": "./dist/adaptor/hono/index.d.ts",
+      "default": "./dist/adaptor/hono/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "express": [
+        "dist/adaptor/express/index.d.ts"
+      ],
+      "hono": [
+        "dist/adaptor/hono/index.d.ts"
+      ]
+    }
   }
 }

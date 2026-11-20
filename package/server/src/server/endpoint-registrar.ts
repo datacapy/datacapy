@@ -2,7 +2,6 @@ import { Repo, Service } from '@datacapy/om'
 
 import {
   ConfigurationManagerInterface,
-  ExpressAppManagerInterface,
   AclRegistryInterface,
   ApiConfigRegistryInterface,
   EndpointRegistrarInterface,
@@ -13,6 +12,7 @@ import { EndpointPathChecker } from './endpoint-path-check'
 import ServerAcl from '../acl'
 import { ServerRemoteObject } from '../remote-object'
 import { ErrorTranslator } from '../remote-object/interfaces'
+import type { HttpAdaptor } from '../adaptor/types'
 
 /**
  * Converts camelCase to kebab-case
@@ -28,7 +28,7 @@ function camelToKebab(input: string): string {
  */
 export class EndpointRegistrar implements EndpointRegistrarInterface {
   private configurationManager: ConfigurationManagerInterface
-  private expressAppManager: ExpressAppManagerInterface
+  private adaptor: Pick<HttpAdaptor, 'route' | 'bodyParsers'>
   private aclRegistry: AclRegistryInterface
   private apiConfigRegistry: ApiConfigRegistryInterface
   private logger: LoggerInterface
@@ -37,13 +37,13 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
 
   constructor(
     configurationManager: ConfigurationManagerInterface,
-    expressAppManager: ExpressAppManagerInterface,
+    adaptor: Pick<HttpAdaptor, 'route' | 'bodyParsers'>,
     aclRegistry: AclRegistryInterface,
     apiConfigRegistry: ApiConfigRegistryInterface,
     logger: LoggerInterface
   ) {
     this.configurationManager = configurationManager
-    this.expressAppManager = expressAppManager
+    this.adaptor = adaptor
     this.aclRegistry = aclRegistry
     this.apiConfigRegistry = apiConfigRegistry
     this.logger = logger
@@ -133,6 +133,6 @@ export class EndpointRegistrar implements EndpointRegistrarInterface {
     remote.setLogger(this.logger)
     remote.setErrorTranslator(this.errorTranslator)
     remote.setAcl(acl)
-    remote.initRouter(this.expressAppManager.getRouter())
+    remote.registerRoutes(this.adaptor)
   }
 }

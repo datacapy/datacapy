@@ -335,7 +335,7 @@ describe('MiddlewareFactory', () => {
       )
     })
 
-    it('skips automatic response when skipResponse is true', async () => {
+    it('skips automatic response when the response is already handled', async () => {
       const endpointObject = {
         testMethod: jest.fn().mockResolvedValue({ success: true }),
       }
@@ -343,8 +343,8 @@ describe('MiddlewareFactory', () => {
       const endpointConfig: ServerApiConfigEndpoint = {
         method: 'testMethod',
         verbs: ['get'],
-        skipResponse: true,
       }
+      Object.assign(mockRes, { handled: true })
 
       const requestDataConfig = {}
       const responseSuccess: ServerApiConfigEndpointResponse = {}

@@ -1,5 +1,5 @@
 import * as _Http from 'http'
-import express from 'express'
+import type express from 'express'
 import { ModelManager } from '@datacapy/om'
 
 import { ServerConfig } from './server-config'
@@ -8,13 +8,21 @@ import ServerAclRoleAssessor from './acl/role-assessor'
 import {
   ConfigurationManager,
   LifecycleManager,
-  ExpressAppManager,
-  HttpServerManager,
   AclRegistry,
   ApiConfigRegistry,
   EndpointRegistrar,
 } from './server/index'
 import { ErrorTranslator } from './remote-object/interfaces'
+import type { ExpressAdaptor } from './adaptor/express'
+import type {
+  Handler,
+  HttpAdaptor,
+  HttpMethod,
+  MiddlewareStage,
+  StaticOptions,
+  TrustProxyConfig,
+} from './adaptor/types'
+import { registerShutdownSignals } from './server/shutdown-signals'
 
 /**
  * Server - Orchestrates server components following SOLID principles
@@ -25,9 +33,8 @@ export class Server {
   modelManager: ModelManager | any
   config: ServerConfig
   apiConfigs: Array<ServerApiConfig>
-  app: express.Application
   server: _Http.Server | null
-  router: express.Router
+  adaptor: HttpAdaptor
   aclRoleAssessor: { [key: string]: any }
   logger: any
   initialisers: { [key: string]: any[] }
@@ -37,8 +44,6 @@ export class Server {
   // Private components following DIP
   private configurationManager: ConfigurationManager
   private lifecycleManager: LifecycleManager
-  private expressAppManager: ExpressAppManager
-  private httpServerManager: HttpServerManager
   private aclRegistry: AclRegistry
   private apiConfigRegistry: ApiConfigRegistry
   private endpointRegistrar: EndpointRegistrar
@@ -47,10 +52,7 @@ export class Server {
     // Create components in dependency order
     this.configurationManager = new ConfigurationManager(options, modelManager)
     this.lifecycleManager = new LifecycleManager()
-    this.expressAppManager = new ExpressAppManager(
-      this.configurationManager.getConfig(),
-      console
-    )
+    this.adaptor = this.createAdaptor(this.configurationManager.getConfig())
     this.aclRegistry = new AclRegistry()
     this.apiConfigRegistry = new ApiConfigRegistry()
 
@@ -60,25 +62,15 @@ export class Server {
     // Create endpoint registrar (depends on other components)
     this.endpointRegistrar = new EndpointRegistrar(
       this.configurationManager,
-      this.expressAppManager,
+      this.adaptor,
       this.aclRegistry,
       this.apiConfigRegistry,
       this.logger
     )
 
-    // Create HTTP server manager (depends on shutdown callback)
-    this.httpServerManager = new HttpServerManager(
-      this.expressAppManager.getApp(),
-      this.configurationManager.getConfig(),
-      this.logger,
-      () => this.shutdown()
-    )
-
     // Expose component state for backward compatibility
     this.config = this.configurationManager.getConfig()
     this.modelManager = this.configurationManager.getModelManager()
-    this.app = this.expressAppManager.getApp()
-    this.router = this.expressAppManager.getRouter()
     this.aclRoleAssessor = this.aclRegistry.getRoleAssessors()
     this.apiConfigs = this.apiConfigRegistry.getApiConfigs()
     this.server = null
@@ -92,15 +84,71 @@ export class Server {
       get: () => this.lifecycleManager.getShutdownHandlers(),
     })
     Object.defineProperty(this, 'server', {
-      get: () => this.httpServerManager.getServer(),
+      get: () => this.adaptor.server,
     })
+  }
+
+  /** The Express app. Only with the Express adaptor; prefer `use`, `route`, `static` and `trustProxy`. */
+  get app(): express.Application {
+    return this.expressAdaptor('app').native
+  }
+
+  /** The Express router stage. Only with the Express adaptor. */
+  get router(): express.Router {
+    return this.expressAdaptor('router').getRouter()
+  }
+
+  private expressAdaptor(member: string): ExpressAdaptor {
+    if (this.config.adaptor !== 'hono') return this.adaptor as ExpressAdaptor
+    throw new Error(
+      `server.${member} exists only with the Express adaptor; use server.use, server.route, server.static and server.trustProxy`
+    )
+  }
+
+  private createAdaptor(config: ServerConfig): HttpAdaptor {
+    if (config.adaptor === 'hono') {
+      // Loaded on demand so Express-only installs never need the optional peers
+      const { HonoAdaptor } =
+        require('./adaptor/hono') as typeof import('./adaptor/hono')
+      return new HonoAdaptor(config, console, () => this.shutdown())
+    }
+    // Loaded on demand so Hono-only installs never need `express`
+    const { ExpressAdaptor: Express } =
+      require('./adaptor/express') as typeof import('./adaptor/express')
+    return new Express(config, console, () => this.shutdown())
+  }
+
+  use(stage: MiddlewareStage, handler: Handler): void
+  use(stage: MiddlewareStage, path: string, handler: Handler): void
+  use(stage: MiddlewareStage, a: string | Handler, b?: Handler): void {
+    if (typeof a === 'string') {
+      this.adaptor.use(stage, a, b as Handler)
+    } else {
+      this.adaptor.use(stage, a)
+    }
+  }
+
+  route(
+    stage: MiddlewareStage,
+    method: HttpMethod,
+    path: string,
+    ...handlers: Handler[]
+  ): void {
+    this.adaptor.route(stage, method, path, ...handlers)
+  }
+
+  static(urlPath: string, directory: string, options?: StaticOptions): void {
+    this.adaptor.static(urlPath, directory, options)
+  }
+
+  trustProxy(config: TrustProxyConfig): void {
+    this.adaptor.trustProxy(config)
   }
 
   setLogger(logger): this {
     this.logger = logger
     this.configurationManager.setLogger(logger)
-    this.expressAppManager['logger'] = logger
-    this.httpServerManager['logger'] = logger
+    this.adaptor.setLogger?.(logger)
     this.endpointRegistrar['logger'] = logger
     return this
   }
@@ -126,10 +174,14 @@ export class Server {
         this
       )
 
-      this.expressAppManager.mountRouter(this.config.path)
+      this.adaptor.mountRouter(this.config.path)
       await this.lifecycleManager.runInitialisers('04-router-mounted', this)
 
-      this.expressAppManager.setupErrorHandler(this.logger)
+      this.adaptor.setErrorHandler((err, req, res, next) => {
+        this.logger.error({ err, req, res })
+        res.status(500).send('Something broke!')
+        next()
+      })
 
       await this.lifecycleManager.runInitialisers('99-final', this)
 
@@ -186,7 +238,8 @@ export class Server {
   }
 
   async start() {
-    await this.httpServerManager.start()
+    await this.adaptor.listen(this.config.port)
+    registerShutdownSignals(() => this.shutdown())
   }
 
   async shutdown() {
@@ -203,7 +256,7 @@ export class Server {
     await this.lifecycleManager.runShutdownHandlers('00-init')
     await this.lifecycleManager.runShutdownHandlers()
 
-    return this.httpServerManager.shutdown()
+    return this.adaptor.close()
   }
 }
 

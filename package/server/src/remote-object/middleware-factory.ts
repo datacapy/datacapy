@@ -10,6 +10,7 @@ import {
 import { RequestDataParser } from './request-data-parser'
 import { ResponseHandler } from './response-handler'
 import { ErrorHandler } from './error-handler'
+import { isResponseHandled } from '../adaptor/response-state'
 
 /**
  * Responsible for creating middleware callbacks for endpoints
@@ -120,8 +121,8 @@ export class MiddlewareFactory {
           requestData,
         ])
 
-        // Skip automatic response if endpoint handles it manually
-        if (endpointConfig.skipResponse) {
+        // Skip the automatic response if the endpoint already answered
+        if (isResponseHandled(res)) {
           return
         }
 

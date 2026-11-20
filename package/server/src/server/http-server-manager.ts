@@ -1,9 +1,9 @@
 import * as _Http from 'http'
 import { Socket } from 'net'
-import express from 'express'
 
 import { HttpServerManagerInterface, LoggerInterface } from './interfaces'
 import { ServerConfig } from '../server-config'
+import { registerShutdownSignals } from './shutdown-signals'
 
 /**
  * Responsible for HTTP server lifecycle (start/stop)
@@ -12,13 +12,13 @@ import { ServerConfig } from '../server-config'
 export class HttpServerManager implements HttpServerManagerInterface {
   private server: _Http.Server
   private connections: Set<Socket> = new Set()
-  private app: express.Application
+  private app: _Http.RequestListener
   private config: ServerConfig
   private logger: LoggerInterface
   private onShutdown: () => Promise<void>
 
   constructor(
-    app: express.Application,
+    app: _Http.RequestListener,
     config: ServerConfig,
     logger: LoggerInterface,
     onShutdown: () => Promise<void>
@@ -34,26 +34,19 @@ export class HttpServerManager implements HttpServerManagerInterface {
     })
   }
 
+  async listen(port: number): Promise<void> {
+    this.server.listen(port, () => {
+      this.logger.info('Listening on port ' + port)
+    })
+  }
+
   async start(): Promise<void> {
-    this.server.listen(this.config.port, () => {
-      this.logger.info('Listening on port ' + this.config.port)
-    })
+    await this.listen(this.config.port)
+    registerShutdownSignals(this.onShutdown)
+  }
 
-    process.on('SIGINT', () => {
-      this.onShutdown().then(() => {
-        setTimeout(function () {
-          process.exit(0)
-        }, 5000)
-      })
-    })
-
-    process.on('SIGTERM', () => {
-      this.onShutdown().then(() => {
-        setTimeout(function () {
-          process.exit(0)
-        }, 5000)
-      })
-    })
+  setLogger(logger: LoggerInterface): void {
+    this.logger = logger
   }
 
   async shutdown(): Promise<any> {

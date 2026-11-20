@@ -1,7 +1,6 @@
 import { EndpointRegistrar } from './endpoint-registrar'
 import { ServerApiConfig } from '../api-config'
 import { ServerRemoteObject } from '../remote-object'
-import express from 'express'
 
 // Mock the dependencies
 jest.mock('../acl')
@@ -20,16 +19,14 @@ function getRegisteredEndpointNames(): string[] {
 describe('EndpointRegistrar', () => {
   let registrar: EndpointRegistrar
   let mockConfigurationManager: any
-  let mockExpressAppManager: any
+  let mockAdaptor: any
   let mockAclRegistry: any
   let mockApiConfigRegistry: any
   let mockLogger: any
   let mockModelManager: any
-  let mockRouter: express.Router
 
   beforeEach(() => {
     MockServerRemoteObject.mockClear()
-    mockRouter = express.Router()
 
     mockModelManager = {
       repos: {},
@@ -44,8 +41,9 @@ describe('EndpointRegistrar', () => {
       }),
     }
 
-    mockExpressAppManager = {
-      getRouter: jest.fn().mockReturnValue(mockRouter),
+    mockAdaptor = {
+      route: jest.fn(),
+      bodyParsers: jest.fn().mockReturnValue([]),
     }
 
     mockAclRegistry = {
@@ -65,7 +63,7 @@ describe('EndpointRegistrar', () => {
 
     registrar = new EndpointRegistrar(
       mockConfigurationManager,
-      mockExpressAppManager,
+      mockAdaptor,
       mockAclRegistry,
       mockApiConfigRegistry,
       mockLogger

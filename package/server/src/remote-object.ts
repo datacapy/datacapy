@@ -21,6 +21,8 @@ import { ResponseHandler } from './remote-object/response-handler'
 import { ErrorHandler } from './remote-object/error-handler'
 import { EndpointResolver } from './remote-object/endpoint-resolver'
 import { MiddlewareFactory } from './remote-object/middleware-factory'
+import type { HttpAdaptor, HttpMethod } from './adaptor/types'
+import { isHttpMethod } from './adaptor/http-method'
 
 export interface ServerRemoteObjectConfig {
   path?: string
@@ -123,6 +125,28 @@ export class ServerRemoteObject {
         middlewareConfig.callback,
       ])
     })
+  }
+
+  registerRoutes(adaptor: Pick<HttpAdaptor, 'route' | 'bodyParsers'>): void {
+    for (const middlewareConfig of this.getMiddlewareConfig()) {
+      adaptor.route(
+        'router',
+        this.toHttpMethod(middlewareConfig.verb),
+        middlewareConfig.path,
+        ...adaptor.bodyParsers(middlewareConfig.bodyParserConfig),
+        async (req, res) => {
+          await middlewareConfig.callback(req, res)
+        }
+      )
+    }
+  }
+
+  private toHttpMethod(verb: string): HttpMethod {
+    const method = verb.toLowerCase()
+    if (!isHttpMethod(method)) {
+      throw new Error(`Unsupported HTTP verb "${verb}"`)
+    }
+    return method
   }
 
   setAcl(acl: AclInterface): void {

@@ -21,7 +21,8 @@ turns the result or the error into an HTTP response.
 - **Error mapping**: throw a typed error in your service and get the right HTTP
   status
 - **Lifecycle hooks** for start-up and shutdown work
-- **Plain Express underneath**: use any Express middleware
+- **Pluggable HTTP framework**: Express (default) or Hono through an adaptor.
+  See [HTTP adaptors](docs/http-adaptor.md)
 
 @datacapy/server does not authenticate anyone. It gives you the place to do it:
 a role assessor reads whatever credential your application uses and decides
@@ -33,9 +34,11 @@ which roles the request has. See [Access control](#access-control).
 pnpm add @datacapy/server
 ```
 
-It depends on `@datacapy/om` (models, services, repositories) and `express`.
-Everything `@datacapy/om` exports, including `Service`, `Repo`, `ModelManager`
-and `Schema`, is re-exported from `@datacapy/server`.
+It depends on `@datacapy/om` (models, services, repositories) and, by default,
+`express` (an optional peer dependency; see
+[HTTP adaptors](docs/http-adaptor.md)). Everything `@datacapy/om` exports,
+including `Service`, `Repo`, `ModelManager` and `Schema`, is re-exported from
+`@datacapy/server`.
 
 ## Quick start
 
@@ -181,7 +184,6 @@ server.addApiConfigs([configA, configB])
 | `groups`                      | Labels for `disableGroup`                                                                                                     |
 | `enable`                      | `false` removes this endpoint                                                                                                 |
 | `priority`                    | Higher priority routes register first. Default `0`                                                                            |
-| `skipResponse`                | The method sends the response itself. See [Sending your own response](#sending-your-own-response)                             |
 | `bodyParser`                  | Per-endpoint body parsing. See [Body parsing](#body-parsing)                                                                  |
 
 **Route order matters.** Express matches in registration order, so a fixed path
@@ -284,14 +286,14 @@ server.setErrorTranslator(async (err, req) => translate(err, req.aclContext))
 
 ### Sending your own response
 
-For downloads, streams or anything that is not a return value, set
-`skipResponse: true` and take the response object as request data.
+For downloads, streams or anything that is not a return value, take the response
+object as request data and call `res.stream(readable, options)`. The server sees
+the response is handled and sends nothing more.
 
 ```ts
 files: {
   path: '/:name',
   method: 'download',
-  skipResponse: true,
   data: {
     name: { src: 'param' },
     res: { src: 'container', srcPath: 'response' },
@@ -464,18 +466,25 @@ server.addInitialiser(async (s) => {
 the model shuts down and the HTTP server closes. Add handlers directly with
 `addShutdownHandler(fn, stage)`.
 
-## Express
+## Middleware and the HTTP framework
 
-`server.app` is the Express application and `server.router` the router your
-endpoints are registered on. Middleware added to `server.app` before `init()`
-runs before every endpoint, which suits CORS, security headers and request
-logging.
+Register middleware with `server.use(stage, [path], handler)`. Stage `app` runs
+before every endpoint, which suits CORS, security headers and request logging;
+stage `router` runs inside datacapy's router. The same code runs on Express and
+Hono. Choose the framework with `adaptor: 'express' | 'hono'` in the server
+config; see [HTTP adaptors](docs/http-adaptor.md).
 
 ```ts
-server.app.use(helmet())
-server.app.use(cors({ origin: 'https://app.example.com' }))
+server.use('app', (req, res, next) => {
+  res.header('X-Frame-Options', 'DENY')
+  next()
+})
 await server.init()
 ```
+
+On the Express adaptor, `server.app` is the Express application and
+`server.router` the router, so existing Express middleware such as `helmet()`
+and `cors()` still works there. Both throw under Hono.
 
 Errors thrown outside an endpoint method, in your own middleware for example,
 are caught by a final handler that logs them and returns a 500.

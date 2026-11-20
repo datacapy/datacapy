@@ -6,6 +6,7 @@ export * from './error'
 export type * as tagsEndpoint from './endpoint-tags'
 export * from './remote-object'
 export * from './server'
+export * from './adaptor'
 export * from '@datacapy/om'
 
 export default Server
