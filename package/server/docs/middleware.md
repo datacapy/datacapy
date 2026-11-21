@@ -14,9 +14,10 @@ server.use('app', (req, res, next) => {
 await server.init()
 ```
 
-On the Express adaptor, `server.app` is the Express application and
-`server.router` the router, so existing Express middleware such as `helmet()`
-and `cors()` still works there. Both throw under Hono.
+Express middleware such as `helmet()` and `cors()` works through the same
+methods, since the handlers are plain `(req, res, next)` functions. For anything
+else, `server.adaptor.native` is the framework instance (the Express
+application, or the Hono app).
 
 Errors thrown outside an endpoint method, in your own middleware for example,
 are caught by a final handler that logs them and returns a 500.

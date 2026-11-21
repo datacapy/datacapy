@@ -35,8 +35,8 @@ disconnects.
 
 ## Middleware and routes
 
-`server.app` and `server.router` still work on Express and throw under Hono.
-Prefer the neutral methods, which work on both:
+`server.app` and `server.router` are removed. Use the neutral methods, which
+work on both adaptors:
 
 | Express                         | Neutral                                |
 | ------------------------------- | -------------------------------------- |
@@ -45,6 +45,7 @@ Prefer the neutral methods, which work on both:
 | `server.app.get('/x', fn)`      | `server.route('app', 'get', '/x', fn)` |
 | `server.app.set('trust proxy')` | `server.trustProxy([...])`             |
 | `express.static(dir)`           | `server.static(...)`                   |
+| any other `server.app` use      | `server.adaptor.native`                |
 
 Stage `app` runs before datacapy's router is mounted, stage `router` inside it.
 A trailing `/*name` wildcard arrives as one string. Router-stage handlers on

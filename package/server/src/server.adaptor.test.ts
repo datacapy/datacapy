@@ -110,20 +110,5 @@ describe.each(['express', 'hono'] as const)(
 
       expect(other.server?.listening).toBe(false)
     })
-
-    it(
-      adaptor === 'express'
-        ? 'still exposes app and router'
-        : 'explains that app and router are Express-only',
-      () => {
-        if (adaptor === 'express') {
-          expect(typeof server.app.use).toBe('function')
-          expect(typeof server.router.use).toBe('function')
-        } else {
-          expect(() => server.app).toThrow(/only with the Express adaptor/)
-          expect(() => server.router).toThrow(/only with the Express adaptor/)
-        }
-      }
-    )
   }
 )

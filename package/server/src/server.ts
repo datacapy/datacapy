@@ -1,5 +1,4 @@
 import * as _Http from 'http'
-import type express from 'express'
 import { ModelManager } from '@datacapy/om'
 
 import { ServerConfig } from './server-config'
@@ -13,7 +12,6 @@ import {
   EndpointRegistrar,
 } from './server/index'
 import { ErrorTranslator } from './remote-object/interfaces'
-import type { ExpressAdaptor } from './adaptor/express'
 import type {
   Handler,
   HttpAdaptor,
@@ -86,23 +84,6 @@ export class Server {
     Object.defineProperty(this, 'server', {
       get: () => this.adaptor.server,
     })
-  }
-
-  /** The Express app. Only with the Express adaptor; prefer `use`, `route`, `static` and `trustProxy`. */
-  get app(): express.Application {
-    return this.expressAdaptor('app').native
-  }
-
-  /** The Express router stage. Only with the Express adaptor. */
-  get router(): express.Router {
-    return this.expressAdaptor('router').getRouter()
-  }
-
-  private expressAdaptor(member: string): ExpressAdaptor {
-    if (this.config.adaptor !== 'hono') return this.adaptor as ExpressAdaptor
-    throw new Error(
-      `server.${member} exists only with the Express adaptor; use server.use, server.route, server.static and server.trustProxy`
-    )
   }
 
   private createAdaptor(config: ServerConfig): HttpAdaptor {

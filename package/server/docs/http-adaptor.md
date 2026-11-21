@@ -28,10 +28,9 @@ is skipped then.
 ## Express adaptor
 
 `ExpressAdaptor` (`src/adaptor/express`) is the only implementation. `Server`
-builds one and exposes it as `server.adaptor`; `server.app`, `server.router` and
-`server.server` still work (`server.app` and `server.router` throw under Hono)
-and are the adaptor's Express app, the router stage and the Node server.
-Endpoint routes are registered through `adaptor.route('router', ...)` with
+builds one and exposes it as `server.adaptor`, with `server.server` the Node
+server. The Express application is `server.adaptor.native`. Endpoint routes are
+registered through `adaptor.route('router', ...)` with
 `adaptor.bodyParsers(...)`. The adaptor adds `req.node`, `res.handled` and
 `res.stream` to every request, and a client that disconnects mid-stream resolves
 quietly while a failing source stream rejects.
