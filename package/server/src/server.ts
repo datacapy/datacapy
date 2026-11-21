@@ -87,16 +87,49 @@ export class Server {
   }
 
   private createAdaptor(config: ServerConfig): HttpAdaptor {
+    const shutdown = () => this.shutdown()
     if (config.adaptor === 'hono') {
       // Loaded on demand so Express-only installs never need the optional peers
-      const { HonoAdaptor } =
-        require('./adaptor/hono') as typeof import('./adaptor/hono')
-      return new HonoAdaptor(config, console, () => this.shutdown())
+      const { HonoAdaptor } = this.loadAdaptor(
+        'hono',
+        () => require('./adaptor/hono') as typeof import('./adaptor/hono'),
+        ['hono', '@hono/node-server']
+      )
+      return new HonoAdaptor(config, console, shutdown)
     }
     // Loaded on demand so Hono-only installs never need `express`
-    const { ExpressAdaptor: Express } =
-      require('./adaptor/express') as typeof import('./adaptor/express')
-    return new Express(config, console, () => this.shutdown())
+    const { ExpressAdaptor: Express } = this.loadAdaptor(
+      'express',
+      () => require('./adaptor/express') as typeof import('./adaptor/express'),
+      ['express']
+    )
+    return new Express(config, console, shutdown)
+  }
+
+  /**
+   * Runs `load`, turning a missing optional peer into an install hint. Any
+   * other failure, including a missing module the adaptor does not list as a
+   * peer, surfaces unchanged.
+   */
+  private loadAdaptor<T>(name: string, load: () => T, peers: string[]): T {
+    try {
+      return load()
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException
+      const missing =
+        err?.code === 'MODULE_NOT_FOUND' &&
+        peers.some((peer) => this.namesModule(err.message, peer))
+      if (!missing) throw error
+      const hint = new Error(
+        `adaptor '${name}' needs the optional peer '${peers[0]}'. Install it: pnpm add ${peers.join(' ')}`
+      ) as Error & { cause?: unknown }
+      hint.cause = error
+      throw hint
+    }
+  }
+
+  private namesModule(message: string, module: string): boolean {
+    return message.includes(`'${module}'`) || message.includes(`"${module}"`)
   }
 
   use(stage: MiddlewareStage, handler: Handler): void

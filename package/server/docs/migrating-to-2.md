@@ -16,6 +16,11 @@ pnpm add express
 A Hono application installs `hono` and `@hono/node-server` instead and sets
 `adaptor: 'hono'`.
 
+A missing peer fails with a clear message, for example
+`adaptor 'hono' needs the optional peer 'hono'. Install it: pnpm add hono @hono/node-server`
+(the original error is its `cause`). Importing `@datacapy/server/hono` directly
+keeps Node's own error.
+
 ## `skipResponse` is removed
 
 An endpoint that wrote its own response no longer needs the flag. The server

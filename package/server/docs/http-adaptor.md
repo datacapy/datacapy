@@ -59,6 +59,11 @@ chosen adaptor on demand, so a Hono-only install never loads `express`. The
 adaptors are also importable directly: `@datacapy/server/express` and
 `@datacapy/server/hono`. The main entry exports the contract types only.
 
+With a peer missing, `new Server` throws
+`adaptor 'hono' needs the optional peer 'hono'. Install it: pnpm add hono @hono/node-server`
+(or the Express equivalent), with the original error as `cause`. A direct
+subpath import keeps Node's own error.
+
 How it differs inside:
 
 - Handlers are written Express-style (`res.json(...)`, `next()`), so the adaptor
