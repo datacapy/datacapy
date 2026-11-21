@@ -8,7 +8,7 @@
 **A document-first TypeScript framework for structured Node.js backends.**
 
 Write one class and a config block, and get a validated, access-controlled, typed REST endpoint
-backed by MySQL or MongoDB. It runs on Express (the default) or Hono through a neutral HTTP adaptor, so you choose the framework without changing your services.
+backed by a choice of databases and served over a choice of Node.js HTTP servers. Datasource and HTTP adaptors keep your services independent of both, so you can change either without rewriting them. MySQL and MongoDB, and Express and Hono, are supported today.
 
 DataCapy is document-first, not relational. You model documents, as a constructor class and its
 schema, rather than tables, and each [datasource](docs/datasources.md) maps them onto its own
@@ -29,12 +29,13 @@ storage. MongoDB stores documents natively; MySQL is the relational datasource t
 ## Install
 
 ```bash
-pnpm add @datacapy/server @datacapy/schema
-pnpm add -D @datacapy/codegen
+pnpm add @datacapy/server @datacapy/schema express
+pnpm add -D @datacapy/codegen tsx typescript @types/express @types/node
 ```
 
-Add the driver for your database (`mysql2` or `mongodb`) to your own project. Licensed under
-[BSD 3-Clause](LICENSE).
+Express is an optional peer dependency of `@datacapy/server`, so install it yourself (or use Hono, see
+[HTTP adaptors](package/server/docs/http-adaptor.md)). Add the driver for your database (`mysql2` or
+`mongodb`) to your own project. Licensed under [BSD 3-Clause](LICENSE).
 
 ## A taste
 
@@ -45,10 +46,34 @@ export class Note extends SchemaConstructor<Note> {
   text!: string & t.Trim & t.MinLength<1> & t.MaxLength<280>
   status!: ('draft' | 'published') & t.Required & t.Default<'draft'>
 }
+
+class RepoNote extends Repo<Note> {
+  constructor() {
+    super({ name: 'note', dataSource: 'db' })
+  }
+}
+
+/** @endpoints note */
+class ServiceNote extends Service {
+  constructor() {
+    super({ name: 'note' })
+  }
+
+  /**
+   * @route get /:id
+   * @acl authed
+   */
+  async get({ id }: { id: string & e.Param }) {
+    const note = await this.getRepo<RepoNote>('note').findOne({ _id: id })
+    if (!note) throw new ServerErrorNotFound({ message: 'No such note' })
+    return note
+  }
+}
 ```
 
-`datacapy-gen` writes the schema from the class and the endpoint config from tags on a service. The
-result:
+Type tags on the class carry the validation rules, and `@endpoints`, `@route` and `@acl` on the
+service say what is exposed, at which path and for which role. `datacapy-gen` writes the schema and
+the endpoint config from them. The result:
 
 ```
 GET /api/note/n1   (no credentials)   401 {"name":"ServerErrorUnauthorized"}
@@ -56,7 +81,7 @@ GET /api/note/n1   (signed in)        200 {"_id":"n1","text":"Hello","status":"p
 GET /api/note/n9   (signed in)        404 {"message":"No such note","name":"ServerErrorNotFound"}
 ```
 
-The full walkthrough, with the repo, service, roles and endpoints, is
+The full working version, with every file, the generate step and the server to run, is
 [Getting started](docs/getting-started.md). To run it without a database, see
 [Try it with no database](docs/try-without-database.md).
 

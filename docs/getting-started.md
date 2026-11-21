@@ -15,6 +15,16 @@ Four pieces:
 3. **Server:** a repo, a service and a role assessor.
 4. **Endpoints:** tags on the service expose it, and `datacapy-gen` writes the config.
 
+## Install
+
+```bash
+pnpm add @datacapy/server @datacapy/schema express
+pnpm add -D @datacapy/codegen tsx typescript @types/express @types/node
+```
+
+Express is an optional peer dependency of `@datacapy/server`, so install it yourself (or use Hono, see
+[HTTP adaptors](../package/server/docs/http-adaptor.md)). Every file below lives in `src/`.
+
 ## 1. The constructor
 
 ```ts
@@ -38,7 +48,19 @@ export class Note extends SchemaConstructor<Note> {
 
 ## 2. The schema
 
-Run `datacapy-gen`. It writes `Note.schema.ts` beside `Note.ts`. Commit it, never edit it.
+Tell the generator where your classes are, in `datacapy.config.json`:
+
+```json
+{ "include": ["src/**/*.ts"] }
+```
+
+Then run it:
+
+```bash
+pnpm datacapy-gen
+```
+
+It writes `Note.schema.ts` beside `Note.ts`. Commit it, never edit it.
 
 ```ts
 export class SchemaNote extends Schema.from(
@@ -65,7 +87,7 @@ A repo, a service for the logic, and a role assessor. The service tags say which
 endpoints, with what path, verb and role.
 
 ```ts
-// server.ts
+// src/server.ts
 import Server, {
   DataSourceMock,
   Repo,
@@ -134,28 +156,35 @@ The model manager links schema to repo by name, so the `note` repo uses the `not
 
 ## 4. The endpoints
 
-Add an `endpoints` section to `datacapy.config.json` and run `datacapy-gen` again. It writes
-`ServiceNote.endpoints.ts` beside the service. Commit it, never edit it.
+Add an `endpoints` section to `datacapy.config.json`:
 
 ```json
-{ "endpoints": { "include": ["src/**/Service*.ts"] } }
+{ "include": ["src/**/*.ts"], "endpoints": { "include": ["src/**/Service*.ts"] } }
+```
+
+Run the generator again. It writes `ServiceNote.endpoints.ts` beside the service. Commit it, never
+edit it.
+
+```bash
+pnpm datacapy-gen
 ```
 
 The glob is set once. Any new `Service*.ts` file with an `@endpoints` class is picked up, so a new
 service needs no config change.
 
 ```ts
-// endpoints.ts
+// src/endpoints.ts
 export { noteConfig } from './ServiceNote.endpoints'
 ```
+
+Add these lines to the end of `src/server.ts`:
 
 ```ts
 import * as endpoints from './endpoints'
 
 server.addApiConfigs(Object.values(endpoints))
 
-await server.init()
-await server.start()
+server.init().then(() => server.start())
 ```
 
 - The endpoint is named after the method (`get`), and `@route` and `@acl` set its path, verbs and role.
@@ -163,7 +192,23 @@ await server.start()
 - Typed errors map to response statuses.
 - For production, swap `DataSourceMock` for MySQL, MongoDB or another store; service code is unchanged.
 - All tags: the [endpoint generator](../package/codegen/docs/endpoints.md). To write the config by hand
-  instead, see the [`server` quick start](../package/server/README.md#quick-start).
+  instead, see the [`server` quick start](../package/server/docs/quick-start.md).
+
+## 5. Run it
+
+```bash
+pnpm tsx src/server.ts
+```
+
+From a second terminal:
+
+```bash
+curl -i http://localhost:3838/api/note/n1
+curl -i -H 'X-User: kevin' http://localhost:3838/api/note/n1
+curl -i -H 'X-User: kevin' http://localhost:3838/api/note/n9
+```
+
+They return the 401, 200 and 404 responses shown at the top.
 
 ## In the browser
 
