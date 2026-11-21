@@ -1,5 +1,13 @@
 # @datacapy/server
 
+## 2.0.1
+
+### Patch Changes
+
+- 6b8bf66: A missing optional peer (`express`, `hono`, `@hono/node-server`) now
+  fails with an install hint instead of Node's bare `Cannot find module`, and
+  the type-test files no longer ship in the tarball.
+
 ## 2.0.0
 
 ### Major Changes

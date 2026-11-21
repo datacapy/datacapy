@@ -1,7 +1,7 @@
 {
   "name": "@datacapy/server",
   "type": "commonjs",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Expose services as validated, access-controlled REST endpoints from config, on Express or Hono",
   "main": "dist/index",
   "types": "dist/index.d.ts",
