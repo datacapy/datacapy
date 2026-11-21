@@ -1,5 +1,41 @@
 # @datacapy/server
 
+## 2.0.0
+
+### Major Changes
+
+- babe5ba: `@datacapy/server` now runs on a pluggable HTTP adaptor: Express
+  (default) or Hono. Breaking changes, with migration steps in
+  `package/server/docs/migrating-to-2.md`:
+
+  - `express` is an optional peer dependency, no longer a hard one. Applications
+    on the Express adaptor install it themselves.
+  - The adaptors are subpath exports, `@datacapy/server/express` and
+    `@datacapy/server/hono`. The main entry no longer exports `ExpressAdaptor`
+    or `ExpressAppManager`.
+  - `server.app` and `server.router` are removed; use `server.use`,
+    `server.route`, `server.static`, `server.trustProxy`, or
+    `server.adaptor.native`.
+  - `skipResponse` is removed. An endpoint that has already handled its response
+    is not answered again; use `res.stream` for streams.
+  - `HttpRequest` has required `node`, `params` and `query`, and `res.header`
+    sets values exactly as given.
+
+### Minor Changes
+
+- babe5ba: Add the framework-neutral `HttpAdaptor` contract (`HttpRequest`,
+  `HttpResponse`, `Handler`, `StreamOptions` and related types) as the seam for
+  running on Express or Hono. `Server` now runs on the new `ExpressAdaptor`
+  (exposed as `server.adaptor`); `server.server` is unchanged. An endpoint that
+  has already written its response no longer reaches the automatic success
+  response.
+- babe5ba: Add `HonoAdaptor`, a second implementation of the `HttpAdaptor`
+  contract on Hono and `@hono/node-server` (Node only). `hono` and
+  `@hono/node-server` are optional peer dependencies. The conformance suite
+  (`runAdaptorConformance`) now runs against both adaptors. `HttpRequest` gains
+  required `node`, `params` and `query`, and `res.header` sets values exactly as
+  given.
+
 ## 1.1.0
 
 ### Minor Changes
