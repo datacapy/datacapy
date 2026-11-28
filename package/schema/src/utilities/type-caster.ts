@@ -92,7 +92,7 @@ class SchemaTypeCasterString {
 
 class SchemaTypeCasterNumber {
   private static readonly decimalPattern =
-    /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/
+    /^[+-]?(\d+(?:\.\d*)?|\.\d+)([eE][+-]?\d+)?$/
 
   /**
    * Only plain decimal and exponent notation is accepted. Anything else, and any

@@ -22,7 +22,7 @@ import type {
 import { createBodyParsers } from './body-parsers'
 import { HonoRequest } from './hono-request'
 import { HonoResponse } from './hono-response'
-import { toHonoPath } from './route-path'
+import { toHonoPath, trimTrailingSlashes } from './route-path'
 import { createStaticHandler } from './static-files'
 
 interface RequestState {
@@ -84,7 +84,7 @@ export class HonoAdaptor implements HttpAdaptor<Hono<HonoEnv>> {
   use(stage: MiddlewareStage, a: string | Handler, b?: Handler): void {
     const target = this.target(stage)
     if (typeof a === 'string') {
-      const scope = a.replace(/\/+$/, '')
+      const scope = trimTrailingSlashes(a)
       target.use(
         `${toHonoPath(scope)}/*`,
         this.wrap(b as Handler, stage, scope)
@@ -124,7 +124,7 @@ export class HonoAdaptor implements HttpAdaptor<Hono<HonoEnv>> {
   }
 
   static(urlPath: string, directory: string, options?: StaticOptions): void {
-    const scope = urlPath.replace(/\/+$/, '')
+    const scope = trimTrailingSlashes(urlPath)
     this.app.use(
       `${scope}/*`,
       this.wrap(createStaticHandler(directory, options), 'app', scope)

@@ -14,7 +14,7 @@ export function parseLimit(
 ): number {
   if (typeof limit === 'number') return limit
   if (typeof limit !== 'string') return DEFAULT_LIMIT
-  const match = /^\s*(\d+(?:\.\d+)?)\s*(b|kb|mb|gb|tb)?\s*$/i.exec(limit)
+  const match = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb|tb)?$/i.exec(limit.trim())
   if (!match) return DEFAULT_LIMIT
   return Math.floor(Number(match[1]) * UNITS[(match[2] ?? 'b').toLowerCase()])
 }
