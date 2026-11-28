@@ -21,7 +21,7 @@ Package docs and examples must use the builders (`sb` for schemas, `relb` for re
 
 Each package's Jest suite is configured to fail a test on any unexpected `console.error`/
 `console.warn` call, via `installConsoleGuard()` wired into its own `setupFilesAfterEnv`
-(`src/test-utils/consoleGuard.ts`, `src/test-utils/setupTests.ts` — duplicated per package
+(`src/test-utils/consoleGuard.ts`, `src/test-utils/setupTests.ts`, duplicated per package
 rather than shared, since each is independently versioned). Noisy-but-passing suites hide
 real problems and make regressions hard to spot. Two ways to allow an expected call through:
 
